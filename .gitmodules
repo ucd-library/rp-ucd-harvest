@@ -1,0 +1,6 @@
+[submodule "Vivo_Harvester_V2"]
+	path = Vivo_Harvester_V2
+	url = https://github.com/ucd-library/Vivo_Harvester_V2.git
+[submodule "elements"]
+	path = elements
+	url = https://github.com/ucd-library/elements.git

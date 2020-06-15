@@ -1,0 +1,11 @@
+#! /usr/bin/env yml-docker-compose.sh
+version: '3'
+services:
+  harvest:
+    build:
+      context: ./Vivo_Harvester_V2/docker
+    command: tail -f /dev/null
+    env_file:
+      - .env
+    volumes:
+       - ./data:/usr/local/vivo/harvester/data
