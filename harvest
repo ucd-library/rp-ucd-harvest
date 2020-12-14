@@ -1,0 +1,273 @@
+#! /usr/bin/env bash
+
+: <<=cut
+=pod
+
+=head1  NAME
+
+harvest - overall harvest command
+
+=head1 SYNOPSIS
+
+harvest [-b|--base=<base>]
+  <command> [<args>]
+
+  where <command> is one of xslt
+
+
+=head1 GLOBAL OPTIONS
+
+=over 4
+
+=item B<-b|--base = directory>
+
+Specify the base directory for your feed results. Default C<base=./>.
+
+
+=item B<-v|--verbose>
+
+Log some of the commands that your are going to run.
+
+=item B<-h|--help>
+
+Shows the manpage for the program. The help pages are embedded in the script and
+require the functions, C<pod2usage> and C<pod2text> to work properly.
+
+=back
+
+=cut
+
+function _parse_yaml() {
+  local prefix=$2
+  local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
+  sed -ne "s|^\($s\)\($w\)$s:$s\"\(.*\)\"$s\$|\1$fs\2$fs\3|p" \
+      -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
+    awk -F$fs '{
+      indent = length($1)/2;
+      vname[indent] = $2;
+      for (i in vname) {if (i > indent) {delete vname[i]}}
+      if (length($3) > 0) {
+         vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+         printf("G[%s%s]=\"%s\"\n", vn, $2, $3);
+      }
+   }'
+}
+
+function main.init() {
+  local opts;
+    if ! opts=$(${G[util_getopt]} -o b:vh --long base:,verbose,help -n 'harvest' -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ; fi
+
+    eval set -- "$opts"
+
+    local i
+    declare -A CMD;
+    while true; do
+	    case $1 in
+	      -b | --base) CMD[base]=$2;  shift 2;;
+	      -v | --verbose) CMD[verbose]=1;  shift;;
+        -h | --help ) exec pod2text $0;;
+	      -- ) shift; break;;
+	      *) shift; break;
+      esac
+    done
+
+    local config
+    # Read the configuration file(s)
+    for config in /etc/harvest/config.yml \
+                  ${G[home]}/.config/harvest/config.yml ./.harvest.yml; do
+      if [[ -f $config ]]; then
+        eval "$(_parse_yaml "$config")"
+      fi
+    done
+
+    # system variables (ELEMENTS_FOO_BAR) over config file
+    for i in "${!G[@]}"; do
+      eval v=\$ELEMENTS_${i^^}
+      [[ -n $v ]] && G[$i]=$v
+    done
+
+    # command line over config and over system var
+    for i in "${!CMD[@]}"; do
+      [[ -n ${CMD[$i]} ]] && G[$i]=${CMD[$i]};
+    done
+
+}
+
+: <<='cut'
+
+=pod
+
+=head1 COMMANDS
+
+Next there are a set of commands that communicate with the CDL service. Note,
+that ezid uses L<httpie|https://httpie.org/> for its http communcation. This
+allows users to combine ezid with other httpie requests if required. Login
+infomation is stored using the standard C<httpie> methodology, see L</"GLOBAL OPTIONS"> for httpid options.
+
+C<elements [options] harvest --full> Harvests a number of feeds from the
+Elements database and stores each record in a separate file.  This is to match how
+the Sympletic Harvester works
+
+=cut
+
+function main.cmd () {
+    cmd=$1
+    shift;
+    case $cmd in
+	    xslt) # VIVO Harvester
+	      $cmd "$@";
+	      ;;
+      config ) # informational requests
+        _${cmd} "$@";
+        ;;
+	    *)
+	      exec pod2usage $0
+	  ;;
+    esac
+}
+
+function log() {
+  [[ -n ${G[verbose]} ]] && (>&2 echo LOG: $@)
+}
+
+function err() {
+  local n=1;
+  if [[ $1 = '--quiet' ]] ; then
+    n=$2;
+  else
+    n=$1
+    shift
+    (>&2 echo err: $@)
+  fi
+  exit $n;
+}
+
+: <<='cut'
+=pod
+
+=head2 COMMAND
+
+harvest I<options> B<xslt> []
+
+Runs the old VIVO_Harvester processing. This B<only> runs in /usr/local/vivo/harvester/data
+
+=head3 xslt OPTIONS
+
+=over 4
+
+=item B<--select=I<filename>>
+
+After processing, run a select on the TDB database, and save to the file.
+
+=back
+
+=cut
+
+function xslt() {
+  local opts;
+  if ! opts=$(${G[util_getopt]} -o nrs: --long no-reprocess,reprocess,select: -n 'xslt' -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ; fi
+
+  eval set -- "$opts"
+
+  local select
+  local reprocess=1
+  local d=/usr/local/vivo/harvester
+  local update="tdbupdate --loc=${d}/data/tdb-output/1 --update=-"
+  local query="tdbquery --loc=${d}/data/tdb-output/1 --query=-"
+
+  while true; do
+	  case $1 in
+	    -r | --reprocess) reprocess=1;  shift 2;;
+	    -n | --no-reprocess) reprocess='';  shift 2;;
+	    -s | --select) select=$2;  shift 2;;
+	    -- ) shift; break;;
+	    *) shift; break;
+    esac
+  done
+
+  function initialize_state_txt() {
+    echo '0'
+    date --utc --iso-8601=sec | sed -e 's/\+00:00/+0000/'
+    echo '0'
+  }
+
+  if [[ -n $reprocess ]]; then
+    initialize_state_txt > $d/data/state.txt
+    rm -rf ${d}/data/tdb-output
+	  if ! ${d}/elementsfetch.sh --reprocess; then
+      err "elementsfetch failed"
+    fi
+  fi
+
+  if [[ -n $select ]]; then
+	  ${update} <<<'delete WHERE {?s ?p <http://experts.ucdavis.edu/ontology/local#InternalClass>. }'
+	  ${update} <<<'PREFIX vivo: <http://vivoweb.org/ontology/core#> delete {?s ?p ?o. } WHERE {VALUES (?d) {(vivo:University)(vivo:AcademicDepartment)} ?s a ?d ;?p ?o .}'
+	  ${query} <<<'construct {?s ?p ?o. } WHERE {?s ?p ?o .}' > ${select}
+  fi
+
+}
+
+: <<='cut'
+=pod
+
+=head1 DEPENDANCIES
+
+Elements uses a number of external bash commands. These must be installed for
+the elements script to work.
+
+=over 4
+
+=item L<httpie|https://httpie.org/>
+
+httpie is a command-line tool similar to B<curl>. Since we only really need the
+authentication, it may be better to use curl here and the .netrc file instead.
+It is nice to have the httpie interface however, for debugging.
+
+=item L<getopt>
+
+${FLAGS_GETOPT_CMD:-getopt}
+
+=back
+
+=head1 AUTHOR
+
+Quinn Hart <qjhart@ucdavis.edu>
+
+=cut
+
+
+#MAIN
+# global Variables
+declare -A G=(
+  [base]="."
+  [verbose]=""
+  [home]="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../lib/harvest" >/dev/null 2>&1 && pwd )"
+  [iam_api_endpoint]="iam.api:=https://iet-ws.ucdavis.edu/api/iam"
+  [iam_search]=""
+  [util_getopt]=${HARVEST_UTIL_GETOPT:-${FLAGS_GETOPT_CMD:-getopt}}
+);
+
+
+declare -A G_DESC=(
+  [base]='base directory'
+  [verbose]='Show your work'
+  [home]='Harvest library home'
+  [util_getopt]='GNU getopt, must be system var or default.  Will also check FLAGS_GETOPT_CMD'
+);
+
+
+OPTS=();
+while true; do
+	case $1 in
+	  -*) OPTS+=($1); shift ;;
+	  -- ) shift; break;;
+	  *) break;
+	esac
+done
+
+main.init "${OPTS[@]}"
+main.cmd "$@"
+
+exit 0;

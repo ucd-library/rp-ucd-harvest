@@ -1,0 +1,463 @@
+#! /usr/bin/env bash
+
+: <<="cut"
+=pod
+
+=head1  NAME
+
+$G{[cmd]} - Fetch UC Davis IAM data via their API
+
+=head1 SYNOPSIS
+
+${G[cmd]} [-E|--endpoint=<IAM endpoint>] \
+      [-S --http.session=<httpie session|default ucd>] \
+      [-h|--help] <command> [<args>]
+
+  where <command> is one of C<config> C<profiles> C<login> C<odr.departments> C<pps.divisions> C<pps.departments> C<pps.titles> C<sis.colleges> C<ids>
+
+${G[cmd]} is as script that simplifies access to standard UC Davis identities.
+${G[cmd]} also preforms some Aggie Expert specific functions, primarily
+representing the api as linked data.
+
+${G[cmd]} is a set of bash functions to communicate with the services.  ${G[cmd]} uses
+a few other tools to perform the functions. L</"COMMANDS"> is summary of the
+commands that are available.
+
+=head1 GLOBAL OPTIONS
+
+=over 4
+
+=item B<-S|--session|--http_session=I<http_session>>
+
+Set the HTTPIE session variable.  For consistancy with other Aggie Expert tools,
+the IAM authentication key is stored in a httpie session variable.  This is not
+as useful as some other APIs, since the authentication method will not actually
+work with UCD IAM api, which uses a parameter and not a header.  But, our
+standard method allows users to maintain a persistant authentication, so we do
+that here as well.
+
+=item B<-h|--help>
+
+Shows the manpage for the program. The help pages are embedded in the script and
+require the functions, C<pod2usage> and C<pod2text> to work properly.
+
+=back
+
+=cut
+
+
+: <<=cut
+=head2 PREFIX
+
+ucdid parse_url url
+
+C<ucdid parse_url> returns a bash array of the passed parsed URL.  This really
+just a diagnostic test to verify any urls are being read correctly.
+
+=cut
+
+function parse_url() {
+  declare -A url
+
+  url[endpoint]=$1
+  [[ -n ${url[endpoint]} ]] || url[endpoint]="${G[endpoint]}"
+
+  local pattern='^(([[:alnum:]]+):)(//((([[:alnum:]]+)(:([[:alnum:]]+))?@)?([^:^@^/]+)(:([[:digit:]]+))?)?)?/(\.)?(.*)?$'
+
+
+  if [[ "${url[endpoint]}" =~ $pattern ]]; then
+    url[is]="url"
+    url[proto]=${BASH_REMATCH[2]}
+    url[user]=${BASH_REMATCH[6]}
+    url[password]=${BASH_REMATCH[8]}
+    url[hostname]=${BASH_REMATCH[9]}
+    url[port]=${BASH_REMATCH[11]}
+    if [[ -n ${url[port]} ]]; then
+      url[host]="${BASH_REMATCH[9]}:${BASH_REMATCH[11]}"
+    else
+      url[host]=${url[hostname]}
+    fi
+    if [[ -n ${BASH_REMATCH[12]} ]] ; then
+      url[path]="${BASH_REMATCH[12]}${BASH_REMATCH[13]}"
+    else
+      url[path]="/${BASH_REMATCH[13]}"
+    fi
+  else
+    url[proto]="file";
+    url[path]=${PWD}/${url[endpoint]}
+  fi
+
+  declare -p url
+}
+
+
+function main.init() {
+  local opts;
+    if ! opts=$(${G[shell_getopt]} -o E:bnhS:v --long endpoint:,prefix:,no-default-prefix,verbose,http_session:,session:,help -n "${G[cmd]}" -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ; fi
+
+    eval set -- "$opts"
+
+    local defaults=1
+    declare -A p;
+    declare -A CMD;
+    while true; do
+	    case $1 in
+        -E | --endpoint) CMD[endpoint]=$2; shift 2;;
+	      --session | --http_session) CMD[http_session]=$2;  shift 2;;
+	      -v | --verbose) CMD[verbose]+="v";  shift;;
+        -p | --prefix )
+          p[${2%%:*}]=${2#*:};
+          shift 2;;
+	      --print | --http_print) CMD[http_print]=$2; shift 2;;
+	      --endpoint | --ep ) CMD[endpoint]=$2; shift 2;;
+        -n | --no-default-prefix ) defaults=; shift;;
+        -h | --help ) exec pod2text "$0";;
+	      -- ) shift; break;;
+	      *) shift; break;
+      esac
+    done
+
+    local config
+    # Read the configuration file(s)
+    for config in ${G[aeq_home]}/config/aeq.yml \
+                  ${G[home]}/.config/aeq/aeq.yml ./.aeq.yml; do
+      if [[ -f $config ]]; then
+        eval "$(_parse_yaml "$config")"
+      fi
+    done
+
+    # system variables (UCDID_FOO_BAR) over config file
+    for i in "${!G[@]}"; do
+      eval v=\$UCDID_${i^^}
+      [[ -n $v ]] && G[$i]=$v
+    done
+
+    # command line over config and over system var
+    for i in "${!CMD[@]}"; do
+      [[ -n ${CMD[$i]} ]] && G[$i]=${CMD[$i]};
+    done
+
+}
+
+: <<='cut'
+=pod
+
+=head1 COMMANDS
+
+C<${G[cmd]} config> will show all the parameters for the command.
+
+C<${G[cmd]} login --auth=I<authentication>> sets the authentication key, and needs
+to be run before the other commands can be run.
+
+C<${G[cmd]} fetch --auth=I<authentication> [--format=I<mime/type>]
+[--context=I<context_string>] [--envelope] I<data_files>> fetches the required
+datafiles from the system.
+
+=cut
+
+function main.cmd () {
+    cmd=$1
+    shift;
+    case $cmd in
+	    login ) # authentication
+	      $cmd "$@";
+	      ;;
+      config ) # informational requests
+        declare -p G
+        ;;
+	    fetch|parse_url) # utility functions
+	      $cmd "$@";
+	      ;;
+	    *)
+	      exec pod2usage "$0"
+	  ;;
+    esac
+}
+
+function log() {
+  if [[ $1 = '-v' ]]; then
+    shift
+    if [[ ${G[verbose]} ]]; then
+      echo -e >&2 LOG -V: "${@:-$(</dev/stdin)}"
+    fi
+  else
+    echo -e >&2 LOG: "${@:-$(</dev/stdin)}"
+  fi
+}
+
+function err() {
+  local n=1;
+  if [[ $1 = '--quiet' ]] ; then
+    n=$2;
+  else
+    n=$1
+    shift
+    (>&2 echo err: "$@")
+  fi
+  exit "$n";
+}
+
+: <<='cut'
+
+=head2 LOGIN
+
+  ${G[cmd]} login --auth=USER[:PASS]
+
+  B<ucd login> allows the user to persist their authentication.  The IAM API
+  uses a C<key> parameter, and not a header variable, so the data can not really
+  be persisted in a more standard format.  However, we still use the B<httpie
+  --auth=USER:PASS> setup.  The authorization
+
+  login --session=ucd login --auth=ucd:
+
+After which the session C<ucd>, will be set as a httpie session, with
+the saved authorization.
+
+=head3 LOGIN OPTIONS
+
+=over 4
+
+=item B<-a|--auth=USER:PASS>
+
+You specify the basic authentication for the server. For iam, the user does not
+matter, and the PASS is passed as the key for the
+
+=back
+
+=cut
+
+function login() {
+    local opts=`${G[shell_getopt]} -o a --long auth: -n "${G[cmd]} login" -- "$@"`
+    if [ $? != 0 ] ; then echo "Bad Command Options." >&2 ; exit 1 ; fi
+
+    eval set -- "$opts"
+
+    local auth=
+    local key=
+
+    while true; do
+	    case $1 in
+        -a | --auth ) auth=$2; shift 2;;
+	      -- ) shift; break;;
+	      *) shift; break;
+      esac
+    done
+
+    key=${auth#*:}
+
+    local http="${G[util_http]} --check-status --session=${G[http_session]} --auth=${auth} --print=hH"
+    $http ${G[endpoint]}/orginfo/sis/colleges key==${key}
+}
+
+
+: <<=cut
+
+=head2 FETCH COMMANDS
+
+ Most commands simply fetch a particular dataset via the IAM API.  These
+ are: C<profiles> C<odr.departments> C<pps.divisions> C<pps.departments>
+ C<pps.titles> C<sis.colleges> C<ids>.  Every command has the following parameters
+
+
+=over 4
+
+=item B<-f|--format=I<mime/type>>
+
+Specify the format for the return. This is in mime/type, and must be one of
+C<application/json> C<application/ld+json> or C<text/turtle>.  These can also be short
+hand C<json>,C<jsonld> or C<turtle|ttl>.  The default is C<application/json>
+
+=item B<-c|--context=I<string>>
+
+For C<application/ld+json> and C<text/turtle>, you can specify a custom context
+to be added to the system.
+
+=item B<--envelope>
+
+For consistancy between all formats, only the response data is returned.  If you
+are specifing C<application/json> data, you may use this flag to get the complete
+response.
+
+=back
+
+=cut
+function fetch() {
+  local opts;
+
+  # declare -A id=(
+  #   [profiles]='iamId'
+  #   [odr.departments]='orgOId'
+  #   [pps.divisions]='orgOId'
+  #   [pps.titles]='orgOid'
+  #   [sis.colleges]='orgOid'
+  #   [ids]='iamId'
+  # );
+
+  # declare -A items=(
+  #   [profiles]='User profile information'
+  #   [odr.departments]='Department list from the online directory.'
+  #   [pps.divisions]='Payroll services (PPS) divisions.'
+  #   [pps.titles]='Payroll services (PPS) titles.'
+  #   [sis.colleges]='Student Information System (SIS) colleges.'
+  #   [ids]='User identifiers'
+  #   );
+
+  declare -A url=(
+    [profiles]="${G[endpoint]}/people/profile/search"
+    [odr.departments]="${G[endpoint]}/orginfo/odr/depts"
+    [pps.divisions]="${G[endpoint]}/orginfo/pps/divisions"
+    [pps.titles]="${G[endpoint]}/orginfo/pps/titles"
+    [sis.colleges]="${G[endpoint]}/orginfo/sis/colleges"
+    [ids]="${G[endpoint]}/people/ids"
+    );
+
+  declare -A mime=(
+    ['application/ld+json']='application/ld+json'
+    ['text/turtle']='text/turtle'
+    ['application/json']='application/json'
+    [jsonld]='application/ld+json'
+    [turtle]='text/turtle'
+    [ttl]='text/turtle'
+    [json]='application/json'
+  );
+
+  if ! opts=$(${G[shell_getopt]} -o A:bnhs:vo: --long output:,format:,context:,envelope,search: -n "${G[cmd]} fetch" -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ; fi
+
+  eval set -- "$opts"
+
+  local envelope=''
+  local search=''
+  local output=/dev/stdout
+  declare -A CMD;
+  while true; do
+	  case $1 in
+      -f | --format) CMD[fetch_format]=$2; shift 2;;
+      -c | --context) CMD[fetch_context]=$2; shift 2;;
+      -s | --search) search=$2; shift 2;;
+      -e | --envelope) envelope=1; shift;;
+      -o | --output) [[ $2 != '-' ]] && output=$2; shift 2;;
+	    -- ) shift; break;;
+	    *) shift; break;
+    esac
+  done
+
+  # command line over config and over system var
+  for i in "${!CMD[@]}"; do
+    [[ -n ${CMD[$i]} ]] && G[$i]=${CMD[$i]};
+  done
+
+  # Get the key
+  local key=undefined
+  # Fetch key from the session variable
+  local inp=$(parse_url ${G[endpoint]})
+  eval "declare -A ep=${inp#*=}"
+  local json=$HOME/.httpie/sessions/${ep[hostname]}
+  [[ -n ${ep[port]} ]] && json+=_${ep[port]}
+  json+=/${G[http_session]}.json
+
+  if [[ -n ${ep[password]} ]]; then
+    key=${ep[password]};
+  elif [[ -f $json ]]; then
+    key=$(${G[util_jq]} -r .auth.raw_auth $json)
+    key=${key#*:}
+  fi
+
+  for i in "$@"; do
+    if [[ -z ${url[$1]} ]] ; then
+      err 1 $1 is not one of: ${!url[@]}
+    fi
+  done
+
+  # They all get added together, IDK, might work?
+  for i in "$@"; do
+    fetch="http ${url[$1]} Content-Type:application/json key==${key} v==1.0"
+    if [[ "$i" == "profiles" ]]; then
+      search=$(sed -e 's/\([^=]\)=\([^=]\)/\1==\2/g' <<<"$search")
+      fetch+=" ${search}"
+    fi
+    if [[ $envelope ]]; then
+      log -v "${fetch}"
+      op ${fetch}
+    else
+      log -v "${fetch}" ' | ' "${G[util_jq]} .responseData.results"
+      ${fetch} | ${G[util_jq]} .responseData.results
+    fi
+  done |
+    case ${mime[${G[fetch_format]}]} in
+      application/json)
+        cat - > ${output}
+        shift;;
+      application/ld+json)
+        log -v ${G[util_jq]} "${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' ' | '${G[util_riot]}' --formatted=jsonld --syntax=jsonld'
+        ${G[util_jq]} "${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' | ${G[util_riot]} --formatted=jsonld --syntax=jsonld > ${output}
+        shift;;
+      text/turtle)
+        log -v ${G[util_jq]} "${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' ' | '"${G[util_riot]} --formatted=ttl --syntax=jsonld"
+        ${G[util_jq]} "${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' | ${G[util_riot]} --formatted=ttl --syntax=jsonld > ${output}
+        shift;;
+      *)
+        err 1 ${G[fetch_format]} is invalid format
+    esac
+}
+
+: <<=cut
+=pod
+
+
+=head1 AUTHOR
+
+Quinn Hart <qjhart@ucdavis.edu>
+
+=cut
+
+
+#MAIN
+# global Variables
+declare -A G=(
+  [cmd]=$(basename $0)
+  [endpoint]='https://iet-ws.ucdavis.edu/api/iam'
+#  [stage_api]='https://iet-ws-stage.ucdavis.edu/api/iam'
+  [base]='http://experts.ucdavis.edu/iam/'
+  [fetch_format]='json'
+  [http_session]="ucd"
+  [util_http]="http"
+  [util_jq]="jq"
+  [util_riot]="riot"
+  [home]="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../lib/harvest" >/dev/null 2>&1 && pwd )"
+);
+
+
+G[fetch_context]='{"@context": {
+  "@version":"1.0",
+  "@base":"'${G[base]}'",
+  "@vocab":"'${G[base]}'schema#",
+  "iamId":"@id",
+  "orgOId":"@id",
+  "bouOrgOId":{
+    "@type":"@id"
+  },
+  "iam":"'${G[base]}'schema#",
+  "experts_iam":"'${G[base]}'"}
+}'
+
+
+OPTS=();
+# This command runs until the first '-'prefixed parameter.
+while true; do
+	case $1 in
+	  -*) OPTS+=($1); shift ;;
+	  -- ) shift; break;;
+	  *) break;
+	esac
+done
+
+# Allow getopt to be somewhere else
+G[shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
+
+#log "${OPTS[@]}"
+main.init "${OPTS[@]}"
+main.cmd "$@"
+
+exit 0;

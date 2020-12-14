@@ -2,10 +2,16 @@
 version: '3'
 services:
   harvest:
-    build:
-      context: ./Vivo_Harvester_V2/docker
+    image: ucdlib/rp-ucd-harvest:dev
     command: tail -f /dev/null
+    environment:
+      - VIVO_BASEURI_PREFIX=http://experts.library.ucdavis.edu/
     env_file:
-      - .env
+      - test.env
     volumes:
-       - ./data:/usr/local/vivo/harvester/data
+       - harvest-data:/usr/local/vivo/harvester/data
+       - ./lib:/usr/local/lib/harvest
+       - ./harvest:/usr/local/bin/harvest
+
+volumes:
+  harvest-data:
