@@ -13,14 +13,28 @@ COPY --from=stain/jena:3.14.0 /jena /jena/
 ENV PATH=$PATH:/jena/bin
 
 # Add httpie for URL grabs
-RUN apt-get update && apt-get install -y make httpie perl git xmlstarlet rsync && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y build-essential make httpie perl git jq xmlstarlet rsync && rm -rf /var/lib/apt/lists/*
+
+# Add node
+
+RUN curl -sL https://deb.nodesource.com/setup_14.x | bash -
+RUN apt-get install -y nodejs
+RUN cd && npm install xml2json
+#RUN echo '# xml2json path fix\nPATH=$PATH:/root/node_modules/.bin' >> /root/.bashrc
+env PATH $PATH:/root/node_modules/.bin
 
 # Add our elements
 COPY elements /elements/
 RUN make --directory=/elements prefix=/usr/local install && rm -rf /elements
 
+# Add our aeq tool
+COPY aeq /aeq/
+RUN make --directory=/aeq prefix=/usr/local install && rm -rf /aeq
+
 # Add iam tool
-COPY ucdid /usr/local/bin
+COPY iam /usr/local/bin
+COPY oap /usr/local/bin
+COPY harvest /usr/local/bin
 
 # Our entrypoint calls the generic VIVO one
 COPY rp-ucd-harvest-entrypoint.sh /

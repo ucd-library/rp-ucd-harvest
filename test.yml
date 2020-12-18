@@ -9,9 +9,26 @@ services:
     env_file:
       - test.env
     volumes:
-       - harvest-data:/usr/local/vivo/harvester/data
+       - harvest-xslt-data:/usr/local/vivo/harvester/data
+       - harvest-data:/var/lib/harvest
        - ./lib:/usr/local/lib/harvest
        - ./harvest:/usr/local/bin/harvest
+       - ./oap:/usr/local/bin/oap
+       - ./iam:/usr/local/bin/iam
+       - ./elements/elements:/usr/local/bin/elements
+#       - ./aeq:/usr/local/bin/aeq
+
+  fuseki:
+    image: ucdlib/rp-ucd-fuseki:${FUSEKI_VERSION:-1.1.1}
+    env_file:
+      - .env
+    volumes:
+      - fuseki-data:/fuseki
+    ports: # still exposed for admin access
+      - ${FUSEKI_HOST_PORT:-8081}:3030
+
 
 volumes:
+  harvest-xslt-data:
   harvest-data:
+  fuseki-data:

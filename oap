@@ -9,7 +9,7 @@ oap - Fetch CDL element data via their API
 
 =head1 SYNOPSIS
 
-oap [-E|--endpoint=<IAM endpoint>] \
+oap [-E|--endpoint=<CDL elements endpoint>] \
       [-S --http.session=<httpie session|default ucd>] \
       [-h|--help] <command> [<args>]
 
@@ -96,22 +96,16 @@ function main.init() {
     if ! opts=$(${G[shell_getopt]} -o E:bnhS:v --long endpoint:,prefix:,no-default-prefix,verbose,http_session:,session:,help -n "oap" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
+    log $opts
     eval set -- "$opts"
 
-    local defaults=1
-    declare -A p;
     declare -A CMD;
     while true; do
 	    case $1 in
-        -E | --endpoint) CMD[endpoint]=$2; shift 2;;
+        -E | --endpoint ) CMD[endpoint]=$2; shift 2;;
 	      --session | --http_session) CMD[http_session]=$2;  shift 2;;
 	      -v | --verbose) CMD[verbose]+="v";  shift;;
-        -p | --prefix )
-          p[${2%%:*}]=${2#*:};
-          shift 2;;
 	      --print | --http_print) CMD[http_print]=$2; shift 2;;
-	      --endpoint | --ep ) CMD[endpoint]=$2; shift 2;;
-        -n | --no-default-prefix ) defaults=; shift;;
         -h | --help ) exec pod2text "$0";;
 	      -- ) shift; break;;
 	      *) shift; break;
@@ -127,10 +121,11 @@ function main.init() {
       fi
     done
 
-    # system variables (UCDID_FOO_BAR) over config file
+    # system variables (OAP_FOO_BAR) over config file
     for i in "${!G[@]}"; do
-      eval v=\$UCDID_${i^^}
-      [[ -n $v ]] && G[$i]=$v
+      local v=''
+      eval v="\$OAP_${i^^}"
+      [[ -n "$v" ]] && G["$i"]="$v"
     done
 
     # command line over config and over system var
@@ -204,10 +199,10 @@ function err() {
 
   oap login --auth=USER[:PASS]
 
-  B<ucd login> allows the user to persist their authentication.  The IAM API
-  uses a C<key> parameter, and not a header variable, so the data can not really
-  be persisted in a more standard format.  However, we still use the B<httpie
-  --auth=USER:PASS> setup.  The authorization
+B<ucd login> allows the user to persist their authentication.  These stores the
+  authorization in the C<httpie> session parameters.  Typically the session
+  variables are stored in the container and will be reset whenever the container
+  is restarted from a fresh instance.
 
   login --session=ucd login --auth=ucd:
 
@@ -228,8 +223,9 @@ matter, and the PASS is passed as the key for the
 =cut
 
 function login() {
-    local opts=`${G[shell_getopt]} -o a --long auth: -n "oap login" -- "$@"`
-    if [ $? != 0 ] ; then echo "Bad Command Options." >&2 ; exit 1 ; fi
+  local opts;
+  if ! opts=$(${G[shell_getopt]} -o a --long auth: -n "oap login" -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
 
@@ -245,7 +241,7 @@ function login() {
     done
 
     local http="${G[util_http]} --check-status --session=${G[http_session]} --auth=${auth} --print=hH"
-    $http ${G[endpoint]}/groups
+    $http "${G[endpoint]}/groups"
 }
 
 
@@ -284,7 +280,7 @@ function fetch() {
   local opts;
 
   declare -A url=(
-    [identifiers]="${G[endpoint]}/users/identifiers"
+    [identifiers]="${G[endpoint]}/user/identifiers"
     [groups]="${G[endpoint]}/groups"
     [users]="${G[endpoint]}/users"
     );
@@ -302,6 +298,7 @@ function fetch() {
   );
 
   declare -A entry=(
+    [identifiers]='api:object'
     [user]='api:object'
     [publication]='api:object'
     [relationship]='api:relationship'
@@ -313,16 +310,18 @@ function fetch() {
 
   eval set -- "$opts"
 
-  local envelope=''
   local search=''
   local output=/dev/stdout
-  declare -A CMD;
+  declare -A CMD=(
+    [format]="xml"
+  );
+  local compress=''
   while true; do
 	  case $1 in
-      -f | --format) CMD[format]=$2; shift 2;;
-      -c | --context) CMD[context]=$2; shift 2;;
+      -f | --format) CMD[fetch_format]=$2; shift 2;;
+      -c | --context) CMD[fetch_context]=$2; shift 2;;
+      -z | --compress) CMD[fetch_compress]=1; shift;;
       -s | --search) search=$2; shift 2;;
-      -e | --envelope) envelope=1; shift;;
       -o | --output) [[ $2 != '-' ]] && output=$2; shift 2;;
 	    -- ) shift; break;;
 	    *) shift; break;
@@ -337,54 +336,51 @@ function fetch() {
   # Get the key
   local key=undefined
   # Elements key from the session variable
-  local inp=$(parse_url ${G[endpoint]})
+  local inp
+  inp=$(parse_url ${G[endpoint]})
+  declare -A ep=()
   eval "declare -A ep=${inp#*=}"
-  local json=$HOME/.httpie/sessions/${ep[hostname]}
+  local json="$HOME/.httpie/sessions/${ep[hostname]}"
   [[ -n ${ep[port]} ]] && json+=_${ep[port]}
   json+=/${G[http_session]}.json
 
   if [[ -n ${ep[password]} ]]; then
     key=${ep[password]};
   elif [[ -f $json ]]; then
-    key=$(${G[util_jq]} -r .auth.raw_auth $json)
+    key=$(${G[util_jq]} -r .auth.raw_auth "$json")
     key=${key#*:}
   fi
 
-  for i in "$@"; do
-    if [[ -z ${url[$1]} ]] ; then
-      err 1 $1 is not one of: ${!url[@]}
-    fi
-  done
+  # Now look only at "$1"
+  if [[ -z ${url[$1]} ]] ; then
+    err 1 "$1 is not one of:" "${!url[@]}"
+  fi
 
   # Check format
-  [[ -z ${mime[$G{format}]} ]] && err 1 "${G[format]} is invalid format"
-
-
-  # They all get added together, IDK, might work?
-  for i in "$@"; do
-    elements="http --session-readonly=${G[http_session]} ${url[$1]}"
-     if [[ "$i" == "profiles" ]]; then
-      search=$(sed -e 's/\([^=]\)=\([^=]\)/\1==\2/g' <<<"$search")
-      elements+=" ${search}"
-     fi
-     log -v "${elements}"
-     op ${elements}
-  done |
-    if [[ "${mime[${G[format]}]" = "application/atom+xml" ]]; then
-      cat - > ${output}
+  [[ -z ${mime["${G[fetch_format]}"]} ]] && err 1 "${G[fetch_format]} is invalid format"
+  elements="http --session-read-only=${G[http_session]} ${url[$1]}"
+  if [[ "$1" == "profiles" ]]; then
+    search=$(sed -e 's/\([^=]\)=\([^=]\)/\1==\2/g' <<<"$search")
+    elements+=" ${search}"
+  fi
+  log -v "${elements} |"
+  ${elements} |
+    if [[ ${mime[${G[fetch_format]}]} = "application/atom+xml" ]]; then
+      cat - > "${output}"
     else  # Everything below to json...
-      ${G[util_xml2json]} | ${G[util_jq]} '.entry["${entry[$i]}"]' |
-        if [[ "${mime[${G[format]}]" != "application/json" ]]; then
-          ${G[util_jq]} "${G[context]}"' + {"@graph":(.[]|=with_entries(if .key=="id" then .key="@id" else . end))}' |
-            if [[ "${mime[${G[format]}]" != "application/ld+json" ]]; then
-              ${G[util_riot]} --formatted=ttl --syntax=jsonld |
-            fi
+      log "${G[util_xml2json]}" /dev/stdin ' | ' "${G[util_jq]} .entry[\"${entry[$1]}\"]" ' | '
+      ${G[util_xml2json]} /dev/stding | ${G[util_jq]} ".entry[\"${entry[$1]}\"]" |
+        if [[ "${mime[${G[fetch_format]}]}" != "application/json" ]]; then
+          ${G[util_jq]} "${G[fetch_context]}"' + {"@graph":(.[]|=with_entries(if .key=="id" then .key="@id" else . end))}'
+        fi |
+        if [[ "${mime[${G[fetch_format]}]}" == "text/turtle" ]]; then
+          ${G[util_riot]} --formatted=ttl --syntax=jsonld
         fi
-    fi
-  if [[ $compress ]]; then
-    gzip > $output
+    fi |
+  if [[ "$compress" ]]; then
+    gzip > "$output"
   else
-    cat - > $output
+    cat - > "$output"
   fi
 }
 
@@ -431,8 +427,8 @@ OPTS=();
 # This command runs until the first '-'prefixed parameter.
 while true; do
 	case $1 in
-	  -*) OPTS+=($1); shift ;;
-	  -- ) shift; break;;
+	  -*) OPTS+=("$1"); shift ;;
+#	  -- ) shift; break;;
 	  *) break;
 	esac
 done
