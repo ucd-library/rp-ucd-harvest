@@ -1,0 +1,42 @@
+-- Create FoR concept triples
+
+PREFIX oap: <http://experts.ucdavis.edu/oap/vocab#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+INSERT { 
+	GRAPH <http://experts.ucdavis.edu/pubs/> {
+		?conceptURI a skos:Concept .
+		?conceptURI rdfs:label ?keyword .
+	}
+}
+WHERE{
+	SELECT
+    	DISTINCT ?conceptURI ?keyword
+    WHERE {
+		GRAPH <http://experts.ucdavis.edu/oap/> {
+			?publication oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?keyword ; oap:scheme 'for' ] .
+			BIND(URI(CONCAT("http://experts.ucdavis.edu/sub/FoR#", REPLACE(?keyword," .*",""))) AS ?conceptURI)
+		}
+  	}
+}
+
+-- Create triples connecting publication to FoR concepts (s/b 1,459)
+
+PREFIX oap: <http://experts.ucdavis.edu/oap/vocab#>
+PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+INSERT { 
+	GRAPH <http://experts.ucdavis.edu/pubs/> {
+		?publication vivo:hasSubjectArea ?conceptURI .
+		?conceptURI vivo:hasSubjectArea ?publication .
+	}
+}
+WHERE {
+  	GRAPH <http://experts.ucdavis.edu/oap/> {
+		?publication oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?keyword ; oap:scheme 'for' ] .
+	}
+	# Grab the concepts just created
+  	GRAPH <http://experts.ucdavis.edu/pubs/> {
+		?conceptURI rdfs:label ?keyword
+	}
+}
