@@ -1,4 +1,4 @@
--- Create concept triples (s/b 42)
+-- Create FoR concept triples
 
 PREFIX oap: <http://experts.ucdavis.edu/oap/vocab#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -15,13 +15,12 @@ WHERE{
     WHERE {
 		GRAPH <http://experts.ucdavis.edu/oap/> {
 			?publication oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?keyword ; oap:scheme 'for' ] .
-			BIND(REPLACE(REPLACE(LCASE(STR(?keyword)), '[^\\w\\d]','-'), '-{2,}' ,'-') AS ?keywordIdText)
-			BIND(URI(CONCAT("http://experts.ucdavis.edu/term/for:", ?keywordIdText)) AS ?conceptURI)
+			BIND(URI(CONCAT("http://experts.ucdavis.edu/sub/FoR#", REPLACE(?keyword," .*",""))) AS ?conceptURI)
 		}
   	}
 }
 
--- Create triples connecting publication to concept (s/b 1,459)
+-- Create triples connecting publication to FoR concepts (s/b 1,459)
 
 PREFIX oap: <http://experts.ucdavis.edu/oap/vocab#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
@@ -29,6 +28,7 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 INSERT { 
 	GRAPH <http://experts.ucdavis.edu/pubs/> {
 		?publication vivo:hasSubjectArea ?conceptURI .
+		?conceptURI vivo:hasSubjectArea ?publication .
 	}
 }
 WHERE {
@@ -39,4 +39,4 @@ WHERE {
   	GRAPH <http://experts.ucdavis.edu/pubs/> {
 		?conceptURI rdfs:label ?keyword
 	}
-} 
+}

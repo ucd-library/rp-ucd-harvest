@@ -1,10 +1,11 @@
 # Publication import files
 
-To populate publication model, run the following files in their listed order:
+To populate the publication model, run the following files in their listed order:
 
-1. AA.rq
-2. Book.rq
-3. Chapter.rq
-4. ConferencePaper.rq
-5. PubDate.rq
-6. Concepts.rq
+1. aa.rq - academic articles
+2. book.rq - books
+3. chapter.rq - book chapters
+4. conference_paper.rq - conference proceedings
+5. pub_date.rq - dates of publication, both in print and online
+6. concepts.rq - terms from controlled vocabularies describing the subjects of publications and research
+7. keywords.rq - free text keywords describing publications
