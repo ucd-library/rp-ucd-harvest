@@ -28,7 +28,7 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 INSERT { 
 	GRAPH <http://experts.ucdavis.edu/pubs/> {
 		?publication vivo:hasSubjectArea ?conceptURI .
-		?conceptURI vivo:hasSubjectArea ?publication .
+		?conceptURI vivo:subjectAreaOf ?publication .
 	}
 }
 WHERE {
