@@ -1,0 +1,108 @@
+=head1  NAME
+
+$G{[cmd]} - Fetch UC Davis IAM data via their API
+
+=head1 SYNOPSIS
+
+ucdid [-E|--endpoint=<IAM endpoint>] \
+      [--auth|--iam_auth=ucd:<iam_key> \
+      [-h|--help] <command> [<args>]
+
+  where <command> is one of C<config> C<profiles> C<login> C<odr.departments> C<pps.divisions> C<pps.departments> C<pps.titles> C<sis.colleges> C<ids>
+
+ucdid is as script that simplifies access to standard UC Davis identities.
+ucdid also preforms some Aggie Expert specific functions, primarily
+representing the api as linked data.
+
+ucdid is a set of bash functions to communicate with the services.  ucdid uses
+a few other tools to perform the functions. L</"COMMANDS"> is summary of the
+commands that are available.
+
+=head1 GLOBAL OPTIONS
+
+=over 4
+
+=item B<-S|--session|--http_session=I<http_session>>
+
+Set the HTTPIE session variable.  For consistancy with other Aggie Expert tools,
+the IAM authentication key is stored in a httpie session variable.  This is not
+as useful as some other APIs, since the authentication method will not actually
+work with UCD IAM api, which uses a parameter and not a header.  But, our
+standard method allows users to maintain a persistant authentication, so we do
+that here as well.
+
+=item B<-h|--help>
+
+Shows the manpage for the program. The help pages are embedded in the script and
+require the functions, C<pod2usage> and C<pod2text> to work properly.
+
+=back
+
+=head1 COMMANDS
+
+C<ucdid config> will show all the parameters for the command.
+
+C<ucdid login --auth=I<authentication>> sets the authentication key, and needs
+to be run before the other commands can be run.
+
+C<ucdid fetch --auth=I<authentication> [--format=I<mime/type>]
+[--context=I<context_string>] [--envelope] I<data_files>> fetches the required
+datafiles from the system.
+
+=head2 LOGIN
+
+  ucdid login --auth=USER[:PASS]
+
+  B<ucd login> allows the user to persist their authentication.  The IAM API
+  uses a C<key> parameter, and not a header variable, so the data can not really
+  be persisted in a more standard format.  However, we still use the B<httpie
+  --auth=USER:PASS> setup.  The authorization
+
+  login --session=ucd login --auth=ucd:
+
+After which the session C<ucd>, will be set as a httpie session, with
+the saved authorization.
+
+=head3 LOGIN OPTIONS
+
+=over 4
+
+=item B<-a|--auth=USER:PASS>
+
+You specify the basic authentication for the server. For iam, the user does not
+matter, and the PASS is passed as the key for the
+
+=back
+
+=head2 FETCH COMMANDS
+
+ Most commands simply fetch a particular dataset via the IAM API.  These
+ are: C<profiles> C<odr.departments> C<pps.divisions> C<pps.departments>
+ C<pps.titles> C<sis.colleges> C<ids>.  Every command has the following parameters
+
+
+=over 4
+
+=item B<-f|--format=I<mime/type>>
+
+Specify the format for the return. This is in mime/type, and must be one of
+C<application/json> C<application/ld+json> or C<text/turtle>.  These can also be short
+hand C<json>,C<jsonld> or C<turtle|ttl>.  The default is C<application/json>
+
+=item B<-c|--context=I<string>>
+
+For C<application/ld+json> and C<text/turtle>, you can specify a custom context
+to be added to the system.
+
+=item B<--envelope>
+
+For consistancy between all formats, only the response data is returned.  If you
+are specifing C<application/json> data, you may use this flag to get the complete
+response.
+
+=back
+
+=head1 AUTHOR
+
+Quinn Hart <qjhart@ucdavis.edu>
+
