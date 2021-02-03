@@ -1,11 +1,30 @@
 #! /bin/make
 SHELL:=/bin/bash
 
-#version:=1.1.1
-version:=dev
-tag:=ucdlib/rp-ucd-harvest:${version}
+prefix:=$(shell echo ~/.local)
 
-.PHONY: build
-build:
-	export DOCKER_BUILDKIT=1
-	docker build --build-arg BUILDKIT_INLINE_CACHE=1 -t ${tag} .
+scripts:=ucdid harvest cdl
+pods:=$(patsubst %,%.pod,${scripts})
+
+$(warning ${pods})
+
+pre-commit: ${pods}
+	@podchecker ${pods}
+
+${pods}:%.pod:%
+	@podselect $< > $@
+
+install:
+	@type podchecker;
+	@type http;
+	@type pod2text;
+	@if [[ -d ${prefix}/bin ]]; then\
+    echo "install to ${prefix}/bin"; \
+    install ucdid ${prefix}/bin; \
+    install cdl ${prefix}/bin; \
+    install harvest ${prefix}/bin; \
+	else \
+		echo "installation directory ${prefix}/bin not found"; \
+		echo "Try setting prefix as in make prefix=/usr/local install"; \
+		exit 1; \
+	fi;

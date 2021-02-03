@@ -1,0 +1,101 @@
+* Theory of Operation
+
+Privary Rules
+We have to verify that we are properly supporting the privacy rules in both the IAM stream and in the elements feed.
+
+Use Cases
+A profile page for a single researcher is hidden.  This is from a high level request, against the wishes of the researcher.
+
+* Example Queries
+:PROPERTIES:
+:header-args:http: :host http://localhost:3030 :user admin:quinnisgreat
+:header-args:sparqlx: :url http://sparql.org/sparql :format text/csv
+:header-args:sparql: :url http://localhost:3030/experts_private/sparql :format text/csv
+:END:
+
+
+#+name: prefixes
+#+BEGIN_SRC sparql :no-tangle
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX experts_pub: <http://experts.ucdavis.edu/pubs/>
+PREFIX experts_iam: <http://experts.ucdavis.edu/iam/>
+PREFIX iam: <http://experts.ucdavis.edu/iam/schema#>
+#+END_SRC
+
+
+These simple example need might include update queries?
+#+name: update_example
+#+BEGIN_SRC sparql
+<<prefixes>>
+#insert  {graph experts_pub: { experts:quinn experts:is experts:great. }} WHERE {}
+#delete { graph ?g {?s ?p ?o} } WHERE { graph ?g {?s ?p ?o}}
+#select ?g (count(*) as ?cnt) WHERE { graph ?g {?s ?p ?o.}} group by ?g
+#select ?o (count(*) as ?cnt) WHERE { graph ?g {?s a ?o. filter(isiri(?s))}} group by ?o
+
+#+END_SRC
+
+** Example Testing Script
+
+#+BEGIN_SRC sh
+#cas=benthem
+cas=benthem,chmkim,jcgib,jkmason,mleite,ramram,rhcastro,rkukreja,sbsen,sjmccorm,spgentry,sshong,ytakamur
+bae=mahamed@ucdavis.edu,gbornhorst@ucdavis.edu,adaccache@ucdavis.edu,jdemourabell@ucdavis.edu,jmearles@ucdavis.edu,jzfan@ucdavis.edu,fathallah@ucdavis.edu,megrismer@ucdavis.edu,ylhsieh@ucdavis.edu,bmjenkins@ucdavis.edu,tjeoh@ucdavis.edu,ikisekka@ucdavis.edu,amoghimi@ucdavis.edu,jsmullin@ucdavis.edu,nnitin@ucdavis.edu,npan@ucdavis.edu,dcs@ucdavis.edu,gysun@ucdavis.edu,svougioukas@ucdavis.edu,rhzhang@ucdavis.edu,irdonisgon@ucdavis.edu,jdfernandezbayo@ucdavis.edu,dafrank@ucdavis.edu,thung@ucdavis.edu,fkhorsandi@ucdavis.edu,kkorn@ucdavis.edu,palarbi@ucdavis.edu,zlpan@ucdavis.edu,apourreza@ucdavis.edu,hbscher@ucdavis.edu,jsvander@ucdavis.edu
+
+# First, setup your harvestdb
+export HARVEST_DB=$(harvest db new)
+export HARVEST_ENDPOINT=http://fuseki:3030/${HARVEST_DB}
+
+# Then add your iam data
+#ucdid login --auth=ucd:${IAM_KEY}
+
+ucdid fetch --format=ttl --search=userId="${cas}" profiles  | harvest -v --db=${db} load --graph=http://iam.ucdavis.edu/ -
+ucdid fetch --format=ttl --search=email="${bae}" profiles  | harvest -v --db=${db} load --graph=http://iam.ucdavis.edu/ -
+
+#Now convert that to experts data
+harvest -v update iam_to_vivo
+
+# Now get all the casIDs, This doesn't use experts, but the harvestdb
+ids=$(aeq --endpoint=${HARVEST_ENDPOINT}/sparql query --format=json <<<"select ?id where { graph harvest_iam: {[] iam:userID ?id. }} order by ?id" | jq -r .results.bindings[].id.value | tr [:space:] ' ')
+
+# Now fetch all the data w/ CDL
+cdl --data=$HARVEST_ENDPOINT -v login --auth=${CDL_AUTH}
+cdl --data=$HARVEST_ENDPOINT -v users --pubs $ids
+
+# Then, run the update scripts for new data.
+harvest update aa
+harvest update book
+harvest update chapter
+harvest update conference_paper
+harvest update pub_date
+harvest update concepts
+harvest update keywords
+
+
+# Alternatively, use `elements` to fetch the data, and harvest XLST to convert
+
+export ELEMENTS_BASE=/usr/local/vivo/harvester/data
+mkdir -p $ELEMENTS_BASE/raw-records
+
+# The ids (for now) require that you've run the CDL step above.
+ids=$(aeq --endpoint=${HARVEST_ENDPOINT}/sparql query --format=json <<<"select ?id where { graph harvest_oap: {?s oap:category 'user' . bind(replace(str(?s),str(harvest_oap:),'') as ?id) filter(isiri(?s))}} order by ?id" | jq -r .results.bindings[].id.value | tr [:space:] ' ')
+export ELEMENTS_IDS=${ids// /,}
+
+elements feed groups users user-relationships publications relationships
+# There is a problem currently w/ groups, you need to
+cp $ELEMENTS_BASE/feed/groups.xml $ELEMENTS_BASE/feed/groups.000
+
+elements feed.split groups users publications relationships
+
+# Now create data w/ xslt
+harvest xslt --select=oapolicy.ttl
+
+# And load it into db
+harvest load --graph=http://experts.ucdavis.edu/oap/ oapolicy.ttl
+
+# Save the graphs
+aeq --endpoint=${HARVEST_ENDPOINT}/sparql query --format=ttl <<<'CONSTRUCT {?s ?p ?o } WHERE { graph <http://experts.ucdavis.edu/oap/> { ?s ?p ?o.}}' > oap.ttl
+
+
+#+END_SRC

@@ -5,16 +5,16 @@
 
 =head1  NAME
 
-elements - Harvest an Elements feed.
+cdl - Harvest an Elements feed.
 
 =head1 SYNOPSIS
 
-elements [--api=<elements_endpoint>] [-S|--session=<httpie session>] \
+cdl [--api=<cdl_endpoint>] [--auth=cdl_auth] [-S|--session=<httpie session>] \
          [-c|--cache=<dir>] [-t|--tdb=<tdb-dir>] [-d|--data=<data load endpoint] \
          [-p|--print] [-h|--help]\
   <command> [<args>]
 
-  where <command> is one of harvest
+  where <command> is one of login xml2jsonld load_jsonld groups users
 
 elements is a script the simplifies the retrieval of an elements feed API.
 L</"COMMANDS"> is summary of the commands that are available.
@@ -23,7 +23,7 @@ L</"COMMANDS"> is summary of the commands that are available.
 
 =over 4
 
-=item B<--api=I<elements_endpoint>>
+=item B<--api=I<cdl_elements_endpoint>>
 
 This is the http address for the elements endpoint.
 
@@ -62,22 +62,6 @@ require the functions, C<pod2usage> and C<pod2text> to work properly.
 
 =cut
 
-function _parse_yaml() {
-  local prefix=$2
-  local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
-  sed -ne "s|^\($s\)\($w\)$s:$s\"\(.*\)\"$s\$|\1$fs\2$fs\3|p" \
-      -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
-    awk -F$fs '{
-      indent = length($1)/2;
-      vname[indent] = $2;
-      for (i in vname) {if (i > indent) {delete vname[i]}}
-      if (length($3) > 0) {
-         vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
-         printf("G[%s%s]=\"%s\"\n", vn, $2, $3);
-      }
-   }'
-}
-
 function init() {
     local opts=`$GETOPT -o A:bnhS:vt:d:c: --long verbose,base:,api:,data:,cache:,tdb:,http_session:,session:,dry-run,help -n 'elements' -- "$@"`
     if [ $? != 0 ] ; then echo "Bad Command Options." >&2 ; exit 1 ; fi
@@ -88,14 +72,13 @@ function init() {
     declare -A CMD;
     while true; do
 	    case $1 in
-        -A | --api) CMD[api]=$2; shift 2;;
+        --api) CMD[api]=$2; shift 2;;
 	      --session | --http_session) CMD[http_session]=$2;  shift 2;;
         -t | --tdb ) CMD[tdb]=$2; shift 2;;
         -d | --data ) CMD[data]=$2; shift 2;;
         -c | --cache ) CMD[cache]=$2; shift 2;;
 	      -v | --verbose) CMD[verbose]=1;  shift;;
 	      -n | --dry-run) CMD[noop]=1; shift ;;
-	      --print | --http_print) CMD[http_print]=$2; shift 2;;
         -h | --help ) exec pod2text $0;;
 	      -- ) shift; break;;
 	      *) shift; break;
@@ -204,7 +187,7 @@ specify the USER, then you are prompted for the password.
 =cut
 
 function login() {
-    local opts=`$GETOPT -o a --long auth: -n 'ezid login' -- "$@"`
+    local opts=`$GETOPT -o a --long auth: -n 'cdl login' -- "$@"`
     if [ $? != 0 ] ; then echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -239,6 +222,8 @@ B<cdl xml2jsonld> converts the CDL xml data to jsonld.
 You pass the type of xml file, which selects the context, and the path to use
 for the query.  Default is user
 
+=back
+
 =cut
 
 function xml2jsonld() {
@@ -262,30 +247,28 @@ function xml2jsonld() {
 
   G[jsonld_context_map_id]='
 {"@context":{
-    "@base":"http://experts.ucdavis.edu/oap/",
-    "@vocab":"http://experts.ucdavis.edu/oap/vocab#",
-    "experts_oap":"http://experts.ucdavis.edu/oap/",
-    "oap":"http://experts.ucdavis.edu/oap/vocab#",
-    "api":"http://experts.ucdavis.edu/oap/vocab#",
+    "@base":"http://oapolicy.universityofcalifornia.edu/",
+    "@vocab":"http://oapolicy.universityofcalifornia.edu/vocab#",
+    "oap":"http://oapolicy.universityofcalifornia.edu/vocab#",
+    "api":"http://oapolicy.universityofcalifornia.edu/vocab#",
     "id":{"@type":"@id","@id":"@id"},
     "field-name":"api:field-name",
     "field-number":"api:field-number",
     "$t":"api:field-value",
+    "api:person": { "@container": "@list" },
+    "api:first-name": { "@container": "@list"}
 }}';
 
   G[jsonld_context_no_map_id]='
 {"@context":{
-  "@base":"http://experts.ucdavis.edu/oap/",
-  "@vocab":"http://experts.ucdavis.edu/oap/vocab#",
-  "experts_oap":"http://experts.ucdavis.edu/oap/",
-  "oap":"http://experts.ucdavis.edu/oap/vocab#",
-  "api":"http://experts.ucdavis.edu/oap/vocab#",
+  "@base":"http://oapolicy.universityofcalifornia.edu/",
+  "@vocab":"http://oapolicy.universityofcalifornia.edu/vocab#",
+  "oap":"http://oapolicy.universityofcalifornia.edu/vocab#",
+  "api":"http://oapolicy.universityofcalifornia.edu/vocab#",
   "rdf":"http://www.w3.org/1999/02/22-rdf-syntax-ns#",
   "field-name":"api:field-name",
   "field-number":"api:field-number",
   "$t":"api:field-value",
-  "api:person": { "@container": "@list" },
-  "api:first-name": { "@container": "@list"},
   "categoryxx":{"@type":"@id","@id":"rdf:type"},
   "typexx":{"@type":"@id","@id":"rdf:type"}
 }}';
@@ -303,7 +286,7 @@ function xml2jsonld() {
   G[jsonld_relationship_context]=${G[jsonld_context_no_map_id]}
 
   G[jsonld_publication_path]='.feed.entry[]["api:object"]|(with_entries(if .key=="id" then .key="@id" else . end))';
-  G[jsonld_publication_context]=${G[jsonld_context_no_map_id]}
+  G[jsonld_publication_context]=${G[jsonld_context_map_id]}
 
   while [[ -n "$1" ]]; do
     log "${G[util_xml2json]} < "$1" | jq '${G[jsonld_${type}_context]} + {\"@graph\":[${G[jsonld_${type}_path]}]}' > ${1//.xml/.jsonld}"
@@ -398,7 +381,7 @@ function users () {
     esac
   done
 
-  # COMMAND LINE FOR THESE OVER YAML file
+  # Command line over Global G file
   for i in ${!CMD[@]}; do
     [[ -n ${CMD[$i]} ]] && G[$i]=${CMD[$i]};
   done
@@ -467,7 +450,7 @@ function users () {
     for fn in ${G[cache]}/user-relationships.${username}.*.xml; do
       local tfn=${fn//user-relationships/relationships}
       tfn=${tfn%.xml}
-      ids=$($selT -t -v /a:feed/a:entry/api:relationship/@id ${fn} | paste -sd ',' )
+      ids=$($selT -t -v /a:feed/a:entry/api:relationship/@id ${fn} | sort -n | paste -sd ',' )
       if [[ -n $ids ]] ; then
         log ${http} "${G[api]}/relationships?ids=${ids}&detail=ref&per-page=250" '>' ${tfn}.xml
         [[ -f ${tfn}.xml ]] || ${http} "${G[api]}/relationships?ids=${ids}&detail=ref&per-page=250" > ${tfn}.xml
@@ -481,7 +464,7 @@ function users () {
       for fn in ${G[cache]}/user-relationships.${username}.*.xml; do
         local tfn=${fn//user-relationships/publications}
         tfn=${tfn%.xml}
-        ids=$($selT -t -v "/a:feed/a:entry/api:relationship/api:related[@category='publication' and @direction='from']/@id" ${fn} | paste -sd ',' )
+        ids=$($selT -t -v "/a:feed/a:entry/api:relationship/api:related[@category='publication' and @direction='from']/@id" ${fn} | sort -n | paste -sd ',' )
         if [[ -n $ids ]] ; then
           next="${G[api]}/publications?ids=${ids}&detail=full"
           let n=0;
@@ -548,19 +531,16 @@ Quinn Hart <qjhart@ucdavis.edu>
 #MAIN
 # global Variables
 declare -A G=(
-  [api_endpoint]=''
-  [api_auth]=''
-  [noop]=''
-  [http_ssl]="tls1.2"
-  [http_print]="b"
+  [api]='https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5'
+  [auth]=''
   [http_session]="elements"
-  [cache]="/var/lib/harvest/elements"
+  [cache]="/var/lib/harvest/cdl"
   [util_rsync]="rsync"
   [util_xml2json]="xml2json"
   [util_xmlstarlet]="xmlstarlet"
   [util_http]="http"
 #  [tdb]='/var/lib/harvest/experts'
-  [graph]='http://experts.ucdavis.edu/oap/'
+  [graph]='http://oapolicy.universityofcalifornia.edu/'
 );
 
 OPTS=();

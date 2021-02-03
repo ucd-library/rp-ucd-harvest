@@ -37,25 +37,25 @@ require the functions, C<pod2usage> and C<pod2text> to work properly.
 
 =cut
 
-function _parse_yaml() {
-  local prefix=$2
-  local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
-  sed -ne "s|^\($s\)\($w\)$s:$s\"\(.*\)\"$s\$|\1$fs\2$fs\3|p" \
-      -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
-    awk -F$fs '{
-      indent = length($1)/2;
-      vname[indent] = $2;
-      for (i in vname) {if (i > indent) {delete vname[i]}}
-      if (length($3) > 0) {
-         vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
-         printf("G[%s%s]=\"%s\"\n", vn, $2, $3);
-      }
-   }'
-}
-
 function main.init() {
-  local opts;
-    if ! opts=$(${G[util_getopt]} -o b:vh --long base:,verbose,help -n 'harvest' -- "$@"); then
+
+  #MAIN
+    # global Variables
+    declare -g -A G=(
+      [harvest_home]="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../lib/harvest" >/dev/null 2>&1 && pwd )"
+      [iam_api_endpoint]="iam.api:=https://iet-ws.ucdavis.edu/api/iam"
+      [iam_search]=""
+      [fuseki_host]='http://fuseki:3030'
+      [harvest_db]=''
+      [fuseki_admin]='http://fuseki:8080'
+      [fuseki_user]='admin'
+      [fuseki_password]=''
+      [fuseki_auth]=''
+      [util_getopt]=${HARVEST_UTIL_GETOPT:-${FLAGS_GETOPT_CMD:-getopt}}
+    );
+
+    local opts;
+    if ! opts=$(${G[util_getopt]} -o f:b:vh --long db:,fuseki-host:,fuseki-auth:,base:,verbose,help -n 'harvest' -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -65,6 +65,10 @@ function main.init() {
     while true; do
 	    case $1 in
 	      -b | --base) CMD[base]=$2;  shift 2;;
+	      -f | --fuseki-host) CMD[fuseki_host]=$2;  shift 2;;
+	      -d | --db) CMD[harvest_db]=$2;  shift 2;;
+	      --fuseki-admin) CMD[fuseki_admin]=$2;  shift 2;;
+	      -a | --fuseki-auth) CMD[fuseki_auth]=$2;  shift 2;;
 	      -v | --verbose) CMD[verbose]=1;  shift;;
         -h | --help ) exec pod2text $0;;
 	      -- ) shift; break;;
@@ -72,18 +76,11 @@ function main.init() {
       esac
     done
 
-    local config
-    # Read the configuration file(s)
-    for config in /etc/harvest/config.yml \
-                  ${G[home]}/.config/harvest/config.yml ./.harvest.yml; do
-      if [[ -f $config ]]; then
-        eval "$(_parse_yaml "$config")"
-      fi
-    done
-
     # system variables (ELEMENTS_FOO_BAR) over config file
+    # the HARVEST command uses root variables for these input, that is, eg
+    # FUSEKI_PASSWORD, etc.
     for i in "${!G[@]}"; do
-      eval v=\$ELEMENTS_${i^^}
+      eval v=\$${i^^}
       [[ -n $v ]] && G[$i]=$v
     done
 
@@ -91,6 +88,9 @@ function main.init() {
     for i in "${!CMD[@]}"; do
       [[ -n ${CMD[$i]} ]] && G[$i]=${CMD[$i]};
     done
+
+    # Now build an auth if needed
+    [[ -n ${G[fuseki_auth]} ]] || G[fuseki_auth]="${G[fuseki_user]}:${G[fuseki_password]}"
 
 }
 
@@ -118,6 +118,9 @@ function main.cmd () {
 	    xslt) # VIVO Harvester
 	      $cmd "$@";
 	      ;;
+      db | load | fuseki | update | query ) # Fuseki commands
+        $cmd "$@";
+        ;;
       config ) # informational requests
         _${cmd} "$@";
         ;;
@@ -144,6 +147,229 @@ function err() {
 }
 
 : <<='cut'
+=pod
+
+=head2 COMMAND
+
+harvest I<options> B<db> list|rm|new [service]
+
+Performs processes on the fuseki instance.  These are command-line overlays to
+the harvetstdb admin API in the ucd-rp-fuseki host.
+
+
+=head3 COMMANDS
+
+=over 4
+
+=item B<list>
+
+List all fuseki harvest services.  The list comes from the existing harvest
+databases, not the services running in the server.
+
+=item B<new> [service]
+
+Add a new harvest service.  This will add a standard database, with a private
+section, as well as access to the public data.
+
+=item B<rm> [service]
+
+Delete a harvest service.  This will remove the configuration, and the
+underlying database file.  This takes advantage of the L<fuseki HTTP adminsration protocol|https://jena.apache.org/documentation/fuseki2/fuseki-server-protocol.html>
+
+=back
+
+=cut
+
+function db() {
+  local cmd
+
+  local auth=${G[fuseki_auth]}
+  local dbs=()
+
+  cmd=$1
+  shift;
+
+  case $cmd in
+    datasets)
+      http --print=b --auth=${auth} GET ${G[fuseki_host]}/\$/datasets | jq '.datasets[]["ds.name"]'
+      ;;
+    list)
+      http --print=b --auth=${auth} GET ${G[fuseki_admin]}/harvestdb
+      ;;
+    rm)
+      while [[ -n "$1" ]]; do
+        dbs+=$(http --auth=${auth} DELETE ${G[fuseki_admin]}/harvestdb?name=$1)
+        shift
+      done
+      ;;
+    new)
+      if [[ -z "$1" ]]; then
+        dbs+=$(http --auth=${auth} POST ${G[fuseki_admin]}/harvestdb)
+      else
+        while [[ -n "$1" ]]; do
+          dbs+=$(http --auth=${auth} POST ${G[fuseki_admin]} /harvestdb?name=$1)
+          shift
+        done
+      fi
+      ;;
+    *) err "Invalid command $cmd"
+       ;;
+  esac
+  echo "${dbs[@]}"
+}
+
+
+: <<='cut'
+=pod
+
+=head2 COMMAND
+
+harvest I<global_options> B<query> I<options> file1.ttl file2.ttl ...
+
+Run update queries on the fuseki harvestdb endpoint.  I
+
+=cut
+
+function update () {
+  local file;
+  if [[ -n ${G[harvest_db]} ]]; then
+    local auth=${G[fuseki_auth]}
+    local update=${G[fuseki_host]}/${G[harvest_db]}/update
+
+    log ${update}
+    # Short hand for files in lib/harvest
+    for file in "$@"; do
+      [[ "$file" = '-' ]] && file=/dev/stdin
+      if [[ ! -f $file ]]; then
+        file=${G[harvest_home]}/rq/$file;
+        [[ -f $file ]] || file=${file}.ru
+      fi
+      if [[ -f $file ]]; then
+        log "curl -i --location --request POST --user \"${auth}\" -H Content-Type:application/sparql-update --data-binary \"@${file}\" ${update}"
+        curl -i --location --request POST --user "${auth}" -H Content-Type:application/sparql-update --data-binary "@${file}" ${update}
+      else
+        log $file not found
+      fi
+    done
+  else
+    log "No harvest-db specified, via --db= or via HARVEST_DB env. variable."
+  fi
+}
+
+
+: <<='cut'
+=pod
+
+=head2 COMMAND
+
+harvest I<global_options> B<update> I<options> file1.ttl file2.ttl ...
+
+Run update queries on the fuseki harvestdb endpoint.  I
+
+=cut
+
+function update () {
+  local file;
+  if [[ -n ${G[harvest_db]} ]]; then
+    local auth=${G[fuseki_auth]}
+    local update=${G[fuseki_host]}/${G[harvest_db]}/update
+
+    log ${update}
+    # Short hand for files in lib/harvest
+    for file in "$@"; do
+      [[ "$file" = '-' ]] && file=/dev/stdin
+      if [[ ! -f $file ]]; then
+        file=${G[harvest_home]}/rq/$file;
+        [[ -f $file ]] || file=${file}.ru
+      fi
+      if [[ -f $file ]]; then
+        log "curl -i --location --request POST --user \"${auth}\" -H Content-Type:application/sparql-update --data-binary \"@${file}\" ${update}"
+        curl -i --location --request POST --user "${auth}" -H Content-Type:application/sparql-update --data-binary "@${file}" ${update}
+      else
+        log $file not found
+      fi
+    done
+  else
+    log "No harvest-db specified, via --db= or via HARVEST_DB env. variable."
+  fi
+}
+
+: <<='cut'
+=pod
+
+=head2 COMMAND
+
+harvest I<options> B<load> files
+
+Use http to load our data files into the harvestdb.  The harvestdb is specified
+as a global environment.
+
+=head3 load OPTIONS
+
+=over 4
+
+=item B<--graph=I<graph_url>>
+
+Select the graph to insert the data.
+
+=item B<--suffix=I<ttl|jsonld>>
+
+if you include stdin, specify the filename suffix to use, eg. C<--suffix=ttl>
+will identify C<stdin> as C<file.ttl>.  This can help the data endpoint to
+understand the format.  =back
+
+=back
+
+=cut
+
+function load () {
+  local opts;
+  if ! opts=$(${G[util_getopt]} -o g:f: --long graph:,format: -n 'harvest load' -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ; fi
+
+  eval set -- "$opts"
+
+  declare -A CMD=(
+    [graph]="http://experts.ucdavis.edu/nograph/"
+    [suffix]="ttl"
+    );
+
+  while true; do
+	  case $1 in
+	    -g | --graph) CMD[graph]=$2;  shift 2;;
+	    -s | --suffix) CMD[suffix]=$2;  shift 2;;
+	    -- ) shift; break;;
+	    *) shift; break;
+    esac
+  done
+
+  local file;
+  if [[ -n ${G[harvest_db]} ]]; then
+    local auth=${G[fuseki_auth]}
+    local load=${G[fuseki_host]}/${G[harvest_db]}/data
+
+    for file in "$@"; do
+      if [[ "$file" = '-' ]]; then
+        file=/dev/stdin
+        fn=file.${CMD[suffix]}
+      else
+        fn=$file
+      fi
+      log "curl --location --request POST --user ${auth} -H \"Content-Type:multipart/form-data\" -F \"file=@${file};filename=${fn}\" \"${load}?graph=${CMD[graph]}\""
+      curl --location --request POST --user ${auth} -H "Content-Type:multipart/form-data" -F "file=@${file};filename=${fn}" "${load}?graph=${CMD[graph]}"
+    done
+  fi
+  # No can load both
+  if [[ -n ${G[tdb]} ]]; then
+    for file in "$@"; do
+      [[ "$file" = '-' ]] && file=/dev/stdin
+      log "tdb2.tdbloader --loc=${G[tdb]} --graph=${G[graph]} $file"
+      tdb2.tdbloader --loc=${G[tdb]} --graph=${G[graph]} $file
+    done
+  fi
+}
+
+<<='cut'
 =pod
 
 =head2 COMMAND
@@ -236,26 +462,6 @@ ${FLAGS_GETOPT_CMD:-getopt}
 Quinn Hart <qjhart@ucdavis.edu>
 
 =cut
-
-
-#MAIN
-# global Variables
-declare -A G=(
-  [base]="."
-  [verbose]=""
-  [home]="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../lib/harvest" >/dev/null 2>&1 && pwd )"
-  [iam_api_endpoint]="iam.api:=https://iet-ws.ucdavis.edu/api/iam"
-  [iam_search]=""
-  [util_getopt]=${HARVEST_UTIL_GETOPT:-${FLAGS_GETOPT_CMD:-getopt}}
-);
-
-
-declare -A G_DESC=(
-  [base]='base directory'
-  [verbose]='Show your work'
-  [home]='Harvest library home'
-  [util_getopt]='GNU getopt, must be system var or default.  Will also check FLAGS_GETOPT_CMD'
-);
 
 
 OPTS=();

@@ -9,7 +9,6 @@ PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
 PREFIX experts_pubs: <http://experts.ucdavis.edu/pubs/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
-PREFIX pubs: <http://experts.ucdavis.edu/pubs/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -18,16 +17,19 @@ PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 
 INSERT {
-	GRAPH experts_pubs: {
-		?publication a bibo:Book ;
+	GRAPH experts_oap: {
+		?publication a bibo:AcademicArticle ;
 				rdfs:label ?title ;
+				bibo:issue ?issue ;
 				bibo:volume ?volume ;
+				bibo:number ?number ;
+				bibo:abstract ?abstract ;
 				bibo:doi ?doi ;
 				bibo:pageStart ?beginPage ;
 				bibo:pageEnd ?endPage ;
-				bibo:isbn13 ?isbn13 ;
 				bibo:uri ?pubExternalURL ;
 				bibo:status ?vivoStatus ;
+				vivo:hasPublicationVenue ?journalURI ;
 				vivo:relatedBy _:authorship .
 		_:authorship a vivo:Authorship ;
 					 vivo:rank ?authorRank ;
@@ -40,27 +42,39 @@ INSERT {
 													vcard:first_name ?authorFirstName ;
 												  ] ;
 								  ] .
+		?journalURI a bibo:Journal ;
+				vivo:publicationVenueFor ?publication ;
+				rdfs:label ?journalTitle ;
+				bibo:issn ?issn ;
+				bibo:eissn ?eissn.
 	}
 }
 WHERE {
-	GRAPH harvest_pubs: {
+	GRAPH harvest_oap: {
 		?publication oap:records/oap:record ?exemplarRecord .
 
-		#Authors
 		?exemplarRecord oap:native/oap:field [ oap:name "authors" ; oap:people/oap:person [ list:index(?pos ?elem) ] ] .
 		?elem oap:last-name ?authorLastName ;
 			  oap:first-names ?authorFirstName .
 		BIND(?pos+1 AS ?authorRank)
-		#Link to UCD user for future wire-up to Person
+
         OPTIONAL {
         	?elem oap:links/oap:link ?userLink.
       		?userLink  oap:username ?username .
       		BIND(URI(CONCAT(STR("http://experts.ucdavis.edu/"),STRBEFORE(?username,"@"))) AS ?personURI)
       	}
-
 		?exemplarRecord oap:native/oap:field [ oap:name "title" ; oap:text ?title ] .
 		OPTIONAL {
+			?exemplarRecord oap:native/oap:field [ oap:name "issue" ; oap:text ?issue ].
+		}
+		OPTIONAL {
 			?exemplarRecord oap:native/oap:field [ oap:name "volume" ; oap:text ?volume ].
+		}
+		OPTIONAL {
+			?exemplarRecord oap:native/oap:field [ oap:name "number" ; oap:text ?number ].
+		}
+		OPTIONAL {
+			?exemplarRecord oap:native/oap:field [ oap:name "abstract" ; oap:text ?abstract ].
 		}
 		OPTIONAL {
 			?exemplarRecord oap:native/oap:field [ oap:name "doi" ; oap:text ?doi ].
@@ -69,7 +83,14 @@ WHERE {
 			?exemplarRecord oap:native/oap:field [ oap:name "pagination" ; oap:pagination [ oap:begin-page ?beginPage ; oap:end-page ?endPage ] ].
 		}
 		OPTIONAL {
-			?exemplarRecord oap:native/oap:field [ oap:name "isbn-13" ; oap:text ?isbn13 ].
+			?exemplarRecord oap:native/oap:field [ oap:name "journal" ; oap:text ?journalTitle ].
+			BIND(REPLACE(REPLACE(LCASE(STR(?journalTitle)), '[^\\w\\d]','-'), '-{2,}' ,'-') AS ?journalIdText)
+		}
+		OPTIONAL {
+			?exemplarRecord oap:native/oap:field [ oap:name "eissn" ; oap:text ?eissn ].
+		}
+		OPTIONAL {
+			?exemplarRecord oap:native/oap:field [ oap:name "issn" ; oap:text ?issn ].
 		}
 		OPTIONAL {
 			VALUES ?pubExternalURLField {'author-url' 'public-url' }
@@ -79,11 +100,11 @@ WHERE {
 			VALUES (?status ?vivoStatus) { ( "Published" bibo:published ) ( "Published online" bibo:published ) ( "Accepted" bibo:accepted ) }
 			?exemplarRecord oap:native/oap:field [ oap:name "publication-status" ; oap:text ?status ]
 		}
+		BIND(URI(CONCAT("http://experts.ucdavis.edu/pub/", COALESCE(CONCAT("eissn:", ?eissn), CONCAT("issn:", ?issn), CONCAT("journal:", ?journalIdText)))) AS ?journalURI)
 		{
 		SELECT
 			?publication (MIN(?record) AS ?exemplarRecord)
 		WHERE {
-			# Map the priority back to its source-name
 			VALUES (?sourceNameA ?minPriority) {
 				("verified-manual" 1)
 				("epmc" 2)
@@ -104,14 +125,13 @@ WHERE {
 				("dspace" 17)
 			}
 			?publication oap:category "publication" ;
-						 oap:type "book" ;
+						 oap:type "journal-article" ;
 						 oap:records/oap:record ?record .
 			?record oap:source-name  ?sourceNameA
 			{
 			SELECT
 				?publication (MIN(?priority) AS ?minPriority)
-			WHERE {
-				# Map the source-name to its priority
+			  WHERE {
 				VALUES (?sourceNameIQ ?priority) {
 					("verified-manual" 1)
 					("epmc" 2)
@@ -132,7 +152,7 @@ WHERE {
 					("dspace" 17)
 				}
 				?publication oap:category "publication" ;
-							 oap:type "book" ;
+							 oap:type "journal-article" ;
 							 oap:records/oap:record/oap:source-name ?sourceNameIQ
 			  }
 			  GROUP BY
@@ -143,4 +163,4 @@ WHERE {
 			?publication
 		}
 	}
-}
+};

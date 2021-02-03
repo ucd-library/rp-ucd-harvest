@@ -9,7 +9,6 @@ PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
 PREFIX experts_pubs: <http://experts.ucdavis.edu/pubs/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
-PREFIX pubs: <http://experts.ucdavis.edu/pubs/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -18,66 +17,22 @@ PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 
 INSERT {
-	GRAPH experts_pubs: {
-		?publication a bibo:Book ;
-				rdfs:label ?title ;
-				bibo:volume ?volume ;
-				bibo:doi ?doi ;
-				bibo:pageStart ?beginPage ;
-				bibo:pageEnd ?endPage ;
-				bibo:isbn13 ?isbn13 ;
-				bibo:uri ?pubExternalURL ;
-				bibo:status ?vivoStatus ;
-				vivo:relatedBy _:authorship .
-		_:authorship a vivo:Authorship ;
-					 vivo:rank ?authorRank ;
-					 vivo:relates ?personURI ;
-					 vivo:relates ?publication ;
-					 vivo:relates [ a vcard:Individual ;
-									vivo:relatedBy _:authorship ;
-									vcard:hasName [ a vcard:Name ;
-													vcard:last_name ?authorLastName ;
-													vcard:first_name ?authorFirstName ;
-												  ] ;
-								  ] .
+	GRAPH experts_oap: {
+		?publication vivo:hasfreetextKeyword ?keyword
 	}
 }
 WHERE {
-	GRAPH harvest_pubs: {
+	GRAPH harvest_oap: {
 		?publication oap:records/oap:record ?exemplarRecord .
-
-		#Authors
-		?exemplarRecord oap:native/oap:field [ oap:name "authors" ; oap:people/oap:person [ list:index(?pos ?elem) ] ] .
-		?elem oap:last-name ?authorLastName ;
-			  oap:first-names ?authorFirstName .
-		BIND(?pos+1 AS ?authorRank)
-		#Link to UCD user for future wire-up to Person
-        OPTIONAL {
-        	?elem oap:links/oap:link ?userLink.
-      		?userLink  oap:username ?username .
-      		BIND(URI(CONCAT(STR("http://experts.ucdavis.edu/"),STRBEFORE(?username,"@"))) AS ?personURI)
-      	}
-
-		?exemplarRecord oap:native/oap:field [ oap:name "title" ; oap:text ?title ] .
-		OPTIONAL {
-			?exemplarRecord oap:native/oap:field [ oap:name "volume" ; oap:text ?volume ].
-		}
-		OPTIONAL {
-			?exemplarRecord oap:native/oap:field [ oap:name "doi" ; oap:text ?doi ].
-		}
-		OPTIONAL {
-			?exemplarRecord oap:native/oap:field [ oap:name "pagination" ; oap:pagination [ oap:begin-page ?beginPage ; oap:end-page ?endPage ] ].
-		}
-		OPTIONAL {
-			?exemplarRecord oap:native/oap:field [ oap:name "isbn-13" ; oap:text ?isbn13 ].
-		}
-		OPTIONAL {
-			VALUES ?pubExternalURLField {'author-url' 'public-url' }
-			?exemplarRecord oap:native/oap:field [ oap:name ?pubExternalURLField ; oap:text ?pubExternalURL ].
-		}
-		OPTIONAL {
-			VALUES (?status ?vivoStatus) { ( "Published" bibo:published ) ( "Published online" bibo:published ) ( "Accepted" bibo:accepted ) }
-			?exemplarRecord oap:native/oap:field [ oap:name "publication-status" ; oap:text ?status ]
+		{
+			{
+				?exemplarRecord oap:native/oap:field  [ oap:display-name  "Keywords" ; oap:keywords/oap:keyword ?keyword ]
+				FILTER(!ISBLANK(?keyword))
+			}
+		  	UNION
+			{
+				?exemplarRecord oap:native/oap:field  [ oap:display-name  "Keywords" ; oap:keywords/oap:keyword/oap:field-value ?keyword ]
+			}
 		}
 		{
 		SELECT
@@ -103,8 +58,9 @@ WHERE {
 				("manual" 16)
 				("dspace" 17)
 			}
+			VALUES ?pubType { "journal-article" "conference" }
 			?publication oap:category "publication" ;
-						 oap:type "book" ;
+						 oap:type ?pubType ;
 						 oap:records/oap:record ?record .
 			?record oap:source-name  ?sourceNameA
 			{
@@ -131,8 +87,9 @@ WHERE {
 					("manual" 16)
 					("dspace" 17)
 				}
+				VALUES ?pubType { "journal-article" "conference" }
 				?publication oap:category "publication" ;
-							 oap:type "book" ;
+							 oap:type ?pubType ;
 							 oap:records/oap:record/oap:source-name ?sourceNameIQ
 			  }
 			  GROUP BY

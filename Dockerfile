@@ -31,10 +31,11 @@ RUN make --directory=/elements prefix=/usr/local install && rm -rf /elements
 COPY aeq /aeq/
 RUN make --directory=/aeq prefix=/usr/local install && rm -rf /aeq
 
-# Add iam tool
-COPY iam /usr/local/bin
-COPY oap /usr/local/bin
+# Add IAM query, cdl query and harvest
+COPY ucdid /usr/local/bin
+COPY cdl /usr/local/bin
 COPY harvest /usr/local/bin
+COPY lib /usr/local/lib/harvest
 
 # Our entrypoint calls the generic VIVO one
 COPY rp-ucd-harvest-entrypoint.sh /

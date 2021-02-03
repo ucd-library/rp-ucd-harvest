@@ -9,7 +9,6 @@ PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
 PREFIX experts_pubs: <http://experts.ucdavis.edu/pubs/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
-PREFIX pubs: <http://experts.ucdavis.edu/pubs/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -18,13 +17,14 @@ PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 
 INSERT {
-	GRAPH experts_pubs: {
-		?publication a bibo:Book ;
+	GRAPH experts_oap: {
+		?publication a bibo:Chapter ;
 				rdfs:label ?title ;
 				bibo:volume ?volume ;
 				bibo:doi ?doi ;
 				bibo:pageStart ?beginPage ;
 				bibo:pageEnd ?endPage ;
+				bibo:isbn10 ?isbn10 ;
 				bibo:isbn13 ?isbn13 ;
 				bibo:uri ?pubExternalURL ;
 				bibo:status ?vivoStatus ;
@@ -43,7 +43,7 @@ INSERT {
 	}
 }
 WHERE {
-	GRAPH harvest_pubs: {
+	GRAPH harvest_oap: {
 		?publication oap:records/oap:record ?exemplarRecord .
 
 		#Authors
@@ -67,6 +67,9 @@ WHERE {
 		}
 		OPTIONAL {
 			?exemplarRecord oap:native/oap:field [ oap:name "pagination" ; oap:pagination [ oap:begin-page ?beginPage ; oap:end-page ?endPage ] ].
+		}
+		OPTIONAL {
+			?exemplarRecord oap:native/oap:field [ oap:name "isbn-10" ; oap:text ?isbn10 ].
 		}
 		OPTIONAL {
 			?exemplarRecord oap:native/oap:field [ oap:name "isbn-13" ; oap:text ?isbn13 ].
@@ -104,7 +107,7 @@ WHERE {
 				("dspace" 17)
 			}
 			?publication oap:category "publication" ;
-						 oap:type "book" ;
+						 oap:type "chapter" ;
 						 oap:records/oap:record ?record .
 			?record oap:source-name  ?sourceNameA
 			{
@@ -132,7 +135,7 @@ WHERE {
 					("dspace" 17)
 				}
 				?publication oap:category "publication" ;
-							 oap:type "book" ;
+							 oap:type "chapter" ;
 							 oap:records/oap:record/oap:source-name ?sourceNameIQ
 			  }
 			  GROUP BY

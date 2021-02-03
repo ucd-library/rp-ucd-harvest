@@ -9,7 +9,6 @@ PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
 PREFIX experts_pubs: <http://experts.ucdavis.edu/pubs/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
-PREFIX pubs: <http://experts.ucdavis.edu/pubs/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -18,16 +17,22 @@ PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 
 INSERT {
-	GRAPH experts_pubs: {
-		?publication a bibo:Book ;
+	GRAPH experts_oap: {
+		?publication a vivo:ConferencePaper ;
 				rdfs:label ?title ;
+				bibo:issue ?issue ;
 				bibo:volume ?volume ;
+				bibo:number ?number ;
+				bibo:abstract ?abstract ;
 				bibo:doi ?doi ;
-				bibo:pageStart ?beginPage ;
-				bibo:pageEnd ?endPage ;
+				bibo:isbn10 ?isbn10 ;
 				bibo:isbn13 ?isbn13 ;
 				bibo:uri ?pubExternalURL ;
+				#bibo:presentedAt [ a owl:Event ; rdfs:label ?nameOfConference ] ;
+				bibo:pageStart ?beginPage ;
+				bibo:pageEnd ?endPage ;
 				bibo:status ?vivoStatus ;
+				vivo:hasPublicationVenue ?journalURI ;
 				vivo:relatedBy _:authorship .
 		_:authorship a vivo:Authorship ;
 					 vivo:rank ?authorRank ;
@@ -40,12 +45,16 @@ INSERT {
 													vcard:first_name ?authorFirstName ;
 												  ] ;
 								  ] .
+		?journalURI a bibo:Journal ;
+				vivo:publicationVenueFor ?publication ;
+				rdfs:label ?journalTitle ;
+				bibo:issn ?issn ;
+				bibo:eissn ?eissn.
 	}
 }
 WHERE {
-	GRAPH harvest_pubs: {
+	GRAPH harvest_oap: {
 		?publication oap:records/oap:record ?exemplarRecord .
-
 		#Authors
 		?exemplarRecord oap:native/oap:field [ oap:name "authors" ; oap:people/oap:person [ list:index(?pos ?elem) ] ] .
 		?elem oap:last-name ?authorLastName ;
@@ -57,19 +66,44 @@ WHERE {
       		?userLink  oap:username ?username .
       		BIND(URI(CONCAT(STR("http://experts.ucdavis.edu/"),STRBEFORE(?username,"@"))) AS ?personURI)
       	}
-
 		?exemplarRecord oap:native/oap:field [ oap:name "title" ; oap:text ?title ] .
 		OPTIONAL {
+			?exemplarRecord oap:native/oap:field [ oap:name "issue" ; oap:text ?issue ].
+		}
+		OPTIONAL {
 			?exemplarRecord oap:native/oap:field [ oap:name "volume" ; oap:text ?volume ].
+		}
+		OPTIONAL {
+			?exemplarRecord oap:native/oap:field [ oap:name "number" ; oap:text ?number ].
+		}
+		OPTIONAL {
+			?exemplarRecord oap:native/oap:field [ oap:name "abstract" ; oap:text ?abstract ].
 		}
 		OPTIONAL {
 			?exemplarRecord oap:native/oap:field [ oap:name "doi" ; oap:text ?doi ].
 		}
 		OPTIONAL {
-			?exemplarRecord oap:native/oap:field [ oap:name "pagination" ; oap:pagination [ oap:begin-page ?beginPage ; oap:end-page ?endPage ] ].
+			?exemplarRecord oap:native/oap:field [ oap:name "isbn-10" ; oap:text ?isbn10 ].
 		}
 		OPTIONAL {
 			?exemplarRecord oap:native/oap:field [ oap:name "isbn-13" ; oap:text ?isbn13 ].
+		}
+		# Only Crossref has name-of-conference, so it may not be worth it. Results in combinatorial expnasion b/c of blank nodes
+		OPTIONAL {
+			?exemplarRecord oap:native/oap:field [ oap:name "name-of-conference" ; oap:text ?nameOfConference ].
+		}
+		OPTIONAL {
+			?exemplarRecord oap:native/oap:field [ oap:name "pagination" ; oap:pagination [ oap:begin-page ?beginPage ; oap:end-page ?endPage ] ].
+		}
+		OPTIONAL {
+			?exemplarRecord oap:native/oap:field [ oap:name "journal" ; oap:text ?journalTitle ].
+			BIND(REPLACE(REPLACE(LCASE(STR(?journalTitle)), '[^\\w\\d]','-'), '-{2,}' ,'-') AS ?journalIdText)
+		}
+		OPTIONAL {
+			?exemplarRecord oap:native/oap:field [ oap:name "eissn" ; oap:text ?eissn ].
+		}
+		OPTIONAL {
+			?exemplarRecord oap:native/oap:field [ oap:name "issn" ; oap:text ?issn ].
 		}
 		OPTIONAL {
 			VALUES ?pubExternalURLField {'author-url' 'public-url' }
@@ -79,6 +113,7 @@ WHERE {
 			VALUES (?status ?vivoStatus) { ( "Published" bibo:published ) ( "Published online" bibo:published ) ( "Accepted" bibo:accepted ) }
 			?exemplarRecord oap:native/oap:field [ oap:name "publication-status" ; oap:text ?status ]
 		}
+		BIND(URI(CONCAT("http://experts.ucdavis.edu/pub/", COALESCE(CONCAT("eissn:", ?eissn), CONCAT("issn:", ?issn), CONCAT("journal:", ?journalIdText)))) AS ?journalURI)
 		{
 		SELECT
 			?publication (MIN(?record) AS ?exemplarRecord)
@@ -104,7 +139,7 @@ WHERE {
 				("dspace" 17)
 			}
 			?publication oap:category "publication" ;
-						 oap:type "book" ;
+						 oap:type "conference" ;
 						 oap:records/oap:record ?record .
 			?record oap:source-name  ?sourceNameA
 			{
@@ -132,7 +167,7 @@ WHERE {
 					("dspace" 17)
 				}
 				?publication oap:category "publication" ;
-							 oap:type "book" ;
+							 oap:type "conference" ;
 							 oap:records/oap:record/oap:source-name ?sourceNameIQ
 			  }
 			  GROUP BY

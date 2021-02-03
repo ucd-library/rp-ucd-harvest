@@ -7,25 +7,25 @@ services:
     environment:
       - VIVO_BASEURI_PREFIX=http://experts.library.ucdavis.edu/
     env_file:
-      - test.env
+      - .env
     volumes:
        - harvest-xslt-data:/usr/local/vivo/harvester/data
        - harvest-data:/var/lib/harvest
        - ./lib:/usr/local/lib/harvest
        - ./harvest:/usr/local/bin/harvest
-       - ./oap:/usr/local/bin/oap
-       - ./iam:/usr/local/bin/iam
+       - ./cdl:/usr/local/bin/cdl
+       - ./ucdid:/usr/local/bin/ucdid
        - ./elements/elements:/usr/local/bin/elements
-#       - ./aeq:/usr/local/bin/aeq
+       - ./aeq/aeq:/usr/local/bin/aeq
 
   fuseki:
-    image: ucdlib/rp-ucd-fuseki:${FUSEKI_VERSION:-1.1.1}
+    image: ucdlib/rp-ucd-fuseki:${FUSEKI_VERSION:-1.1.4}
     env_file:
       - .env
     volumes:
       - fuseki-data:/fuseki
     ports: # still exposed for admin access
-      - ${FUSEKI_HOST_PORT:-8081}:3030
+      - ${FUSEKI_HOST_PORT:-3030}:3030
 
 
 volumes:

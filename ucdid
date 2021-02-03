@@ -5,12 +5,12 @@
 
 =head1  NAME
 
-$G{[cmd]} - Fetch UC Davis IAM data via their API
+ucdid - Fetch UC Davis IAM data via their API
 
 =head1 SYNOPSIS
 
 ucdid [-E|--endpoint=<IAM endpoint>] \
-      [--auth|--iam_auth=ucd:<iam_key> \
+      [--auth=ucd:<iam_key> \
       [-h|--help] <command> [<args>]
 
   where <command> is one of C<config> C<profiles> C<login> C<odr.departments> C<pps.divisions> C<pps.departments> C<pps.titles> C<sis.colleges> C<ids>
@@ -59,13 +59,13 @@ just a diagnostic test to verify any urls are being read correctly.
 function parse_url() {
   declare -A url
 
-  url[iam_endpoint]=$1
-  [[ -n ${url[iam_endpoint]} ]] || url[iam_endpoint]="${G[iam_endpoint]}"
+  url[endpoint]=$1
+  [[ -n ${url[endpoint]} ]] || url[endpoint]="${G[endpoint]}"
 
   local pattern='^(([[:alnum:]]+):)(//((([[:alnum:]]+)(:([[:alnum:]]+))?@)?([^:^@^/]+)(:([[:digit:]]+))?)?)?/(\.)?(.*)?$'
 
 
-  if [[ "${url[iam_endpoint]}" =~ $pattern ]]; then
+  if [[ "${url[endpoint]}" =~ $pattern ]]; then
     url[is]="url"
     url[proto]=${BASH_REMATCH[2]}
     url[user]=${BASH_REMATCH[6]}
@@ -84,7 +84,7 @@ function parse_url() {
     fi
   else
     url[proto]="file";
-    url[path]=${PWD}/${url[iam_endpoint]}
+    url[path]=${PWD}/${url[endpoint]}
   fi
 
   declare -p url
@@ -94,8 +94,8 @@ function parse_url() {
 function main.init() {
 
     declare -g -A G=(
-      [iam_auth]=
-      [iam_endpoint]='https://iet-ws.ucdavis.edu/api/iam'
+      [auth]=
+      [endpoint]='https://iet-ws.ucdavis.edu/api/iam'
       #  [stage_api]='https://iet-ws-stage.ucdavis.edu/api/iam'
       [base]='http://iam.ucdavis.edu/'
       [ucdid_fetch_format]='json'
@@ -108,7 +108,7 @@ function main.init() {
 );
 
   local opts;
-    if ! opts=$(${G[shell_getopt]} -o E:v --long iam_endpoint:,endpoint:,verbose,http-session:,session:,help -n "ucdid" -- "$@"); then
+    if ! opts=$(${G[shell_getopt]} -o E:v --long auth:,iam-auth:,endpoint:,verbose,http-session:,session:,help -n "ucdid" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -118,8 +118,9 @@ function main.init() {
     declare -A CMD;
     while true; do
 	    case $1 in
-        -E | --endpoint | --iam-endpoint) CMD[iam_endpoint]=$2; shift 2;;
+        -E | --endpoint ) CMD[endpoint]=$2; shift 2;;
 	      --session | --http-session) CMD[http_session]=$2;  shift 2;;
+        --auth ) CMD[auth]=$2; shift 2;;
 	      -v | --verbose) CMD[verbose]+="v";  shift;;
         -h | --help ) exec pod2text "$0";;
 	      -- ) shift; break;;
@@ -261,7 +262,7 @@ function login() {
     key=${auth#*:}
 
     local http="${G[util_http]} --check-status --session=${G[http_session]} --auth=${auth} --print=hH"
-    $http ${G[iam_endpoint]}/orginfo/sis/colleges key==${key}
+    $http ${G[endpoint]}/orginfo/sis/colleges key==${key}
 }
 
 
@@ -323,12 +324,12 @@ function fetch() {
   #   );
 
   declare -A url=(
-    [profiles]="${G[iam_endpoint]}/people/profile/search"
-    [odr.departments]="${G[iam_endpoint]}/orginfo/odr/depts"
-    [pps.divisions]="${G[iam_endpoint]}/orginfo/pps/divisions"
-    [pps.titles]="${G[iam_endpoint]}/orginfo/pps/titles"
-    [sis.colleges]="${G[iam_endpoint]}/orginfo/sis/colleges"
-    [ids]="${G[iam_endpoint]}/people/ids"
+    [profiles]="${G[endpoint]}/people/profile/search"
+    [odr.departments]="${G[endpoint]}/orginfo/odr/depts"
+    [pps.divisions]="${G[endpoint]}/orginfo/pps/divisions"
+    [pps.titles]="${G[endpoint]}/orginfo/pps/titles"
+    [sis.colleges]="${G[endpoint]}/orginfo/sis/colleges"
+    [ids]="${G[endpoint]}/people/ids"
     );
 
   declare -A mime=(
@@ -369,11 +370,11 @@ function fetch() {
 
   # Get the key
   local key=undefined
-  if [[ -n ${G[iam_auth]} ]] ; then
-    key=${G[iam_auth]#*:}
+  if [[ -n ${G[auth]} ]] ; then
+    key=${G[auth]#*:}
   else
     # Fetch key from the session variable
-    local inp=$(parse_url ${G[iam_endpoint]})
+    local inp=$(parse_url ${G[endpoint]})
     eval "declare -A ep=${inp#*=}"
     local json=$HOME/.httpie/sessions/${ep[hostname]}
     [[ -n ${ep[port]} ]] && json+=_${ep[port]}
