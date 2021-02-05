@@ -2,8 +2,8 @@
 FROM openjdk:11-jdk
 
 # VIVO Havester Section
-COPY --from=ucdlib/vivo_harvester:v2 /usr/local/vivo /usr/local/vivo/
-COPY --from=ucdlib/vivo_harvester:v2 /usr/local/bin/docker-vivo-harvester-entrypoint.sh /usr/local/bin/
+COPY --from=ucdlib/vivo_harvester:dev /usr/local/vivo /usr/local/vivo/
+COPY --from=ucdlib/vivo_harvester:dev /usr/local/bin/docker-vivo-harvester-entrypoint.sh /usr/local/bin/
 
 COPY config/*.properties /etc/vivo/harvester/
 COPY config/scripts /etc/vivo/harvester/scripts/

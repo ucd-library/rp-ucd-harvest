@@ -450,7 +450,7 @@ function users () {
     for fn in ${G[cache]}/user-relationships.${username}.*.xml; do
       local tfn=${fn//user-relationships/relationships}
       tfn=${tfn%.xml}
-      ids=$($selT -t -v /a:feed/a:entry/api:relationship/@id ${fn} | sort -n | paste -sd ',' )
+      ids=$($selT -t -v /a:feed/a:entry/api:relationship/@id ${fn} | sort -u | paste -sd ',' )
       if [[ -n $ids ]] ; then
         log ${http} "${G[api]}/relationships?ids=${ids}&detail=ref&per-page=250" '>' ${tfn}.xml
         [[ -f ${tfn}.xml ]] || ${http} "${G[api]}/relationships?ids=${ids}&detail=ref&per-page=250" > ${tfn}.xml
@@ -464,7 +464,7 @@ function users () {
       for fn in ${G[cache]}/user-relationships.${username}.*.xml; do
         local tfn=${fn//user-relationships/publications}
         tfn=${tfn%.xml}
-        ids=$($selT -t -v "/a:feed/a:entry/api:relationship/api:related[@category='publication' and @direction='from']/@id" ${fn} | sort -n | paste -sd ',' )
+        ids=$($selT -t -v "/a:feed/a:entry/api:relationship/api:related[@category='publication' and @direction='from']/@id" ${fn} | sort -u | paste -sd ',' )
         if [[ -n $ids ]] ; then
           next="${G[api]}/publications?ids=${ids}&detail=full"
           let n=0;

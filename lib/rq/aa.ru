@@ -52,8 +52,8 @@ INSERT {
 WHERE {
 	GRAPH harvest_oap: {
 		?publication oap:records/oap:record ?exemplarRecord .
-
-		?exemplarRecord oap:native/oap:field [ oap:name "authors" ; oap:people/oap:person [ list:index(?pos ?elem) ] ] .
+    ?exemplerRecord oap:native ?native.
+		?native oap:field [ oap:name "authors" ; oap:people/oap:person [ list:index(?pos ?elem) ] ] .
 		?elem oap:last-name ?authorLastName ;
 			  oap:first-names ?authorFirstName .
 		BIND(?pos+1 AS ?authorRank)
@@ -63,42 +63,42 @@ WHERE {
       		?userLink  oap:username ?username .
       		BIND(URI(CONCAT(STR("http://experts.ucdavis.edu/"),STRBEFORE(?username,"@"))) AS ?personURI)
       	}
-		?exemplarRecord oap:native/oap:field [ oap:name "title" ; oap:text ?title ] .
+		?native oap:field [ oap:name "title" ; oap:text ?title ] .
 		OPTIONAL {
-			?exemplarRecord oap:native/oap:field [ oap:name "issue" ; oap:text ?issue ].
+			?native oap:field [ oap:name "issue" ; oap:text ?issue ].
 		}
 		OPTIONAL {
-			?exemplarRecord oap:native/oap:field [ oap:name "volume" ; oap:text ?volume ].
+			?native oap:field [ oap:name "volume" ; oap:text ?volume ].
 		}
 		OPTIONAL {
-			?exemplarRecord oap:native/oap:field [ oap:name "number" ; oap:text ?number ].
+			?native oap:field [ oap:name "number" ; oap:text ?number ].
 		}
 		OPTIONAL {
-			?exemplarRecord oap:native/oap:field [ oap:name "abstract" ; oap:text ?abstract ].
+			?native oap:field [ oap:name "abstract" ; oap:text ?abstract ].
 		}
 		OPTIONAL {
-			?exemplarRecord oap:native/oap:field [ oap:name "doi" ; oap:text ?doi ].
+			?native oap:field [ oap:name "doi" ; oap:text ?doi ].
 		}
 		OPTIONAL {
-			?exemplarRecord oap:native/oap:field [ oap:name "pagination" ; oap:pagination [ oap:begin-page ?beginPage ; oap:end-page ?endPage ] ].
+			?native oap:field [ oap:name "pagination" ; oap:pagination [ oap:begin-page ?beginPage ; oap:end-page ?endPage ] ].
 		}
 		OPTIONAL {
-			?exemplarRecord oap:native/oap:field [ oap:name "journal" ; oap:text ?journalTitle ].
+			?native oap:field [ oap:name "journal" ; oap:text ?journalTitle ].
 			BIND(REPLACE(REPLACE(LCASE(STR(?journalTitle)), '[^\\w\\d]','-'), '-{2,}' ,'-') AS ?journalIdText)
 		}
 		OPTIONAL {
-			?exemplarRecord oap:native/oap:field [ oap:name "eissn" ; oap:text ?eissn ].
+			?native oap:field [ oap:name "eissn" ; oap:text ?eissn ].
 		}
 		OPTIONAL {
-			?exemplarRecord oap:native/oap:field [ oap:name "issn" ; oap:text ?issn ].
+			?native oap:field [ oap:name "issn" ; oap:text ?issn ].
 		}
 		OPTIONAL {
 			VALUES ?pubExternalURLField {'author-url' 'public-url' }
-			?exemplarRecord oap:native/oap:field [ oap:name ?pubExternalURLField ; oap:text ?pubExternalURL ].
+			?native oap:field [ oap:name ?pubExternalURLField ; oap:text ?pubExternalURL ].
 		}
 		OPTIONAL {
 			VALUES (?status ?vivoStatus) { ( "Published" bibo:published ) ( "Published online" bibo:published ) ( "Accepted" bibo:accepted ) }
-			?exemplarRecord oap:native/oap:field [ oap:name "publication-status" ; oap:text ?status ]
+			?native oap:field [ oap:name "publication-status" ; oap:text ?status ]
 		}
 		BIND(URI(CONCAT("http://experts.ucdavis.edu/pub/", COALESCE(CONCAT("eissn:", ?eissn), CONCAT("issn:", ?issn), CONCAT("journal:", ?journalIdText)))) AS ?journalURI)
 		{
