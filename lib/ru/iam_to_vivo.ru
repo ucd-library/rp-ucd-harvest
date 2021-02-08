@@ -10,7 +10,7 @@ PREFIX harvest_iam: <http://iam.ucdavis.edu/>
 PREFIX iam: <http://iam.ucdavis.edu/schema#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX ucd: <http://experts.ucdavis.edu/schema#>
+PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
@@ -32,12 +32,12 @@ WHERE {
 
 
 INSERT { graph experts_iam: {
-  ?user a ?emp_type;
+  ?user a ?emp_type, ucdrp:person;
         rdfs:label ?label;
-        ucd:casId ?kerb;
+        ucdrp:casId ?kerb;
         obo:ARG_2000028 [
                           a vcard:Individual;
-                          ucd:identifier ?vid;
+                          ucdrp:identifier ?vid;
                           vivo:rank ?order;
                           vcard:hasName [a vcard:Name;
                                         vcard:givenName ?fname;

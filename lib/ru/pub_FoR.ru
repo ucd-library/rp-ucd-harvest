@@ -1,3 +1,4 @@
+# coding: utf-8
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
 PREFIX FoR: <http://experts.ucdavis.edu/sub/FoR#>
@@ -18,7 +19,7 @@ INSERT { GRAPH experts_oap: {
       dcterms:type "thesaurus" ;
       dcterms:identifier "ISBN 9780642483584" ;
       dcterms:language <http://id.loc.gov/vocabulary/iso639-2/eng>;
-  # dcterms:license <http://creativecommons.org/licenses/by-sa/3.0/igo/> ;
+      dcterms:license <http://creativecommons.org/licenses/by-sa/3.0/igo/> ;
       dcterms:rights "© Commonwealth of Australia 2008" ;
      dcterms:rights
 '''This work is copyright. Apart from any use as permitted under the Copyright Act 1968,
@@ -40,7 +41,7 @@ INSERT { GRAPH experts_oap: {
 		?conceptURI rdfs:label ?keyword .
 }}
 WHERE { GRAPH harvest_oap: {
-	?publication oap::best_record ?record;
+	?publication oap:best_record ?record;
               oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?keyword ; oap:scheme 'for' ] .
 	BIND(URI(CONCAT("http://experts.ucdavis.edu/sub/FoR#", REPLACE(?keyword," .*",""))) AS ?conceptURI)
 }};

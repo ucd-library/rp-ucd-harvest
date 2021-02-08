@@ -1,11 +1,11 @@
 =head1  NAME
 
-$G{[cmd]} - Fetch UC Davis IAM data via their API
+ucdid - Fetch UC Davis IAM data via their API
 
 =head1 SYNOPSIS
 
 ucdid [-E|--endpoint=<IAM endpoint>] \
-      [--auth|--iam_auth=ucd:<iam_key> \
+      [--auth=ucd:<iam_key> \
       [-h|--help] <command> [<args>]
 
   where <command> is one of C<config> C<profiles> C<login> C<odr.departments> C<pps.divisions> C<pps.departments> C<pps.titles> C<sis.colleges> C<ids>
@@ -55,7 +55,7 @@ datafiles from the system.
 
   B<ucd login> allows the user to persist their authentication.  The IAM API
   uses a C<key> parameter, and not a header variable, so the data can not really
-  be persisted in a more standard format.  However, we still use the B<httpie
+  be persisted in a more standard format.  However, we still use the C<httpie
   --auth=USER:PASS> setup.  The authorization
 
   login --session=ucd login --auth=ucd:
@@ -89,6 +89,10 @@ Specify the format for the return. This is in mime/type, and must be one of
 C<application/json> C<application/ld+json> or C<text/turtle>.  These can also be short
 hand C<json>,C<jsonld> or C<turtle|ttl>.  The default is C<application/json>
 
+=item B<-s | --search=I<profile_search>>
+
+When requesting profiles data, you must also provide a search variable to limit your search.
+
 =item B<-c|--context=I<string>>
 
 For C<application/ld+json> and C<text/turtle>, you can specify a custom context
@@ -99,6 +103,7 @@ to be added to the system.
 For consistancy between all formats, only the response data is returned.  If you
 are specifing C<application/json> data, you may use this flag to get the complete
 response.
+
 
 =back
 

@@ -1,0 +1,173 @@
+=head1  NAME
+
+cdl - Harvest an Elements feed.
+
+=head1 SYNOPSIS
+
+cdl [--api=<cdl_endpoint>] [--auth=cdl_auth] [-S|--session=<httpie session>] \
+         [-c|--cache=<dir>] [-t|--tdb=<tdb-dir>] [-d|--data=<data load endpoint] \
+         [-p|--print] [-h|--help]\
+  <command> [<args>]
+
+  where <command> is one of login xml2jsonld load_jsonld groups users
+
+elements is a script the simplifies the retrieval of an elements feed API.
+L</"COMMANDS"> is summary of the commands that are available.
+
+=head1 GLOBAL OPTIONS
+
+=over 4
+
+=item B<--api=I<cdl_elements_endpoint>>
+
+This is the http address for the elements endpoint.
+
+=item B<-S|--session|--http_session=I<http_session>>
+
+Set the HTTPIE session variable. It is equivalent to the
+L<httpie|https://httpie.org/> session variable, and are shared in that command
+configuration. Sessions primarily keep the basic authentication parameters
+saved. By default the B<elements> session is used.
+
+=item B<-c|--cache = directory>
+
+Specify the cache directory for downloads and intermediate files, default
+C<cache=/var/lib/harvest/cdl>.
+
+=item B<-t|--tdb = directory>
+
+Specify a local tdb location to load the cdl data, default C<tdb=/var/lib/harvest/cdl/tdb>.
+
+=item B<-d|--data = fuseki data endpoint>
+
+Specify a remote sparql data endpoint fuseki to load the cdl data.  No
+default. In additiona to command-line auth, this will also use the
+envirionmental parameters C<FUSEKI_USER> and C<FUSEKI_PASSWORD> for authentication, equivalent to C<--data-auth=FUSEKI_USER:FUSEKI_PASSWORD>.
+
+=item B<-v|--verbose>
+
+Log some of the commands that your are going to run.
+
+=item B<-h|--help>
+
+Shows the manpage for the program. The help pages are embedded in the script and
+require the functions, C<pod2usage> and C<pod2text> to work properly.
+
+=back
+
+=pod
+
+=head1 COMMANDS
+
+Next there are a set of commands that communicate with the CDL service. Note,
+that ezid uses L<httpie|https://httpie.org/> for its http communcation. This
+allows users to combine ezid with other httpie requests if required. Login
+infomation is stored using the standard C<httpie> methodology, see L</"GLOBAL OPTIONS"> for httpid options.
+
+C<elements [options] harvest --full> Harvests a number of feeds from the
+Elements database and stores each record in a separate file.  This is to match how
+the Sympletic Harvester works
+
+=head2 LOGIN
+
+  elements login --auth=USER[:PASS]
+
+B<elements login> is a simple wrapper around the B<httpie --auth=USER:PASS> command.
+This allows users to setup their basic authorization, which is then stored in
+the standard httpie session paratmeters. It is possible to maintain multiple users,
+via the elements I<--session> parameter to maintain different users, eg.
+
+  elements --session=ucd --auth=ucd
+
+After which the session C<ucd>, will be set as a new httpie session, with
+the saved authorization.
+
+=head3 LOGIN OPTIONS
+
+=over 4
+
+=item B<-a|--auth=USER[:PASS]>
+
+You specify the basic authentication for the ezid.cdlib.org server. If you only
+specify the USER, then you are prompted for the password.
+
+=back
+
+=head2 xml2jsonld
+
+ cdl <global-elements> xml2jsonld --type=[user|user-relationship|relationship|publication|group]
+
+B<cdl xml2jsonld> converts the CDL xml data to jsonld.
+
+=head3 xml2jsonld OPTIONS
+
+=over 4
+
+=item B<--type=[user|user-relationship|relationship|publication|group]>
+
+You pass the type of xml file, which selects the context, and the path to use
+for the query.  Default is user
+
+=back
+
+=head2 groups
+
+  cdl <global-elements> groups
+
+B<cdl groups> uses the ATOM feed api to retreive the CDL groups from the
+elements database.
+
+=head2 users
+
+  elements <global-elements> users [--groups=<group_ids,>] username username ....
+
+B<elements feed> uses the ATOM feed api to retreive all categories from the
+elements database. The function saves each chunk of the category and follows the
+c<next> parameter until completed.  The files are saved to the C<feed> directory.
+
+possible categories are c<groups>,c<users>,c<publications>,c<user-relationships>
+
+=head3 FEED OPTIONS
+
+=over 4
+
+=item B<--groups=<group_ids>>
+
+Specify a set of groups to download.
+
+=back
+
+=head1 DEPENDANCIES
+
+Elements uses a number of external bash commands. These must be installed for
+the elements script to work. These commands include httpie, xmlstarlet, and
+
+=over 4
+
+=item L<httpie|https://httpie.org/>
+
+httpie is a command-line tool similar to B<curl>. Since we only really need the
+authentication, it may be better to use curl here and the .netrc file instead.
+It is nice to have the httpie interface however, for debugging.
+
+=item L<xmlstarlet|http://xmlstar.sourceforge.net/>
+
+xmlstarlet is a simplfied method to perform xslt transforms to XML documents on
+the command-line.  The syntax is more concise the the XSLT transforms.
+
+=item L<xmllint>
+
+xmllint is simply used to format the output from elements, and verify that it's
+okay. Since we are often looking at the intermediate files, it's nice to have
+them formatted.
+
+=item L<getopt>
+
+${FLAGS_GETOPT_CMD:-getopt}
+
+=back
+
+=head1 AUTHOR
+
+Quinn Hart <qjhart@ucdavis.edu>
+

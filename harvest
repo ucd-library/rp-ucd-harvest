@@ -235,7 +235,7 @@ will run a series of sparql updates (via C<harvest update>) to update the
 experts database.  The command will then clean up, by removing the HARVEST_DB,
 and the cache of files downloaded from the services.
 
-=over4
+=over 4
 
 =item B<--init>
 
@@ -370,7 +370,7 @@ function update () {
     for file in "$@"; do
       [[ "$file" = '-' ]] && file=/dev/stdin
       if [[ ! -f $file ]]; then
-        file=${G[harvest_home]}/rq/$file;
+        file=${G[harvest_home]}/ru/$file;
         [[ -f $file ]] || file=${file}.ru
       fi
       if [[ -f $file ]]; then

@@ -221,7 +221,7 @@ function err() {
 
   B<ucd login> allows the user to persist their authentication.  The IAM API
   uses a C<key> parameter, and not a header variable, so the data can not really
-  be persisted in a more standard format.  However, we still use the B<httpie
+  be persisted in a more standard format.  However, we still use the C<httpie
   --auth=USER:PASS> setup.  The authorization
 
   login --session=ucd login --auth=ucd:
@@ -283,7 +283,7 @@ Specify the format for the return. This is in mime/type, and must be one of
 C<application/json> C<application/ld+json> or C<text/turtle>.  These can also be short
 hand C<json>,C<jsonld> or C<turtle|ttl>.  The default is C<application/json>
 
-=item B<-s | --search=I<profile_search>
+=item B<-s | --search=I<profile_search>>
 
 When requesting profiles data, you must also provide a search variable to limit your search.
 

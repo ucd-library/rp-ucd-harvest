@@ -1,0 +1,191 @@
+=head1  NAME
+
+harvest - overall harvest command
+
+=head1 SYNOPSIS
+
+harvest [-b|--base=<base>]
+  <command> [<args>]
+
+  where <command> is one of xslt
+
+
+=head1 GLOBAL OPTIONS
+
+=over 4
+
+=item B<-b|--base = directory>
+
+Specify the base directory for your feed results. Default C<base=./>.
+
+
+=item B<-v|--verbose>
+
+Log some of the commands that your are going to run.
+
+=item B<-h|--help>
+
+Shows the manpage for the program. The help pages are embedded in the script and
+require the functions, C<pod2usage> and C<pod2text> to work properly.
+
+=back
+
+=pod
+
+=head1 COMMANDS
+
+Next there are a set of commands that communicate with the CDL service. Note,
+that ezid uses L<httpie|https://httpie.org/> for its http communcation. This
+allows users to combine ezid with other httpie requests if required. Login
+infomation is stored using the standard C<httpie> methodology, see L</"GLOBAL OPTIONS"> for httpid options.
+
+C<elements [options] harvest --full> Harvests a number of feeds from the
+Elements database and stores each record in a separate file.  This is to match how
+the Sympletic Harvester works
+
+=head2 COMMAND
+
+harvest I<options> B<db> list|rm|new [service]
+
+Performs processes on the fuseki instance.  These are command-line overlays to
+the harvetstdb admin API in the ucd-rp-fuseki host.
+
+
+=head3 COMMANDS
+
+=over 4
+
+=item B<list>
+
+List all fuseki harvest services.  The list comes from the existing harvest
+databases, not the services running in the server.
+
+=item B<new> [service]
+
+Add a new harvest service.  This will add a standard database, with a private
+section, as well as access to the public data.
+
+=item B<rm> [service]
+
+Delete a harvest service.  This will remove the configuration, and the
+underlying database file.  This takes advantage of the L<fuseki HTTP adminsration protocol|https://jena.apache.org/documentation/fuseki2/fuseki-server-protocol.html>
+
+=back
+
+=head2 COMMAND
+
+harvest I<global_options> B<run> I<options>
+
+Run a complete harvest operation for a particular ucdid search.  This command
+will first initialize a HARVEST_DB if one does not exist.  Then the program will
+query the C<ucdid> with the the passed C<--search> query, and collect a set of
+users.  It will then contact the CDL elements database (via the cdl command) and
+download all user and publication information for these users.  Then the command
+will run a series of sparql updates (via C<harvest update>) to update the
+experts database.  The command will then clean up, by removing the HARVEST_DB,
+and the cache of files downloaded from the services.
+
+=over 4
+
+=item B<--init>
+
+Specify whether to initialize a new database.  By default, this will check to
+see if there is a global database already set.  If not, then this will
+initialize a new database.  If a global database exists, then use that.  This
+can be set either with the B<HARVEST_DB> environment variable, or with the
+C<--db=I<harvest_db>> global option.  If C<--init> is set, then create a new
+harvest_db regardless of the existance of a current HARVEST_DB.
+
+=item B<--search=<ucdid --search parameter>
+
+Specify the initial ucdid query to get the list of users to harvest, and update.
+This is passed as the C<--search> to the C<ucdid> command.  All users from this
+command will be included in the harvest operations.
+
+=item B<--last-modified=<only included items changed since this date-time>
+
+The C<--last-modified> takes a ISO datetime string, and only includes items that
+have been modified since that date.  If unspecified, all items from the query
+will be updated.
+
+=item B<--remove|--no-remove>
+
+Specify whether to remove the HARVEST_DB service and the resultant cache files
+after processing.
+
+=back
+
+=head2 COMMAND
+
+harvest I<global_options> B<query> I<options> file1.ttl file2.ttl ...
+
+Run queries on the fuseki harvestdb endpoint.  I
+
+=head2 COMMAND
+
+harvest I<global_options> B<update> I<options> file1.ttl file2.ttl ...
+
+Run update queries on the fuseki harvestdb endpoint.  I
+
+=head2 COMMAND
+
+harvest I<options> B<load> files
+
+Use http to load our data files into the harvestdb.  The harvestdb is specified
+as a global environment.
+
+=head3 load OPTIONS
+
+=over 4
+
+=item B<--graph=I<graph_url>>
+
+Select the graph to insert the data.
+
+=item B<--suffix=I<ttl|jsonld>>
+
+if you include stdin, specify the filename suffix to use, eg. C<--suffix=ttl>
+will identify C<stdin> as C<file.ttl>.  This can help the data endpoint to
+understand the format.  =back
+
+=back
+
+=head2 COMMAND
+
+harvest I<options> B<xslt> []
+
+Runs the old VIVO_Harvester processing. This B<only> runs in /usr/local/vivo/harvester/data
+
+=head3 xslt OPTIONS
+
+=over 4
+
+=item B<--select=I<filename>>
+
+After processing, run a select on the TDB database, and save to the file.
+
+=back
+
+=head1 DEPENDANCIES
+
+Elements uses a number of external bash commands. These must be installed for
+the elements script to work.
+
+=over 4
+
+=item L<httpie|https://httpie.org/>
+
+httpie is a command-line tool similar to B<curl>. Since we only really need the
+authentication, it may be better to use curl here and the .netrc file instead.
+It is nice to have the httpie interface however, for debugging.
+
+=item L<getopt>
+
+${FLAGS_GETOPT_CMD:-getopt}
+
+=back
+
+=head1 AUTHOR
+
+Quinn Hart <qjhart@ucdavis.edu>
+
