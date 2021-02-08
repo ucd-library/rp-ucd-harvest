@@ -23,81 +23,18 @@ INSERT {
 }
 WHERE {
 	GRAPH harvest_oap: {
-		?publication oap:records/oap:record ?exemplarRecord .
+		?publication oap:best_native_record ?native;
+               oap:experts_id ?experts_id;
+    .
 		{
 			{
-				?exemplarRecord oap:native/oap:field  [ oap:display-name  "Keywords" ; oap:keywords/oap:keyword ?keyword ]
+				?native oap:field  [ oap:display-name  "Keywords" ; oap:keywords/oap:keyword ?keyword ]
 				FILTER(!ISBLANK(?keyword))
 			}
 		  	UNION
 			{
-				?exemplarRecord oap:native/oap:field  [ oap:display-name  "Keywords" ; oap:keywords/oap:keyword/oap:field-value ?keyword ]
+				?native oap:field  [ oap:display-name  "Keywords" ; oap:keywords/oap:keyword/oap:field-value ?keyword ]
 			}
 		}
-		{
-		SELECT
-			?publication (MIN(?record) AS ?exemplarRecord)
-		WHERE {
-			# Map the priority back to its source-name
-			VALUES (?sourceNameA ?minPriority) {
-				("verified-manual" 1)
-				("epmc" 2)
-				("pubmed" 3)
-				("scopus" 4)
-				("wos" 5)
-				("wos-lite" 6)
-				("crossref" 7)
-				("dimensions" 8)
-				("arxiv" 9)
-				("orcid" 10)
-				("dblp" 11)
-				("cinii-english" 12)
-				("repec" 13)
-				("figshare" 14)
-				("cinii-japanese" 15)
-				("manual" 16)
-				("dspace" 17)
-			}
-			VALUES ?pubType { "journal-article" "conference" }
-			?publication oap:category "publication" ;
-						 oap:type ?pubType ;
-						 oap:records/oap:record ?record .
-			?record oap:source-name  ?sourceNameA
-			{
-			SELECT
-				?publication (MIN(?priority) AS ?minPriority)
-			WHERE {
-				# Map the source-name to its priority
-				VALUES (?sourceNameIQ ?priority) {
-					("verified-manual" 1)
-					("epmc" 2)
-					("pubmed" 3)
-					("scopus" 4)
-					("wos" 5)
-					("wos-lite" 6)
-					("crossref" 7)
-					("dimensions" 8)
-					("arxiv" 9)
-					("orcid" 10)
-					("dblp" 11)
-					("cinii-english" 12)
-					("repec" 13)
-					("figshare" 14)
-					("cinii-japanese" 15)
-					("manual" 16)
-					("dspace" 17)
-				}
-				VALUES ?pubType { "journal-article" "conference" }
-				?publication oap:category "publication" ;
-							 oap:type ?pubType ;
-							 oap:records/oap:record/oap:source-name ?sourceNameIQ
-			  }
-			  GROUP BY
-				?publication
-			}
-		}
-		GROUP BY
-			?publication
-		}
-	}
+        }
 }

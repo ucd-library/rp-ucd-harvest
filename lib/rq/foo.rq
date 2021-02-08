@@ -1,4 +1,0 @@
-PREFIX iam: <http://experts.ucdavis.edu/iam/schema#>
-PREFIX ucd: <http://experts.ucdavis.edu/schema#>
-
-CONSTRUCT { ?user ucd:casId ?kerb .}  WHERE { ?user iam:userID ?kerb.}

@@ -224,37 +224,128 @@ function db() {
 
 =head2 COMMAND
 
-harvest I<global_options> B<query> I<options> file1.ttl file2.ttl ...
+harvest I<global_options> B<run> I<options>
 
-Run update queries on the fuseki harvestdb endpoint.  I
+Run a complete harvest operation for a particular ucdid search.  This command
+will first initialize a HARVEST_DB if one does not exist.  Then the program will
+query the C<ucdid> with the the passed C<--search> query, and collect a set of
+users.  It will then contact the CDL elements database (via the cdl command) and
+download all user and publication information for these users.  Then the command
+will run a series of sparql updates (via C<harvest update>) to update the
+experts database.  The command will then clean up, by removing the HARVEST_DB,
+and the cache of files downloaded from the services.
+
+=over4
+
+=item B<--init>
+
+Specify whether to initialize a new database.  By default, this will check to
+see if there is a global database already set.  If not, then this will
+initialize a new database.  If a global database exists, then use that.  This
+can be set either with the B<HARVEST_DB> environment variable, or with the
+C<--db=I<harvest_db>> global option.  If C<--init> is set, then create a new
+harvest_db regardless of the existance of a current HARVEST_DB.
+
+=item B<--search=<ucdid --search parameter>
+
+Specify the initial ucdid query to get the list of users to harvest, and update.
+This is passed as the C<--search> to the C<ucdid> command.  All users from this
+command will be included in the harvest operations.
+
+=item B<--last-modified=<only included items changed since this date-time>
+
+The C<--last-modified> takes a ISO datetime string, and only includes items that
+have been modified since that date.  If unspecified, all items from the query
+will be updated.
+
+=item B<--remove|--no-remove>
+
+Specify whether to remove the HARVEST_DB service and the resultant cache files
+after processing.
+
+=back
 
 =cut
 
-function update () {
-  local file;
-  if [[ -n ${G[harvest_db]} ]]; then
-    local auth=${G[fuseki_auth]}
-    local update=${G[fuseki_host]}/${G[harvest_db]}/update
+function run () {
+  local opts;
+  if ! opts=$(${G[util_getopt]} -o g:f: --long graph:,format: -n 'harvest load' -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ; fi
 
-    log ${update}
-    # Short hand for files in lib/harvest
-    for file in "$@"; do
-      [[ "$file" = '-' ]] && file=/dev/stdin
-      if [[ ! -f $file ]]; then
-        file=${G[harvest_home]}/rq/$file;
-        [[ -f $file ]] || file=${file}.ru
-      fi
-      if [[ -f $file ]]; then
-        log "curl -i --location --request POST --user \"${auth}\" -H Content-Type:application/sparql-update --data-binary \"@${file}\" ${update}"
-        curl -i --location --request POST --user "${auth}" -H Content-Type:application/sparql-update --data-binary "@${file}" ${update}
-      else
-        log $file not found
-      fi
-    done
-  else
-    log "No harvest-db specified, via --db= or via HARVEST_DB env. variable."
+  eval set -- "$opts"
+
+  declare -A CMD=(
+    [init]=''
+    [search]=''
+    [remove]=1
+    [modified]=''
+    );
+
+  while true; do
+	  case $1 in
+	    -i | --init) CMD[init]=1;  shift;;
+	    -s | --search) CMD[search]=$2;  shift 2;;
+      -r | --remove) CMD[remove]=1; shift;;
+      -n | --no-remove) CMD[remove]=''; shift;;
+      -m | --last-modified) CMD[modified]=$2; shift 2;;
+	    -- ) shift; break;;
+	    *) shift; break;
+    esac
+  done
+
+  if [[ -z $CMD[search] ]]; then
+    err "harvest run, must specify a --search parameter.  See ucdid for details."
   fi
+
+  if [[ -n ${CMD[init]} || -z ${G[db]} ]]; then
+    G[db]=db new;
+    log "harvest new db: ${G[db]}"
+  fi
+
+  # Now fetch all the data w/ CDL
+  local cache=${G[base]}/${G[db]}
+  mkdir $cache;
+
+
+  # call UCDID w/ query
+  local profiles_ttl=$cache/profiles.ttl
+  ucdid fetch --format=ttl --search="${CMD[search]}" profiles > $profiles_ttl
+  load --graph=http://iam.ucdavis.edu/ $profiles_ttl
+
+  # Now run an update to convert IAM to vivo users
+  update iam_to_vivo
+
+  # Now get all the casIDs, This doesn't use experts, but the harvestdb
+  ids=$(aeq --endpoint=${HARVEST_ENDPOINT}/sparql query --format=json <<<"select ?id where { graph harvest_iam: {[] iam:userID ?id. }} order by ?id" | jq -r .results.bindings[].id.value | tr [:space:] ' ')
+
+
+  # cdl --data=$HARVEST_ENDPOINT -v login --auth=${CDL_AUTH}
+  cdl --cache=$cache --data=${G[endpoint]}/${G[db]} users --pubs $ids
+
+  # Then, run the update scripts for new data
+  update update_harvest_records;
+  update journal
+  update publications
+  update concepts
+  update keywords
+
 }
+
+
+
+: <<='cut'
+=pod
+
+=head2 COMMAND
+
+harvest I<global_options> B<query> I<options> file1.ttl file2.ttl ...
+
+Run queries on the fuseki harvestdb endpoint.  I
+
+=cut
+
+#function query () {
+#}
 
 
 : <<='cut'
