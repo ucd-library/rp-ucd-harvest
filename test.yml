@@ -2,7 +2,7 @@
 version: '3'
 services:
   harvest:
-    image: ucdlib/rp-ucd-harvest:dev
+    image: ucdlib/rp-ucd-harvest:1.0.0
     command: tail -f /dev/null
     environment:
       - VIVO_BASEURI_PREFIX=http://experts.library.ucdavis.edu/
@@ -19,7 +19,7 @@ services:
        - ./aeq/aeq:/usr/local/bin/aeq
 
   fuseki:
-    image: ucdlib/rp-ucd-fuseki:${FUSEKI_VERSION:-1.1.4}
+    image: ucdlib/rp-ucd-fuseki:${FUSEKI_VERSION:-1.2.0}
     env_file:
       - .env
     volumes:
