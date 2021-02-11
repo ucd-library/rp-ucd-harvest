@@ -1,11 +1,3 @@
-* Theory of Operation
-
-Privary Rules
-We have to verify that we are properly supporting the privacy rules in both the IAM stream and in the elements feed.
-
-Use Cases
-A profile page for a single researcher is hidden.  This is from a high level request, against the wishes of the researcher.
-
 * Example Queries
 :PROPERTIES:
 :header-args:http: :host http://localhost:3030 :user admin:quinnisgreat

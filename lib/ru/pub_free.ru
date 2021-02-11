@@ -1,7 +1,7 @@
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
-PREFIX FoR: <http://experts.ucdavis.edu/sub/FoR#>
-PREFIX free: <http://experts.ucdavis.edu/sub/free#>
+PREFIX FoR: <http://experts.ucdavis.edu/subject-term/FoR#>
+PREFIX free: <http://experts.ucdavis.edu/subject-term/free#>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -34,6 +34,7 @@ INSERT { GRAPH experts_oap: {
   .
 }}
 WHERE { GRAPH harvest_oap: {
+<<<<<<< HEAD
 	?publication oap:experts_id ?experts_id ;
      	oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?term ; oap:scheme ?scheme ] ;
 		oap:last-modified-when ?lastModifiedWhen .
@@ -41,18 +42,24 @@ WHERE { GRAPH harvest_oap: {
 	BIND(NOW() as ?insertionDateTime)     
 	bind(IRI(concat(str(free:),md5(?term))) as ?keyword)
 	filter(?scheme != "for")
+=======
+  ?publication oap:experts_publication_id ?experts_publication_id ;
+     oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?term ; oap:scheme ?scheme ].
+  bind(IRI(concat(str(free:),md5(?term))) as ?keyword)
+  filter(?scheme != "for")
+>>>>>>> 366efb2c66ed814a0c6b7fa2a7e127fcc956394b
 }};
 
 #
 
 # Now connect the terms to the publications
 INSERT { GRAPH experts_oap: {
-  ?experts_id vivo:hasSubjectArea ?keyword.
-  ?keyword vivo:SubjectAreaOf ?experts_id.
+  ?experts_publication_id vivo:hasSubjectArea ?keyword.
+  ?keyword vivo:SubjectAreaOf ?experts_publication_id.
 }}
 WHERE { GRAPH harvest_oap: {
-	?publication oap:experts_id ?experts_id;
-		          oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?term ; oap:scheme ?scheme ] ;
+  ?publication oap:experts_publication_id ?experts_publication_id;
+              oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?term ; oap:scheme ?scheme ] ;
   .
   filter(?scheme != "for")
   bind(IRI(concat(str(free:),md5(?term))) as ?keyword)

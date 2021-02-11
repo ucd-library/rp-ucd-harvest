@@ -26,32 +26,35 @@ WHERE {
        iam:dFirstName ?iam_fname;
        iam:isFaculty ?faculty
     .
-    bind(uri(concat(str(experts:),?kerb)) as ?user)
+    bind(uri(concat(str(experts:),md5sum(?kerb))) as ?user)
   }
 };
 
 
 INSERT { graph experts_iam: {
   ?user a ?emp_type, ucdrp:person;
-        rdfs:label ?label;
-        ucdrp:casId ?kerb;
-        obo:ARG_2000028 [
-                          a vcard:Individual;
-                          ucdrp:identifier ?vid;
-                          vivo:rank ?order;
-                          vcard:hasName [a vcard:Name;
-                                        vcard:givenName ?fname;
-                                        vcard:familyName ?lname;
-                                        ];
-                          vcard:hasTitle [
-                                           a vcard:Title;
-                                           vcard:title ?title];
-                                           vcard:hasOrganizationalUnit [
-                                                                         a vcard:Organization;
-                                                                         vcard:title ?dept
-                                                                       ];
-                          vcard:hasEmail [a vcard:Email,vcard:Work; vcard:email ?email];
-                        ];
+          rdfs:label ?label;
+          ucdrp:casId ?kerb;
+          ucdrp:indentifier ?user;
+          obo:ARG_2000028 _:vcard;
+  .
+  _:vcard a vcard:Individual;
+            ucdrp:identifier ?vid;
+            vivo:rank ?order ;
+            vcard:hasName [a vcard:Name;
+                vcard:givenName ?fname;
+                vcard:familyName ?lname;
+                ];
+            vcard:hasTitle [
+                a vcard:Title;
+                vcard:title ?title];
+            vcard:hasOrganizationalUnit [
+                a vcard:Organization;
+                vcard:title ?dept
+                ];
+            vcard:hasEmail [a vcard:Email,vcard:Work;
+                vcard:email ?email];
+   .
 } } WHERE {
   select ?user ?label ?kerb ?vid ?title ?email ?dept ?fname ?lname ?order ?emp_type
   where { graph harvest_iam: {
@@ -65,9 +68,9 @@ INSERT { graph experts_iam: {
       {
         select ?s ?vid ?better_fname ?better_lname ?title ?dept ?order
         WHERE { graph harvest_iam: {
-         	?s iam:directory ?dir .
+           ?s iam:directory ?dir .
           ?dir iam:listings ?list;
-    	         iam:displayName [ iam:nameWwwFlag "Y";
+               iam:displayName [ iam:nameWwwFlag "Y";
                                 iam:preferredFname ?better_fname;
                                 iam:preferredLname ?better_lname ];
                                                    .
@@ -99,7 +102,7 @@ INSERT { graph experts_iam: {
 
     #VERSION 1 bind(uri(concat("http://experts.library.ucdavis.edu/individual",?kerb)) as ?user)
     # V2
-    bind(uri(concat(str(experts:),?kerb)) as ?user)
+    bind(uri(concat(str(experts:),md5sum(?kerb))) as ?user)
     bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
   }}
 }

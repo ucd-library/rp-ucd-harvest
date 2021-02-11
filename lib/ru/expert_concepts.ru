@@ -1,5 +1,5 @@
 # This only works on the terms already in the experts database, which means you need to run the
-# labeling of the publications.
+# labeling of the works.
 PREFIX experts_iam: <http://experts.ucdavis.edu/iam/>
 PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
@@ -14,13 +14,13 @@ WHERE {
     graph experts_oap: {
       ?authorship a vivo:Authorship;
                   vivo:relates ?expert;
-                  vivo:relates ?publication;
+                  vivo:relates ?work;
                   .
-	    ?publication vivo:hasSubjectArea ?concept.
+      ?work vivo:hasSubjectArea ?concept.
     }
     graph experts_iam: {
       ?expert a ucdrp:person;
               .
     }
-	} GROUP BY ?expert ?concept ?p HAVING (COUNT(*) > 3)
+  } GROUP BY ?expert ?concept ?p HAVING (COUNT(*) > 3)
 };
