@@ -1,8 +1,8 @@
 # coding: utf-8
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
-PREFIX FoR: <http://experts.ucdavis.edu/sub/FoR#>
-PREFIX free: <http://experts.ucdavis.edu/sub/free#>
+PREFIX FoR: <http://experts.ucdavis.edu/subject-term/FoR#>
+PREFIX free: <http://experts.ucdavis.edu/subject-term/free#>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -37,25 +37,25 @@ FoR:21,FoR:22;
 
 # Now add in all terms
 INSERT { GRAPH experts_oap: {
-		?conceptURI a skos:Concept .
-		?conceptURI rdfs:label ?keyword .
+    ?conceptURI a skos:Concept .
+    ?conceptURI rdfs:label ?keyword .
 }}
 WHERE { GRAPH harvest_oap: {
-	?publication oap:best_record ?record;
+  ?publication oap:best_record ?record;
               oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?keyword ; oap:scheme 'for' ] .
-	BIND(URI(CONCAT("http://experts.ucdavis.edu/sub/FoR#", REPLACE(?keyword," .*",""))) AS ?conceptURI)
+  BIND(URI(CONCAT("http://experts.ucdavis.edu/sub/FoR#", REPLACE(?keyword," .*",""))) AS ?conceptURI)
 }};
 
 # Now add the terms to the publications.
 INSERT { GRAPH experts_oap: {
-		?experts_id vivo:hasSubjectArea ?conceptURI .
-		?conceptURI vivo:subjectAreaOf ?experts_id .
+    ?experts_publication_id vivo:hasSubjectArea ?conceptURI .
+    ?conceptURI vivo:subjectAreaOf ?experts_publication_id .
 }}
 WHERE { GRAPH ?harvest_graph {
-  ?publication oap:experts_id ?experts_id;
-    	         oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?keyword ; oap:scheme 'for' ] .#
+  ?publication oap:experts_publication_id ?experts_publication_id;
+               oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?keyword ; oap:scheme 'for' ] .
 }
   GRAPH experts_oap: {
-		?conceptURI rdfs:label ?keyword
-	}
+    ?conceptURI rdfs:label ?keyword
+  }
 }
