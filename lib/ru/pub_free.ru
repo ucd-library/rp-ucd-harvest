@@ -6,6 +6,7 @@ PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
@@ -21,20 +22,18 @@ INSERT { GRAPH experts_oap: {
     .
 }} WHERE{};
 
-#add here
-
 INSERT { GRAPH experts_oap: {
-  ?keyword a skos:Concept;
-           skos:prefLabel ?term;
-           rdfs:label ?term;
-           oap:scheme ?scheme;
-           skos:inScheme free: ;
-		   experts:lastModifiedDateTime ?lastModifiedDateTime ;
-		   experts:insertionDateTime ?insertionDateTime
+  ?keyword a skos:Concept, ucdrp:concept ;
+    skos:prefLabel ?term;
+    rdfs:label ?term;
+    oap:scheme ?scheme;
+    skos:inScheme free: ;
+	  ucdrp:lastModifiedDateTime ?lastModifiedDateTime ;
+	  ucdrp:insertionDateTime ?insertionDateTime;
   .
 }}
 WHERE { GRAPH harvest_oap: {
-	?publication oap:experts_id ?experts_id ;
+  ?work oap:experts_work_id ?experts_work_id ;
      	oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?term ; oap:scheme ?scheme ] ;
 		oap:last-modified-when ?lastModifiedWhen .
 	BIND(xsd:dateTime(?lastModifiedWhen) AS ?lastModifiedDateTime)
@@ -43,15 +42,15 @@ WHERE { GRAPH harvest_oap: {
 	filter(?scheme != "for")
 }};
 
-#
 
-# Now connect the terms to the publications
+# Now connect the terms to the works
+
 INSERT { GRAPH experts_oap: {
-  ?experts_publication_id vivo:hasSubjectArea ?keyword.
-  ?keyword vivo:SubjectAreaOf ?experts_publication_id.
+  ?experts_work_id vivo:hasSubjectArea ?keyword.
+  ?keyword vivo:SubjectAreaOf ?experts_work_id.
 }}
 WHERE { GRAPH harvest_oap: {
-  ?publication oap:experts_publication_id ?experts_publication_id;
+  ?work oap:experts_work_id ?experts_work_id;
               oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?term ; oap:scheme ?scheme ] ;
   .
   filter(?scheme != "for")

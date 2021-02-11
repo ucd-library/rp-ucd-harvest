@@ -5,6 +5,7 @@
 #  data as well.
 
 PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX person: <http://experts.ucdavis.edu/person/>
 PREFIX experts_iam: <http://experts.ucdavis.edu/iam/>
 PREFIX harvest_iam: <http://iam.ucdavis.edu/>
 PREFIX iam: <http://iam.ucdavis.edu/schema#>
@@ -26,7 +27,7 @@ WHERE {
        iam:dFirstName ?iam_fname;
        iam:isFaculty ?faculty
     .
-    bind(uri(concat(str(experts:),md5sum(?kerb))) as ?user)
+    bind(uri(concat(str(experts:),md5(?kerb))) as ?user)
   }
 };
 
@@ -100,9 +101,7 @@ INSERT { graph experts_iam: {
     bind(coalesce(?better_lname,?iam_lname) as ?lname)
     bind(concat(?fname," ",?lname) as ?label)
 
-    #VERSION 1 bind(uri(concat("http://experts.library.ucdavis.edu/individual",?kerb)) as ?user)
-    # V2
-    bind(uri(concat(str(experts:),md5sum(?kerb))) as ?user)
+    bind(uri(concat(str(person:),md5(?kerb))) as ?user)
     bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
   }}
 }

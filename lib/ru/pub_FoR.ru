@@ -8,6 +8,7 @@ PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
 
 # Add in the Concept Scheme
 INSERT { GRAPH experts_oap: {
@@ -37,22 +38,22 @@ FoR:21,FoR:22;
 
 # Now add in all terms
 INSERT { GRAPH experts_oap: {
-    ?conceptURI a skos:Concept .
+    ?conceptURI a skos:Concept, ucdrp:concept.
     ?conceptURI rdfs:label ?keyword .
 }}
 WHERE { GRAPH harvest_oap: {
-  ?publication oap:best_record ?record;
+  ?work oap:best_record ?record;
               oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?keyword ; oap:scheme 'for' ] .
   BIND(URI(CONCAT("http://experts.ucdavis.edu/sub/FoR#", REPLACE(?keyword," .*",""))) AS ?conceptURI)
 }};
 
-# Now add the terms to the publications.
+# Now add the terms to the works.
 INSERT { GRAPH experts_oap: {
-    ?experts_publication_id vivo:hasSubjectArea ?conceptURI .
-    ?conceptURI vivo:subjectAreaOf ?experts_publication_id .
+    ?experts_work_id vivo:hasSubjectArea ?conceptURI .
+    ?conceptURI vivo:subjectAreaOf ?experts_work_id .
 }}
 WHERE { GRAPH ?harvest_graph {
-  ?publication oap:experts_publication_id ?experts_publication_id;
+  ?work oap:experts_work_id ?experts_work_id;
                oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?keyword ; oap:scheme 'for' ] .
 }
   GRAPH experts_oap: {

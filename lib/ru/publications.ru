@@ -17,17 +17,19 @@ PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX venue: <http://experts.ucdavis.edu/venue/>
+PREFIX work: <http://experts.ucdavis.edu/work/>
+PREFIX authorship: <http://experts.ucdavis.edu/authorship/>
 
 # First, Insert citation BIBO stuff
 INSERT {
-	GRAPH experts_oap: {
-		?experts_id a ?bibo_type, ucdrp:publication ;
-					rdfs:label ?title ;
-					bibo:pageStart ?beginPage ;
-					bibo:pageEnd ?endPage ;
-					bibo:status ?vivoStatus;
-					experts:lastModifiedDateTime ?lastModifiedDateTime ;
-					experts:insertionDateTime ?insertionDateTime
+  GRAPH experts_oap: {
+    ?experts_work_id a ?bibo_type, ucdrp:work ;
+    rdfs:label ?title ;
+    bibo:pageStart ?beginPage ;
+    bibo:pageEnd ?endPage ;
+    bibo:status ?vivoStatus;
+		ucdrp:lastModifiedDateTime ?lastModifiedDateTime ;
+		ucdrp:insertionDateTime ?insertionDateTime;
     .
   }
 }
@@ -38,10 +40,11 @@ WHERE { GRAPH harvest_oap: {
     ("conference" vivo:ConferencePaper)
     ("journal-article" bibo:AcademicArticle)
   }
-  ?publication oap:best_native_record ?native;
+  
+  ?work oap:best_native_record ?native;
 			   oap:type ?oap_type ;
-			   oap:experts_id ?experts_id;
-			   oap:publication_number ?pub_id;
+         oap:experts_work_id ?experts_work_id;
+         oap:work_number ?pub_id;
 			   oap:last-modified-when ?lastModifiedWhen .
   BIND(xsd:dateTime(?lastModifiedWhen) AS ?lastModifiedDateTime)
   BIND(NOW() as ?insertionDateTime)
@@ -62,13 +65,13 @@ WHERE { GRAPH harvest_oap: {
 # Now insert optional bibo entries
 INSERT {
   GRAPH experts_oap: {
-    ?experts_publication_id ?bibo_predicate ?field_text.
+    ?experts_work_id ?bibo_predicate ?field_text.
   }
 }
 WHERE {
   GRAPH harvest_oap: {
-    ?publication oap:best_native_record ?native;
-               oap:experts_publication_id ?experts_publication_id;
+    ?work oap:best_native_record ?native;
+               oap:experts_work_id ?experts_work_id;
     .
 
     VALUES(?field_name ?bibo_predicate) {
@@ -88,72 +91,76 @@ WHERE {
       ?native oap:field [ oap:name ?field_name ; oap:text ?field_text ].
 }};
 
-# Insert the Publication Date in VIVO format.
+# Insert the Work Date in VIVO format.
 INSERT {
   GRAPH experts_oap: {
-    ?experts_publication_id vivo:dateTimeValue [ a vivo:DateTimeValue ; vivo:dateTime ?publicationDateTime ;  vivo:dateTimePrecision ?dateTimePrecision ]  .
+    ?experts_work_id vivo:dateTimeValue [ a vivo:DateTimeValue ; vivo:dateTime ?workDateTime ;  vivo:dateTimePrecision ?dateTimePrecision ]  .
     ?dateTimePrecision a vivo:DateTimePrecision .
   }
 }
 WHERE {
   GRAPH harvest_oap: {
-    ?publication oap:best_native_record ?native;
-               oap:experts_publication_id ?experts_publication_id;
+    ?work oap:best_native_record ?native;
+               oap:experts_work_id ?experts_work_id;
     .
 
     {
-    ?native oap:field [ oap:name "publication-date" ; oap:date ?publicationDate ].
+    ?native oap:field [ oap:name "publication-date" ; oap:date ?workDate ].
     }
     UNION
     {
-      ?native oap:field [ oap:name "online-publication-date" ; oap:date ?publicationDate ].
+      ?native oap:field [ oap:name "online-publication-date" ; oap:date ?workDate ].
     }
-    ?publicationDate oap:year ?publicationDateYear
+    ?workDate oap:year ?workDateYear
     BIND(vivo:yearPrecision AS ?yearPrecision)
     OPTIONAL {
-      ?publicationDate oap:month ?publicationDateMonthRaw
-      BIND(IF(xsd:integer(?publicationDateMonthRaw) < 10, CONCAT("0", ?publicationDateMonthRaw), ?publicationDateMonthRaw) AS ?publicationDateMonth)
+      ?workDate oap:month ?workDateMonthRaw
+      BIND(IF(xsd:integer(?workDateMonthRaw) < 10, CONCAT("0", ?workDateMonthRaw), ?workDateMonthRaw) AS ?workDateMonth)
       BIND(vivo:yearMonthPrecision AS ?yearMonthPrecision)
       OPTIONAL {
-        ?publicationDate oap:day ?publicationDateDayRaw
-        BIND(IF(xsd:integer(?publicationDateDayRaw) < 10, CONCAT("0", ?publicationDateDayRaw), ?publicationDateDayRaw) AS ?publicationDateDay)
+        ?workDate oap:day ?workDateDayRaw
+        BIND(IF(xsd:integer(?workDateDayRaw) < 10, CONCAT("0", ?workDateDayRaw), ?workDateDayRaw) AS ?workDateDay)
         BIND(vivo:yearMonthDayPrecision AS ?yearMonthDayPrecision)
       }
     }
-      BIND(xsd:dateTime(CONCAT(?publicationDateYear, "-", COALESCE(?publicationDateMonth, "01"), "-", COALESCE(?publicationDateDay, "01"), "T00:00:00")) AS ?publicationDateTime)
+      BIND(xsd:dateTime(CONCAT(?workDateYear, "-", COALESCE(?workDateMonth, "01"), "-", COALESCE(?workDateDay, "01"), "T00:00:00")) AS ?workDateTime)
       BIND(COALESCE(?yearMonthDayPrecision, ?yearMonthPrecision, ?yearPrecision) AS ?dateTimePrecision)
 }};
 
 # Next Insert Auuthors.  Do this seperately, so we don't needlessly check
-# publication level values
+# work level values
 
 INSERT {
   GRAPH experts_oap: {
-    ?experts_publication_id vivo:relatedBy _:authorship.
-    _:authorship a vivo:Authorship ;
+		?experts_work_id vivo:relatedBy _:authorship;
+									 .
+    _:authorship a vivo:Authorship,ucdrp:authorship ;
     vivo:rank ?authorRank ;
     vivo:relates ?personURI ;
-    vivo:relates ?experts_publication_id ;
+    vivo:relates ?experts_work_id ;
     vivo:favorite ?favorite;
     vivo:relates [ a vcard:Individual ;
-                   vivo:relatedBy _:authorship ;
+                   vivo:relatedBy ?authorship ;
                    vcard:hasName [ a vcard:Name ;
                                    vcard:last_name ?authorLastName ;
                                    vcard:first_name ?authorFirstName ;
                                  ] ;
                  ] .
+		?personURI vivo:relatedBy ?authorship.
+#		?experts_work_id vivo:relatedBy ?authorship.
   }
 }
 WHERE { GRAPH harvest_oap: {
-  ?publication oap:best_native_record ?native;
-              oap:experts_publication_id ?experts_publication_id;
-             oap:publication_number ?pub_id;
+  ?work oap:best_native_record ?native;
+              oap:experts_work_id ?experts_work_id;
+             oap:work_number ?pub_id;
   .
 
   ?native oap:field [ oap:name "authors" ; oap:people/oap:person [ list:index(?pos ?elem) ] ] .
   ?elem oap:last-name ?authorLastName ;
   oap:first-names ?authorFirstName .
   BIND(?pos+1 AS ?authorRank)
+	BIND(uri(concat(replace(str(?experts_work_id),str(work:),str(authorship:)),"-",?authorRank)) as ?authorship)
 
   OPTIONAL {
     ?elem oap:links/oap:link ?userLink.
@@ -179,14 +186,14 @@ WHERE { GRAPH harvest_oap: {
 # the JournalURI calculation needs match the journal creation step
 INSERT {
   GRAPH experts_oap: {
-    ?experts_publication_id vivo:hasPublicationVenue ?journalURI .
-    ?journalURI vivo:publicationVenueFor ?experts_publication_id .
+    ?experts_work_id vivo:hasPublicationVenue ?journalURI .
+    ?journalURI vivo:publicationVenueFor ?experts_work_id .
   }
 }
 WHERE {
   GRAPH harvest_oap: {
-    ?publication oap:best_native_record ?native;
-               oap:experts_publication_id ?experts_publication_id;
+    ?work oap:best_native_record ?native;
+               oap:experts_work_id ?experts_work_id;
     .
 
     ?native oap:field [ oap:name "journal" ; oap:text ?journalTitle ].
@@ -197,6 +204,6 @@ WHERE {
     OPTIONAL {
       ?native oap:field [ oap:name "issn" ; oap:text ?issn ].
     }
-    BIND(URI(CONCAT(str(venue:), COALESCE(CONCAT("issn:", ?issn), CONCAT("issn:", ?eissn), CONCAT("journal:", ?journalIdText)))) AS ?journalURI)
+    BIND(URI(CONCAT(str(venue:), COALESCE(CONCAT("issn:", ?issn), CONCAT("eissn:", ?eissn), CONCAT("journal:", ?journalIdText)))) AS ?journalURI)
     }
 }

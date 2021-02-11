@@ -10,7 +10,7 @@ PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
-PREFIX publication: <http://experts.ucdavis.edu/publication/>
+PREFIX work: <http://experts.ucdavis.edu/work/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
@@ -21,44 +21,44 @@ PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 
 INSERT {
 GRAPH harvest_oap: {
-    ?publication oap:best_record ?exemplarRecord ;
+    ?work oap:best_record ?exemplarRecord ;
     oap:best_native_record ?a_native;
-    oap:publication_number ?publication_number;
-    oap:experts_publication_id ?experts_publication_id;
+    oap:work_number ?work_number;
+    oap:experts_work_id ?experts_work_id;
     .
   }
 }
 WHERE {
   GRAPH harvest_oap: {
-    { select ?publication ?exemplarRecord ?a_native ?publication_number ?experts_publication_id WHERE {
-      { select ?publication ?exemplarRecord (min(?native) as ?a_native) WHERE {
+    { select ?work ?exemplarRecord ?a_native ?work_number ?experts_work_id WHERE {
+      { select ?work ?exemplarRecord (min(?native) as ?a_native) WHERE {
         ?exemplarRecord oap:native ?native.
-        bind(replace(str(?publication),str(harvest_oap:),'') as ?pub_id)
-        bind(uri(concat(str(publication:),?pub_id)) as ?experts_publication_id)
+        bind(replace(str(?work),str(harvest_oap:),'') as ?pub_id)
+        bind(uri(concat(str(work:),?pub_id)) as ?experts_work_id)
         {
-          SELECT ?publication (MIN(?record) AS ?exemplarRecord) WHERE {
+          SELECT ?work (MIN(?record) AS ?exemplarRecord) WHERE {
             VALUES (?sourceNameA ?minPriority) {
               ("verified-manual" 1) ("epmc" 2) ("pubmed" 3)  ("scopus" 4)("wos" 5) ("wos-lite" 6)
               ("crossref" 7)  ("dimensions" 8) ("arxiv" 9)("orcid" 10) ("dblp" 11)  ("cinii-english" 12)
               ("repec" 13)  ("figshare" 14)  ("cinii-japanese" 15) ("manual" 16)  ("dspace" 17) }
-            ?publication oap:category "publication" ;
+            ?work oap:category "publication" ;
             oap:records/oap:record ?record .
             ?record oap:source-name  ?sourceNameA
             {
               SELECT
-              ?publication (MIN(?priority) AS ?minPriority)
+              ?work (MIN(?priority) AS ?minPriority)
               WHERE {
                 VALUES (?sourceNameIQ ?priority) {
                   ("verified-manual" 1) ("epmc" 2) ("pubmed" 3)  ("scopus" 4)("wos" 5) ("wos-lite" 6)
                   ("crossref" 7)  ("dimensions" 8) ("arxiv" 9)("orcid" 10) ("dblp" 11)  ("cinii-english" 12)
                   ("repec" 13)  ("figshare" 14)  ("cinii-japanese" 15) ("manual" 16)  ("dspace" 17) }
-                ?publication oap:category "publication" ;
+                ?work oap:category "publication" ;
                 oap:records/oap:record/oap:source-name ?sourceNameIQ
-              } GROUP BY ?publication }
-          } GROUP BY ?publication }
-      } GROUP BY ?publication ?exemplarRecord }
-      bind(replace(str(?publication),str(harvest_oap:),'') as ?publication_number)
-      bind(uri(concat(str(publication:),?publication_number)) as ?experts_publication_id)
+              } GROUP BY ?work }
+          } GROUP BY ?work }
+      } GROUP BY ?work ?exemplarRecord }
+      bind(replace(str(?work),str(harvest_oap:),'') as ?work_number)
+      bind(uri(concat(str(work:),?work_number)) as ?experts_work_id)
     }}
   }
 }
