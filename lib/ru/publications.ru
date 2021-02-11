@@ -20,7 +20,6 @@ PREFIX venue: <http://experts.ucdavis.edu/venue/>
 
 # First, Insert citation BIBO stuff
 INSERT {
-<<<<<<< HEAD
 	GRAPH experts_oap: {
 		?experts_id a ?bibo_type, ucdrp:publication ;
 					rdfs:label ?title ;
@@ -28,15 +27,7 @@ INSERT {
 					bibo:pageEnd ?endPage ;
 					bibo:status ?vivoStatus;
 					experts:lastModifiedDateTime ?lastModifiedDateTime ;
-					experts:insertionDateTime ?insertionDateTime 
-=======
-  GRAPH experts_oap: {
-    ?experts_publication_id a ?bibo_type, ucdrp:publication ;
-    rdfs:label ?title ;
-    bibo:pageStart ?beginPage ;
-    bibo:pageEnd ?endPage ;
-    bibo:status ?vivoStatus;
->>>>>>> 366efb2c66ed814a0c6b7fa2a7e127fcc956394b
+					experts:insertionDateTime ?insertionDateTime
     .
   }
 }
@@ -55,15 +46,6 @@ WHERE { GRAPH harvest_oap: {
   BIND(xsd:dateTime(?lastModifiedWhen) AS ?lastModifiedDateTime)
   BIND(NOW() as ?insertionDateTime)
 
-<<<<<<< HEAD
-=======
-  ?publication oap:best_native_record ?native;
-  oap:type ?oap_type ;
-  oap:experts_publication_id ?experts_publication_id;
-  oap:publication_number ?pub_id;
-  .
-
->>>>>>> 366efb2c66ed814a0c6b7fa2a7e127fcc956394b
   ?native oap:field [ oap:name "title" ; oap:text ?title ] .
 
   OPTIONAL {
@@ -189,7 +171,7 @@ WHERE { GRAPH harvest_oap: {
     oap:is-favourite ?favorite;
     .
     ?userLink  oap:username ?username .
-    BIND(URI(CONCAT(STR("http://experts.ucdavis.edu/person/"),md5sum(STRBEFORE(?username,"@")))) AS ?personURI)
+    BIND(URI(CONCAT(STR("http://experts.ucdavis.edu/person/"),md5(STRBEFORE(?username,"@")))) AS ?personURI)
   }
 }};
 
@@ -213,18 +195,8 @@ WHERE {
       ?native oap:field [ oap:name "eissn" ; oap:text ?eissn ].
     }
     OPTIONAL {
-<<<<<<< HEAD
-			?native oap:field [ oap:name "eissn" ; oap:text ?eissn ].
-		}
-		OPTIONAL {
-			?native oap:field [ oap:name "issn" ; oap:text ?issn ].
-		}
-		BIND(URI(CONCAT(str(experts_pub:), COALESCE(CONCAT("issn:", ?issn), CONCAT("eissn:", ?eissn), CONCAT("journal:", ?journalIdText)))) AS ?journalURI)
-		}
-=======
       ?native oap:field [ oap:name "issn" ; oap:text ?issn ].
     }
     BIND(URI(CONCAT(str(venue:), COALESCE(CONCAT("issn:", ?issn), CONCAT("issn:", ?eissn), CONCAT("journal:", ?journalIdText)))) AS ?journalURI)
     }
->>>>>>> 366efb2c66ed814a0c6b7fa2a7e127fcc956394b
 }
