@@ -36,20 +36,22 @@ These simple example need might include update queries?
 export HARVEST_DB=$(harvest db new)
 export HARVEST_ENDPOINT=http://fuseki:3030/${HARVEST_DB}
 
-# Then add your iam data
 export HARVEST_CACHE=/var/lib/harvest/$HARVEST_DB
 mkdir -p $HARVEST_CACHE
 
-#ucdid login --auth=ucd:${IAM_KEY}
-#search=userId=benthem,quinn
-cas=userId=benthem,chmkim,jcgib,jkmason,mleite,ramram,rhcastro,rkukreja,sbsen,sjmccorm,spgentry,sshong,ytakamur
+cas=userId=benthem,quinn
+#cas=userId=benthem,chmkim,jcgib,jkmason,mleite,ramram,rhcastro,rkukreja,sbsen,sjmccorm,spgentry,sshong,ytakamur
 ucdid fetch --format=ttl --search="${cas}" profiles > $HARVEST_CACHE/cas.ttl
 harvest -v load --graph=http://iam.ucdavis.edu/ $HARVEST_CACHE/cas.ttl
 
-bae=email=mahamed@ucdavis.edu,gbornhorst@ucdavis.edu,adaccache@ucdavis.edu,jdemourabell@ucdavis.edu,jmearles@ucdavis.edu,jzfan@ucdavis.edu,fathallah@ucdavis.edu,megrismer@ucdavis.edu,ylhsieh@ucdavis.edu,bmjenkins@ucdavis.edu,tjeoh@ucdavis.edu,ikisekka@ucdavis.edu,amoghimi@ucdavis.edu,jsmullin@ucdavis.edu,nnitin@ucdavis.edu,npan@ucdavis.edu,dcs@ucdavis.edu,gysun@ucdavis.edu,svougioukas@ucdavis.edu,rhzhang@ucdavis.edu,irdonisgon@ucdavis.edu,jdfernandezbayo@ucdavis.edu,dafrank@ucdavis.edu,thung@ucdavis.edu,fkhorsandi@ucdavis.edu,kkorn@ucdavis.edu,palarbi@ucdavis.edu,zlpan@ucdavis.edu,apourreza@ucdavis.edu,hbscher@ucdavis.edu,jsvander@ucdavis.edu
-ucdid fetch --format=ttl --search="${bae}" profiles > $HARVEST_CACHE/bae.ttl
-harvest -v load --graph=http://iam.ucdavis.edu/ $HARVEST_CACHE/bae.ttl
+#bae_senate=email=mahamed@ucdavis.edu,gbornhorst@ucdavis.edu,adaccache@ucdavis.edu,jdemourabell@ucdavis.edu,jmearles@ucdavis.edu,jzfan@ucdavis.edu,fathallah@ucdavis.edu,megrismer@ucdavis.edu,ylhsieh@ucdavis.edu,bmjenkins@ucdavis.edu,tjeoh@ucdavis.edu,ikisekka@ucdavis.edu,amoghimi@ucdavis.edu,jsmullin@ucdavis.edu,nnitin@ucdavis.edu,npan@ucdavis.edu,dcs@ucdavis.edu,gysun@ucdavis.edu,svougioukas@ucdavis.edu,rhzhang@ucdavis.edu
+#bae_federation=email=irdonisgon@ucdavis.edu,jdfernandezbayo@ucdavis.edu,dafrank@ucdavis.edu,thung@ucdavis.edu,fkhorsandi@ucdavis.edu,kkorn@ucdavis.edu,palarbi@ucdavis.edu,zlpan@ucdavis.edu,apourreza@ucdavis.edu,hbscher@ucdavis.edu,jsvander@ucdavis.edu
+#ucdid fetch --format=ttl --search="${bae_senate}" profiles > $HARVEST_CACHE/bae_senate.ttl
+#harvest -v load --graph=http://iam.ucdavis.edu/ $HARVEST_CACHE/bae_senate.ttl
 
+#bae_tj=email=tjzicari@ucdavis.edu
+#ucdid fetch --format=ttl --search="${bae_tj}" profiles > $HARVEST_CACHE/bae_tj.ttl
+#harvest -v load --graph=http://iam.ucdavis.edu/ $HARVEST_CACHE/bae_tj.ttl
 
 #Now convert that to experts data
 harvest -v update iam_to_vivo
@@ -59,18 +61,21 @@ ids=$(aeq --endpoint=${HARVEST_ENDPOINT}/sparql query --format=json <<<"select ?
 
 # Now fetch all the data w/ CDL
 cdl --cache=$HARVEST_CACHE --data=$HARVEST_ENDPOINT -v login --auth=${CDL_AUTH}
-cdl --cache=$HARVEST_CACHE --data=$HARVEST_ENDPOINT -v users --pubs $ids
+#cdl --cache=$HARVEST_CACHE --data=$HARVEST_ENDPOINT -v users --pubs $ids
 
-# Then, run the update scripts for new data.
-harvest update update_harvest_records;
-harvest update journal;
-time harvest update publications;
-harvest update pub_FoR;
-harvest update pub_free;
-harvest update keywords;
-harvest update experts_concepts;
+for id in $ids; do
+  export HARVEST_DB=$(harvest db new)
+  export HARVEST_ENDPOINT=http://fuseki:3030/${HARVEST_DB}
+  export HARVEST_CACHE=/var/lib/harvest/$HARVEST_DB
+  mkdir -p $HARVEST_CACHE
 
-Broken ones=gangan npan
+  cdl --cache=$HARVEST_CACHE --data=$HARVEST_ENDPOINT -v users --pubs $id
+  # Then, run the update scripts for new data.
+  harvest update update_harvest_records
+  harvest update journal publications pub_FoR pub_free keywords expert_concepts;
+
+done
+
 # Alternatively, use `elements` to fetch the data, and harvest XLST to convert
 
 export ELEMENTS_BASE=/usr/local/vivo/harvester/data
@@ -97,3 +102,5 @@ aeq --endpoint=${HARVEST_ENDPOINT}/sparql query --format=ttl <<<'CONSTRUCT {?s ?
 
 
 #+END_SRC
+
+#+RESULTS:

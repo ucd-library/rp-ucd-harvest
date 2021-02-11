@@ -7,6 +7,7 @@ PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
+PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -16,13 +17,13 @@ PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 
 INSERT {
   GRAPH experts_oap: {
-    ?experts_publication_id vivo:hasfreetextKeyword ?keyword
+    ?experts_work_id vivo:hasfreetextKeyword ?keyword
   }
 }
 WHERE {
   GRAPH harvest_oap: {
-    ?publication oap:best_native_record ?native;
-               oap:experts_publication_id ?experts_publication_id;
+    ?work oap:best_native_record ?native;
+               oap:experts_work_id ?experts_work_id;
     .
     {
       {

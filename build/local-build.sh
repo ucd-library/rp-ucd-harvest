@@ -1,13 +1,16 @@
 #! /bin/bash
 
-TAG_NAME=1.0.0
+repo=$(basename -s .git $(git config --get remote.origin.url))
+branch=$(git rev-parse --abbrev-ref HEAD)
 
-ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." >/dev/null 2>&1 && pwd )"
+tag=$(git tag --points-at HEAD)
 
-repo=$(basename $ROOT_DIR)
+if [[ -n $tag ]]; then
+  t_tag="-t ucdlib/${repo}:$tag"
+fi
 
 export DOCKER_BUILDKIT=1
 docker build \
   --build-arg BUILDKIT_INLINE_CACHE=1 \
-  -t ucdlib/${repo}:$TAG_NAME \
-  $ROOT_DIR
+  -t ucdlib/${repo}:$branch ${t_tag}\
+  $(git rev-parse --show-toplevel)
