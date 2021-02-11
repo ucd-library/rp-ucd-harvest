@@ -28,6 +28,8 @@ INSERT {
     bibo:pageStart ?beginPage ;
     bibo:pageEnd ?endPage ;
     bibo:status ?vivoStatus;
+		ucdrp:lastModifiedDateTime ?lastModifiedDateTime ;
+		ucdrp:insertionDateTime ?insertionDateTime;
     .
   }
 }
@@ -40,10 +42,14 @@ WHERE { GRAPH harvest_oap: {
   }
 
   ?work oap:best_native_record ?native;
-  oap:type ?oap_type ;
-  oap:experts_work_id ?experts_work_id;
-  oap:work_number ?pub_id;
-  .
+			   oap:type ?oap_type ;
+         oap:experts_work_id ?experts_work_id;
+         oap:work_number ?pub_id;
+			   oap:experts_id ?experts_id;
+			   oap:publication_number ?pub_id;
+			   oap:last-modified-when ?lastModifiedWhen .
+  BIND(xsd:dateTime(?lastModifiedWhen) AS ?lastModifiedDateTime)
+  BIND(NOW() as ?insertionDateTime)
 
   ?native oap:field [ oap:name "title" ; oap:text ?title ] .
 
@@ -200,6 +206,6 @@ WHERE {
     OPTIONAL {
       ?native oap:field [ oap:name "issn" ; oap:text ?issn ].
     }
-    BIND(URI(CONCAT(str(venue:), COALESCE(CONCAT("issn:", ?issn), CONCAT("issn:", ?eissn), CONCAT("journal:", ?journalIdText)))) AS ?journalURI)
+    BIND(URI(CONCAT(str(venue:), COALESCE(CONCAT("issn:", ?issn), CONCAT("eissn:", ?eissn), CONCAT("journal:", ?journalIdText)))) AS ?journalURI)
     }
 }
