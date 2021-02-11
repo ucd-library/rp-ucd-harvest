@@ -22,8 +22,6 @@ INSERT { GRAPH experts_oap: {
     .
 }} WHERE{};
 
-#add here
-
 INSERT { GRAPH experts_oap: {
   ?keyword a skos:Concept, ucdrp:concept ;
     skos:prefLabel ?term;
@@ -44,7 +42,9 @@ WHERE { GRAPH harvest_oap: {
 	filter(?scheme != "for")
 }};
 
+
 # Now connect the terms to the works
+
 INSERT { GRAPH experts_oap: {
   ?experts_work_id vivo:hasSubjectArea ?keyword.
   ?keyword vivo:SubjectAreaOf ?experts_work_id.

@@ -40,13 +40,11 @@ WHERE { GRAPH harvest_oap: {
     ("conference" vivo:ConferencePaper)
     ("journal-article" bibo:AcademicArticle)
   }
-
+  
   ?work oap:best_native_record ?native;
 			   oap:type ?oap_type ;
          oap:experts_work_id ?experts_work_id;
          oap:work_number ?pub_id;
-			   oap:experts_id ?experts_id;
-			   oap:publication_number ?pub_id;
 			   oap:last-modified-when ?lastModifiedWhen .
   BIND(xsd:dateTime(?lastModifiedWhen) AS ?lastModifiedDateTime)
   BIND(NOW() as ?insertionDateTime)
