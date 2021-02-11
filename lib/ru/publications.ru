@@ -21,10 +21,12 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 INSERT {
 	GRAPH experts_oap: {
 		?experts_id a ?bibo_type, ucdrp:publication ;
-		rdfs:label ?title ;
-    bibo:pageStart ?beginPage ;
-		bibo:pageEnd ?endPage ;
-    bibo:status ?vivoStatus;
+					rdfs:label ?title ;
+					bibo:pageStart ?beginPage ;
+					bibo:pageEnd ?endPage ;
+					bibo:status ?vivoStatus;
+					experts:lastModifiedDateTime ?lastModifiedDateTime ;
+					experts:insertionDateTime ?insertionDateTime 
     .
 	}
 }
@@ -35,14 +37,15 @@ WHERE { GRAPH harvest_oap: {
     ("conference" vivo:ConferencePaper)
     ("journal-article" bibo:AcademicArticle)
   }
+  ?publication oap:best_native_record ?native;
+			   oap:type ?oap_type ;
+			   oap:experts_id ?experts_id;
+			   oap:publication_number ?pub_id;
+			   oap:last-modified-when ?lastModifiedWhen .
+  BIND(xsd:dateTime(?lastModifiedWhen) AS ?lastModifiedDateTime)
+  BIND(NOW() as ?insertionDateTime)
 
-	?publication oap:best_native_record ?native;
-	oap:type ?oap_type ;
-  oap:experts_id ?experts_id;
-  oap:publication_number ?pub_id;
-  .
-
-	?native oap:field [ oap:name "title" ; oap:text ?title ] .
+  ?native oap:field [ oap:name "title" ; oap:text ?title ] .
 
   OPTIONAL {
 		?native oap:field [ oap:name "pagination" ; oap:pagination [ oap:begin-page ?beginPage ; oap:end-page ?endPage ] ].
@@ -193,6 +196,6 @@ WHERE {
 		OPTIONAL {
 			?native oap:field [ oap:name "issn" ; oap:text ?issn ].
 		}
-		BIND(URI(CONCAT(str(experts_pub:), COALESCE(CONCAT("issn:", ?issn), CONCAT("issn:", ?eissn), CONCAT("journal:", ?journalIdText)))) AS ?journalURI)
+		BIND(URI(CONCAT(str(experts_pub:), COALESCE(CONCAT("issn:", ?issn), CONCAT("eissn:", ?eissn), CONCAT("journal:", ?journalIdText)))) AS ?journalURI)
 		}
 }

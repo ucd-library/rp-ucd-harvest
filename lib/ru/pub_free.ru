@@ -7,6 +7,8 @@ PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX experts: <http://experts.ucdavis.edu/> 
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 # Add in the ConceptScheme;
 INSERT { GRAPH experts_oap: {
@@ -19,20 +21,29 @@ INSERT { GRAPH experts_oap: {
     .
 }} WHERE{};
 
+#add here
+
 INSERT { GRAPH experts_oap: {
   ?keyword a skos:Concept;
            skos:prefLabel ?term;
            rdfs:label ?term;
            oap:scheme ?scheme;
            skos:inScheme free: ;
+		   experts:lastModifiedDateTime ?lastModifiedDateTime ;
+		   experts:insertionDateTime ?insertionDateTime 
   .
 }}
 WHERE { GRAPH harvest_oap: {
 	?publication oap:experts_id ?experts_id ;
-     oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?term ; oap:scheme ?scheme ].
-  bind(IRI(concat(str(free:),md5(?term))) as ?keyword)
-  filter(?scheme != "for")
+     	oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?term ; oap:scheme ?scheme ] ;
+		oap:last-modified-when ?lastModifiedWhen .
+	BIND(xsd:dateTime(?lastModifiedWhen) AS ?lastModifiedDateTime)
+	BIND(NOW() as ?insertionDateTime)     
+	bind(IRI(concat(str(free:),md5(?term))) as ?keyword)
+	filter(?scheme != "for")
 }};
+
+#
 
 # Now connect the terms to the publications
 INSERT { GRAPH experts_oap: {
