@@ -40,7 +40,7 @@ WHERE { GRAPH harvest_oap: {
     ("conference" vivo:ConferencePaper)
     ("journal-article" bibo:AcademicArticle)
   }
-  
+
   ?work oap:best_native_record ?native;
 			   oap:type ?oap_type ;
          oap:experts_work_id ?experts_work_id;
@@ -127,27 +127,28 @@ WHERE {
       BIND(COALESCE(?yearMonthDayPrecision, ?yearMonthPrecision, ?yearPrecision) AS ?dateTimePrecision)
 }};
 
-# Next Insert Auuthors.  Do this seperately, so we don't needlessly check
+# Next Insert Authors.  Do this seperately, so we don't needlessly check
 # work level values
 
 INSERT {
   GRAPH experts_oap: {
-		?experts_work_id vivo:relatedBy _:authorship;
-									 .
-    _:authorship a vivo:Authorship,ucdrp:authorship ;
+    ?authorship a vivo:Authorship,ucdrp:authorship ;
     vivo:rank ?authorRank ;
     vivo:relates ?personURI ;
     vivo:relates ?experts_work_id ;
     vivo:favorite ?favorite;
-    vivo:relates [ a vcard:Individual ;
-                   vivo:relatedBy ?authorship ;
-                   vcard:hasName [ a vcard:Name ;
+		.
+		?personURI vivo:relatedBy ?authorship.
+ 		?experts_work_id vivo:relatedBy ?authorship.
+
+    ?authorship ?vivorelates [ a ?vcardIndividual ;
+                   ?vcardhasName [ a ?vcardName ;
                                    vcard:last_name ?authorLastName ;
                                    vcard:first_name ?authorFirstName ;
                                  ] ;
-                 ] .
-		?personURI vivo:relatedBy ?authorship.
-#		?experts_work_id vivo:relatedBy ?authorship.
+                 ] ;
+    .
+
   }
 }
 WHERE { GRAPH harvest_oap: {
@@ -157,10 +158,28 @@ WHERE { GRAPH harvest_oap: {
   .
 
   ?native oap:field [ oap:name "authors" ; oap:people/oap:person [ list:index(?pos ?elem) ] ] .
-  ?elem oap:last-name ?authorLastName ;
-  oap:first-names ?authorFirstName .
   BIND(?pos+1 AS ?authorRank)
-	BIND(uri(concat(replace(str(?experts_work_id),str(work:),str(authorship:)),"-",?authorRank)) as ?authorship)
+	BIND(uri(concat(replace(str(?experts_work_id),str(work:),str(authorship:)),"-",str(?authorRank))) as ?authorship)
+
+	# Everything of the blank node needs to be a variable, or else we'll happily create
+	# empty nodes
+	OPTIONAL {
+    bind(vcard:Name as ?vcardName)
+    bind(vcard:Individual as ?vcardIndividual)
+    bind(vivo:relates as ?vivorelates)
+    bind(vcard:hasName as ?vcardhasName)
+		?elem oap:last-name ?authorLastName ;
+  		  oap:first-names ?authorFirstName ;
+		.
+		?elem oap:last-name ?authorLastName ;
+		oap:first-names ?authorFirstName ;
+		.
+		NOT EXISTS {
+			graph experts_oap: {
+				?authorship vivo:relates [ a vcard:Individual; vcard:hasName [ a vcard:Name ]] .
+			}
+		}
+	}
 
   OPTIONAL {
     ?elem oap:links/oap:link ?userLink.
