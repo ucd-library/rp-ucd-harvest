@@ -1,7 +1,7 @@
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
-PREFIX FoR: <http://experts.ucdavis.edu/subject-term/FoR#>
-PREFIX free: <http://experts.ucdavis.edu/subject-term/free#>
+PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR#>
+PREFIX free: <http://experts.ucdavis.edu/concept/free#>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
