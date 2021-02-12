@@ -36,7 +36,7 @@ INSERT { graph experts_iam: {
   ?user a ?emp_type, ucdrp:person;
           rdfs:label ?label;
           ucdrp:casId ?kerb;
-          ucdrp:indentifier ?user;
+          ucdrp:indentifier ?user_id;
           obo:ARG_2000028 _:vcard;
   .
   _:vcard a vcard:Individual;
@@ -101,7 +101,8 @@ INSERT { graph experts_iam: {
     bind(coalesce(?better_lname,?iam_lname) as ?lname)
     bind(concat(?fname," ",?lname) as ?label)
 
-    bind(uri(concat(str(person:),md5(?kerb))) as ?user)
+    bind(md5(?kerb) as ?user_id)
+    bind(uri(concat(str(person:),?user_id)) as ?user)
     bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
   }}
 }
