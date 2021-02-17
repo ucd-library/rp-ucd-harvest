@@ -1,7 +1,7 @@
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
-PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR#>
-PREFIX free: <http://experts.ucdavis.edu/concept/free#>
+PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR/>
+PREFIX free: <http://experts.ucdavis.edu/concept/free/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -17,7 +17,7 @@ INSERT { GRAPH experts_oap: {
       dcterms:title "Free Text Terms"@en;
       dcterms:creator "UC Davis Library" ;
       dcterms:type "wordlist" ;
-      dcterms:language free: ;
+      dcterms:language "en" ;
       skos:prefLabel "Free Text Terms";
     .
 }} WHERE{};

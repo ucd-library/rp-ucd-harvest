@@ -40,7 +40,7 @@ WHERE { GRAPH harvest_oap: {
     ("conference" vivo:ConferencePaper)
     ("journal-article" bibo:AcademicArticle)
   }
-  
+
   ?work oap:best_native_record ?native;
 			   oap:type ?oap_type ;
          oap:experts_work_id ?experts_work_id;
@@ -127,7 +127,7 @@ WHERE {
       BIND(COALESCE(?yearMonthDayPrecision, ?yearMonthPrecision, ?yearPrecision) AS ?dateTimePrecision)
 }};
 
-# Next Insert Auuthors.  Do this seperately, so we don't needlessly check
+# Next Insert Authors.  Do this seperately, so we don't needlessly check
 # work level values
 
 INSERT {
@@ -142,12 +142,11 @@ INSERT {
     vivo:relates [ a vcard:Individual ;
                    vivo:relatedBy ?authorship ;
                    vcard:hasName [ a vcard:Name ;
-                                   vcard:last_name ?authorLastName ;
-                                   vcard:first_name ?authorFirstName ;
+                                   vcard:familyName ?authorLastName ;
+                                   vcard:givenName ?authorFirstName ;
                                  ] ;
                  ] .
 		?personURI vivo:relatedBy ?authorship.
-#		?experts_work_id vivo:relatedBy ?authorship.
   }
 }
 WHERE { GRAPH harvest_oap: {
