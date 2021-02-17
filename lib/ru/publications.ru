@@ -137,18 +137,14 @@ INSERT {
     vivo:relates ?personURI ;
     vivo:relates ?experts_work_id ;
     vivo:favorite ?favorite;
-		.
-		?personURI vivo:relatedBy ?authorship.
- 		?experts_work_id vivo:relatedBy ?authorship.
-
-    ?authorship ?vivorelates [ a ?vcardIndividual ;
-                   ?vcardhasName [ a ?vcardName ;
-                                   vcard:last_name ?authorLastName ;
-                                   vcard:first_name ?authorFirstName ;
+    vivo:relates [ a vcard:Individual ;
+                   vivo:relatedBy ?authorship ;
+                   vcard:hasName [ a vcard:Name ;
+                                   vcard:familyName ?authorLastName ;
+                                   vcard:givenName ?authorFirstName ;
                                  ] ;
-                 ] ;
-    .
-
+                 ] .
+		?personURI vivo:relatedBy ?authorship.
   }
 }
 WHERE { GRAPH harvest_oap: {

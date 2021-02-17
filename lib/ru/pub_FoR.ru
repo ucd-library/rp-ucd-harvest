@@ -1,8 +1,8 @@
 # coding: utf-8
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
-PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR#>
-PREFIX free: <http://experts.ucdavis.edu/concept/free#>
+PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR/>
+PREFIX free: <http://experts.ucdavis.edu/concept/free/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -44,7 +44,7 @@ INSERT { GRAPH experts_oap: {
 WHERE { GRAPH harvest_oap: {
   ?work oap:best_record ?record;
               oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?keyword ; oap:scheme 'for' ] .
-  BIND(URI(CONCAT("http://experts.ucdavis.edu/concept/FoR#", REPLACE(?keyword," .*",""))) AS ?conceptURI)
+  BIND(URI(CONCAT(str(FoR:), REPLACE(?keyword," .*",""))) AS ?conceptURI)
 }};
 
 # Now add the terms to the works.

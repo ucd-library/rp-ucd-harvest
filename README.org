@@ -39,15 +39,15 @@ export HARVEST_ENDPOINT=http://fuseki:3030/${HARVEST_DB}
 export HARVEST_CACHE=/var/lib/harvest/$HARVEST_DB
 mkdir -p $HARVEST_CACHE
 
-cas=userId=benthem,quinn
-#cas=userId=benthem,chmkim,jcgib,jkmason,mleite,ramram,rhcastro,rkukreja,sbsen,sjmccorm,spgentry,sshong,ytakamur
+#cas=userId=benthem,quinn
+cas=userId=benthem,chmkim,jcgib,jkmason,mleite,ramram,rhcastro,rkukreja,sbsen,sjmccorm,spgentry,sshong,ytakamur
 ucdid fetch --format=ttl --search="${cas}" profiles > $HARVEST_CACHE/cas.ttl
 harvest -v load --graph=http://iam.ucdavis.edu/ $HARVEST_CACHE/cas.ttl
 
-#bae_senate=email=mahamed@ucdavis.edu,gbornhorst@ucdavis.edu,adaccache@ucdavis.edu,jdemourabell@ucdavis.edu,jmearles@ucdavis.edu,jzfan@ucdavis.edu,fathallah@ucdavis.edu,megrismer@ucdavis.edu,ylhsieh@ucdavis.edu,bmjenkins@ucdavis.edu,tjeoh@ucdavis.edu,ikisekka@ucdavis.edu,amoghimi@ucdavis.edu,jsmullin@ucdavis.edu,nnitin@ucdavis.edu,npan@ucdavis.edu,dcs@ucdavis.edu,gysun@ucdavis.edu,svougioukas@ucdavis.edu,rhzhang@ucdavis.edu
+bae_senate=email=mahamed@ucdavis.edu,gbornhorst@ucdavis.edu,adaccache@ucdavis.edu,jdemourabell@ucdavis.edu,jmearles@ucdavis.edu,jzfan@ucdavis.edu,fathallah@ucdavis.edu,megrismer@ucdavis.edu,ylhsieh@ucdavis.edu,bmjenkins@ucdavis.edu,tjeoh@ucdavis.edu,ikisekka@ucdavis.edu,amoghimi@ucdavis.edu,jsmullin@ucdavis.edu,nnitin@ucdavis.edu,npan@ucdavis.edu,dcs@ucdavis.edu,gysun@ucdavis.edu,svougioukas@ucdavis.edu,rhzhang@ucdavis.edu
 #bae_federation=email=irdonisgon@ucdavis.edu,jdfernandezbayo@ucdavis.edu,dafrank@ucdavis.edu,thung@ucdavis.edu,fkhorsandi@ucdavis.edu,kkorn@ucdavis.edu,palarbi@ucdavis.edu,zlpan@ucdavis.edu,apourreza@ucdavis.edu,hbscher@ucdavis.edu,jsvander@ucdavis.edu
-#ucdid fetch --format=ttl --search="${bae_senate}" profiles > $HARVEST_CACHE/bae_senate.ttl
-#harvest -v load --graph=http://iam.ucdavis.edu/ $HARVEST_CACHE/bae_senate.ttl
+ucdid fetch --format=ttl --search="${bae_senate}" profiles > $HARVEST_CACHE/bae_senate.ttl
+harvest -v load --graph=http://iam.ucdavis.edu/ $HARVEST_CACHE/bae_senate.ttl
 
 #bae_tj=email=tjzicari@ucdavis.edu
 #ucdid fetch --format=ttl --search="${bae_tj}" profiles > $HARVEST_CACHE/bae_tj.ttl
