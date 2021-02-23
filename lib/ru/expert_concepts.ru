@@ -22,5 +22,5 @@ WHERE {
       ?expert a ucdrp:person;
               .
     }
-  } GROUP BY ?expert ?concept ?p HAVING (COUNT(*) > 3)
+  } GROUP BY ?expert ?concept ?p order by desc(?cnt) limit 5
 };
