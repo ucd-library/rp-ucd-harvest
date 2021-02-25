@@ -7,6 +7,7 @@
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX person: <http://experts.ucdavis.edu/person/>
 PREFIX experts_iam: <http://experts.ucdavis.edu/iam/>
+PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
 PREFIX harvest_iam: <http://iam.ucdavis.edu/>
 PREFIX iam: <http://iam.ucdavis.edu/schema#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
@@ -31,8 +32,11 @@ WHERE {
   }
 };
 
-
-INSERT { graph experts_iam: {
+INSERT {
+	graph experts_oap: {
+		?user a ucdrp:person;
+			}
+	graph experts_iam: {
   ?user a ?emp_type, ucdrp:person;
           rdfs:label ?label;
           ucdrp:casId ?kerb;

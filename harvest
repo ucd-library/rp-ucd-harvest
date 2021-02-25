@@ -41,7 +41,9 @@ function main.init() {
 
   #MAIN
     # global Variables
-    declare -g -A G=(
+  declare -g -A G=(
+		[harvest_base]=/var/lib/harvest
+		[cdl_auth]=ucd:unspecified
       [harvest_home]="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../lib/harvest" >/dev/null 2>&1 && pwd )"
       [iam_api_endpoint]="iam.api:=https://iet-ws.ucdavis.edu/api/iam"
       [iam_search]=""
@@ -61,15 +63,17 @@ function main.init() {
     eval set -- "$opts"
 
     local i
-    declare -A CMD;
+    declare -A CMD=(
+			[verbose]=0
+			);
     while true; do
 	    case $1 in
-	      -b | --base) CMD[base]=$2;  shift 2;;
+	      -b | --base) CMD[harvest_base]=$2;  shift 2;;
 	      -f | --fuseki-host) CMD[fuseki_host]=$2;  shift 2;;
 	      -d | --db) CMD[harvest_db]=$2;  shift 2;;
 	      --fuseki-admin) CMD[fuseki_admin]=$2;  shift 2;;
 	      -a | --fuseki-auth) CMD[fuseki_auth]=$2;  shift 2;;
-	      -v | --verbose) CMD[verbose]=1;  shift;;
+	      -v | --verbose) let CMD[verbose]=${CMD[verbose]}+1;  shift;;
         -h | --help ) exec pod2text $0;;
 	      -- ) shift; break;;
 	      *) shift; break;
@@ -118,7 +122,13 @@ function main.cmd () {
 	    xslt) # VIVO Harvester
 	      $cmd "$@";
 	      ;;
-      db | load | fuseki | update | query ) # Fuseki commands
+      db | load | update | query ) # Fuseki commands
+        $cmd "$@";
+        ;;
+			run ) # Import a set of people
+        $cmd "$@";
+        ;;
+			export ) # Export Experts database.
         $cmd "$@";
         ;;
       config ) # informational requests
@@ -131,7 +141,23 @@ function main.cmd () {
 }
 
 function log() {
-  [[ -n ${G[verbose]} ]] && (>&2 echo LOG: $@)
+  local opts;
+  if ! opts=$(${G[util_getopt]} -o v --long verbose -n 'harvest log' -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ;
+	fi
+
+  eval set -- "$opts"
+
+  local log_verbose=0
+
+  while true; do
+	  case $1 in
+	    -v | --verbose) let log_verbose=$log_verbose+1;  shift;;
+	    -- ) shift; break;;
+	    *) shift; break;
+    esac
+  done
+	(( ${G[verbose]} >= $log_verbose )) && (echo $@)
 }
 
 function err() {
@@ -219,6 +245,7 @@ function db() {
 }
 
 
+
 : <<='cut'
 =pod
 
@@ -269,7 +296,7 @@ after processing.
 
 function run () {
   local opts;
-  if ! opts=$(${G[util_getopt]} -o g:f: --long graph:,format: -n 'harvest load' -- "$@"); then
+  if ! opts=$(${G[util_getopt]} -o is:rnm: --long init,search:,remove,no-remove,last-modified -n 'harvest load' -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
   eval set -- "$opts"
@@ -293,22 +320,23 @@ function run () {
     esac
   done
 
-  if [[ -z $CMD[search] ]]; then
-    err "harvest run, must specify a --search parameter.  See ucdid for details."
+  if [[ -z ${CMD[search]} ]]; then
+    err 1 "harvest run, must specify a --search parameter.  See ucdid for details."
   fi
 
   if [[ -n ${CMD[init]} || -z ${G[db]} ]]; then
-    G[db]=db new;
-    log "harvest new db: ${G[db]}"
+    G[harvest_db]=$(db new);
   fi
+	local ep=http://fuseki:3030/${G[harvest_db]}
 
   # Now fetch all the data w/ CDL
-  local cache=${G[base]}/${G[db]}
+  local cache=${G[harvest_base]}/${G[harvest_db]}
+	log -v -v "cache: $cache"
   mkdir $cache;
-
 
   # call UCDID w/ query
   local profiles_ttl=$cache/profiles.ttl
+  log -v -v "ucdid fetch --format=ttl --search=\"${CMD[search]}\" profiles > $profiles_ttl"
   ucdid fetch --format=ttl --search="${CMD[search]}" profiles > $profiles_ttl
   load --graph=http://iam.ucdavis.edu/ $profiles_ttl
 
@@ -316,22 +344,85 @@ function run () {
   update iam_to_vivo
 
   # Now get all the casIDs, This doesn't use experts, but the harvestdb
-  ids=$(aeq --endpoint=${HARVEST_ENDPOINT}/sparql query --format=json <<<"select ?id where { graph harvest_iam: {[] iam:userID ?id. }} order by ?id" | jq -r .results.bindings[].id.value | tr [:space:] ' ')
+  ids=$(aeq --endpoint=$ep/sparql query --format=json <<<"select ?id where { graph harvest_iam: {[] iam:userID ?id. }} order by ?id" | jq -r .results.bindings[].id.value | tr [:space:] ' ')
 
-
-  # cdl --data=$HARVEST_ENDPOINT -v login --auth=${CDL_AUTH}
-  cdl --cache=$cache --data=${G[endpoint]}/${G[db]} users --pubs $ids
+	local v_s=$(for i in $(seq ${G[verbose]} ); do echo -n " -v"; done)
+#  cdl $v_s --data=$ep login --auth=${CDL_AUTH}
+  cdl $v_s --cache=$cache --data=$ep users --pubs $ids
 
   # Then, run the update scripts for new data
-  update update_harvest_records;
-  update journal
-  update publications
-  update concepts
-  update keywords
+  update update_harvest_records
+  update journal publications pub_FoR pub_free keywords expert_concepts;
 
+	if [[ -n ${CMD[remove]} ]]; then
+		log -v "db rm ${G[harvest_db]}; rm -rf $cache"
+		db rm ${G[harvest_db]}
+		rm -rf $cache
+	fi;
 }
 
+: <<='cut'
+=pod
 
+=head2 COMMAND
+
+harvest I<global_options> B<export> I<options>
+
+Exports the experts database on a per graph basis.  This allows the data to be
+shared with another implementation, or saved as an archive.
+
+=over 4
+
+=item B<--directory=export_directory>
+
+If specified, then save to this directory. Otherwise uses
+${HARVEST_BASE:-/var/lib/harvest}/export as the location.
+
+=back
+
+=cut
+
+function export () {
+  local opts;
+  if ! opts=$(${G[util_getopt]} -o d: --long directory -n 'harvest export' -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ; fi
+
+  eval set -- "$opts"
+
+  declare -A CMD=(
+    [directory]=''
+    );
+
+  while true; do
+	  case $1 in
+	    -d | --directory) CMD[directory]=$2;  shift 2;;
+	    -- ) shift; break;;
+	    *) shift; break;
+    esac
+  done
+
+	if [[ -z ${CMD[directoy]} ]]; then
+		 CMD[directory]=${G[harvest_base]}/export;
+		 [[ -d ${CMD[directory]} ]] || mkdir ${CMD[directory]};
+	fi
+
+	local graphdirs=(
+		experts.ucdavis.edu
+		experts.ucdavis.edu%2Fiam
+		experts.ucdavis.edu%2Foap
+	)
+
+	local get=http://fuseki:3030/experts/get
+
+	for dir in ${graphdirs[@]}; do
+		local d=${CMD[directory]}/$dir;
+		[[ -d $d ]] || mkdir $d;
+		local g=$(printf 'http://%b/' ${dir//%/\\x})
+		log -v "curl \"${get}?graph=$g\" | gzip > $d/graph.ttl"
+    curl -s "${get}?graph=$g" | gzip > $d/graph.ttl
+	done
+
+}
 
 : <<='cut'
 =pod
@@ -361,11 +452,11 @@ Run update queries on the fuseki harvestdb endpoint.  I
 
 function update () {
   local file;
+	local begin;
   if [[ -n ${G[harvest_db]} ]]; then
     local auth=${G[fuseki_auth]}
     local update=${G[fuseki_host]}/${G[harvest_db]}/update
 
-    log ${update}
     # Short hand for files in lib/harvest
     for file in "$@"; do
       [[ "$file" = '-' ]] && file=/dev/stdin
@@ -374,14 +465,16 @@ function update () {
         [[ -f $file ]] || file=${file}.ru
       fi
       if [[ -f $file ]]; then
-        log "curl -i --location --request POST --user \"${auth}\" -H Content-Type:application/sparql-update --data-binary \"@${file}\" ${update}"
-        curl -i --location --request POST --user "${auth}" -H Content-Type:application/sparql-update --data-binary "@${file}" ${update}
+				log -v -v "curl -s --location --request POST --user \"${auth}\" -H Content-Type:application/sparql-update --data-binary \"@${file}\" ${update}"
+				begin=$SECONDS
+        curl -s --location --request POST --user "${auth}" -H Content-Type:application/sparql-update --data-binary "@${file}" ${update}
+				log -v "update $file time=$(($SECONDS-$begin))"
       else
-        log $file not found
+        log -v "update $file not found"
       fi
     done
   else
-    log "No harvest-db specified, via --db= or via HARVEST_DB env. variable."
+    err 1 "No harvest-db specified, via --db= or via HARVEST_DB env. variable."
   fi
 }
 
@@ -435,6 +528,9 @@ function load () {
   done
 
   local file;
+	local count;
+	local begin;
+
   if [[ -n ${G[harvest_db]} ]]; then
     local auth=${G[fuseki_auth]}
     local load=${G[fuseki_host]}/${G[harvest_db]}/data
@@ -446,16 +542,19 @@ function load () {
       else
         fn=$file
       fi
-      log "curl --location --request POST --user ${auth} -H \"Content-Type:multipart/form-data\" -F \"file=@${file};filename=${fn}\" \"${load}?graph=${CMD[graph]}\""
-      curl --location --request POST --user ${auth} -H "Content-Type:multipart/form-data" -F "file=@${file};filename=${fn}" "${load}?graph=${CMD[graph]}"
+			begin=$SECONDS
+      log -v -v "curl -s --location --request POST --user ${auth} -H \"Content-Type:multipart/form-data\" -F \"file=@${file};filename=${fn}\" \"${load}?graph=${CMD[graph]}\""
+      count=$(curl -s --location --request POST --user ${auth} -H "Content-Type:multipart/form-data" -F "file=@${file};filename=${fn}" "${load}?graph=${CMD[graph]}" | jq .count)
+			log -v "load $fn graph=${CMD[graph]} count=$count time=$(($SECONDS-$begin))"
     done
   fi
   # No can load both
-  if [[ -n ${G[tdb]} ]]; then
+  if [[ -n ${G[tdb]} && false ]]; then
     for file in "$@"; do
       [[ "$file" = '-' ]] && file=/dev/stdin
-      log "tdb2.tdbloader --loc=${G[tdb]} --graph=${G[graph]} $file"
-      tdb2.tdbloader --loc=${G[tdb]} --graph=${G[graph]} $file
+      log -v -v "tdb2.tdbloader --loc=${G[tdb]} --graph=${G[graph]} $file"
+      count=$(tdb2.tdbloader --loc=${G[tdb]} --graph=${G[graph]} $file)
+			log -v "tdb $fn graph=${CMD[graph]} => $count"
     done
   fi
 }

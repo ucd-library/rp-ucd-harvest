@@ -1,6 +1,3 @@
-# select the best_record for every publication
-# Insert this into the oap_harvest records themselves,
-# This is like a materialized view.
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX oapx: <http://experts.ucdavis.edu/oap/vocab#>
 PREFIX cite: <http://citationstyles.org/schema/>
@@ -10,6 +7,7 @@ PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
+PREFIX person: <http://experts.ucdavis.edu/person/>
 PREFIX work: <http://experts.ucdavis.edu/work/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
@@ -18,6 +16,30 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+# Update the users with their opaque person_ids
+
+INSERT {
+	GRAPH harvest_oap: {
+		?user oap:experts_person_id ?person_id;
+        oap:harvest_pub_tags true;
+				.
+	}
+} WHERE {
+	GRAPH harvest_oap: {
+		?user oap:category "user";
+				oap:username ?username;
+		.
+		bind(md5(replace(?username,"@ucdavis.edu","")) as ?user_id)
+		bind(uri(concat(str(person:),?user_id)) as ?person_id)
+		filter(isiri(?user))
+	}
+};
+
+
+# select the best_record for every publication
+# Insert this into the oap_harvest records themselves,
+# This is like a materialized view.
 
 INSERT {
 GRAPH harvest_oap: {

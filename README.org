@@ -30,53 +30,31 @@ These simple example need might include update queries?
 
 ** Example Testing Script
 
-#+BEGIN_SRC sh
 
-# First, setup your harvestdb
-export HARVEST_DB=$(harvest db new)
-export HARVEST_ENDPOINT=http://fuseki:3030/${HARVEST_DB}
+#+BEGIN_SRC bash
 
-export HARVEST_CACHE=/var/lib/harvest/$HARVEST_DB
-mkdir -p $HARVEST_CACHE
-
-#cas=userId=benthem,quinn
-cas=userId=benthem,chmkim,jcgib,jkmason,mleite,ramram,rhcastro,rkukreja,sbsen,sjmccorm,spgentry,sshong,ytakamur
-ucdid fetch --format=ttl --search="${cas}" profiles > $HARVEST_CACHE/cas.ttl
-harvest -v load --graph=http://iam.ucdavis.edu/ $HARVEST_CACHE/cas.ttl
-
-bae_senate=email=mahamed@ucdavis.edu,gbornhorst@ucdavis.edu,adaccache@ucdavis.edu,jdemourabell@ucdavis.edu,jmearles@ucdavis.edu,jzfan@ucdavis.edu,fathallah@ucdavis.edu,megrismer@ucdavis.edu,ylhsieh@ucdavis.edu,bmjenkins@ucdavis.edu,tjeoh@ucdavis.edu,ikisekka@ucdavis.edu,amoghimi@ucdavis.edu,jsmullin@ucdavis.edu,nnitin@ucdavis.edu,npan@ucdavis.edu,dcs@ucdavis.edu,gysun@ucdavis.edu,svougioukas@ucdavis.edu,rhzhang@ucdavis.edu
-#bae_federation=email=irdonisgon@ucdavis.edu,jdfernandezbayo@ucdavis.edu,dafrank@ucdavis.edu,thung@ucdavis.edu,fkhorsandi@ucdavis.edu,kkorn@ucdavis.edu,palarbi@ucdavis.edu,zlpan@ucdavis.edu,apourreza@ucdavis.edu,hbscher@ucdavis.edu,jsvander@ucdavis.edu
-ucdid fetch --format=ttl --search="${bae_senate}" profiles > $HARVEST_CACHE/bae_senate.ttl
-harvest -v load --graph=http://iam.ucdavis.edu/ $HARVEST_CACHE/bae_senate.ttl
-
-#bae_tj=email=tjzicari@ucdavis.edu
-#ucdid fetch --format=ttl --search="${bae_tj}" profiles > $HARVEST_CACHE/bae_tj.ttl
-#harvest -v load --graph=http://iam.ucdavis.edu/ $HARVEST_CACHE/bae_tj.ttl
-
-#Now convert that to experts data
-harvest -v update iam_to_vivo
-
-# Now get all the casIDs, This doesn't use experts, but the harvestdb
-ids=$(aeq --endpoint=${HARVEST_ENDPOINT}/sparql query --format=json <<<"select ?id where { graph harvest_iam: {[] iam:userID ?id. }} order by ?id" | jq -r .results.bindings[].id.value | tr [:space:] ' ')
-
-# Now fetch all the data w/ CDL
-cdl --cache=$HARVEST_CACHE --data=$HARVEST_ENDPOINT -v login --auth=${CDL_AUTH}
-#cdl --cache=$HARVEST_CACHE --data=$HARVEST_ENDPOINT -v users --pubs $ids
-
-for id in $ids; do
-  export HARVEST_DB=$(harvest db new)
-  export HARVEST_ENDPOINT=http://fuseki:3030/${HARVEST_DB}
-  export HARVEST_CACHE=/var/lib/harvest/$HARVEST_DB
-  mkdir -p $HARVEST_CACHE
-
-  cdl --cache=$HARVEST_CACHE --data=$HARVEST_ENDPOINT -v users --pubs $id
-  # Then, run the update scripts for new data.
-  harvest update update_harvest_records
-  harvest update journal publications pub_FoR pub_free keywords expert_concepts;
-
+userIds="benthem chmkim jcgib jkmason mleite ramram rhcastro rkukreja sbsen sjmccorm spgentry sshong ytakamur"
+for id in $userIds; do
+dc harvest harvest -v run --search=userId=$id --init --remove
 done
 
-# Alternatively, use `elements` to fetch the data, and harvest XLST to convert
+# BAE Senate
+emails="mahamed@ucdavis.edu gbornhorst@ucdavis.edu adaccache@ucdavis.edu jdemourabell@ucdavis.edu jmearles@ucdavis.edu jzfan@ucdavis.edu fathallah@ucdavis.edu megrismer@ucdavis.edu ylhsieh@ucdavis.edu bmjenkins@ucdavis.edu tjeoh@ucdavis.edu ikisekka@ucdavis.edu amoghimi@ucdavis.edu jsmullin@ucdavis.edu nnitin@ucdavis.edu npan@ucdavis.edu dcs@ucdavis.edu gysun@ucdavis.edu svougioukas@ucdavis.edu rhzhang@ucdavis.edu"
+for id in $emails; do
+dc harvest harvest -v run --search=email=$id --init --remove
+done
+
+# BAE Federation
+emails="irdonisgon@ucdavis.edu jdfernandezbayo@ucdavis.edu dafrank@ucdavis.edu thung@ucdavis.edu fkhorsandi@ucdavis.edu kkorn@ucdavis.edu palarbi@ucdavis.edu zlpan@ucdavis.edu apourreza@ucdavis.edu hbscher@ucdavis.edu jsvander@ucdavis.edu"
+for id in $emails; do
+dc harvest harvest -v run --search=email=$id --init --remove
+done
+
+#+END_SRC
+
+#+BEGIN_SRC bash
+
+# Alternatively  use `elements` to fetch the data, and harvest XLST to convert
 
 export ELEMENTS_BASE=/usr/local/vivo/harvester/data
 mkdir -p $ELEMENTS_BASE/raw-records
@@ -98,8 +76,10 @@ harvest xslt --select=oapolicy.ttl
 harvest load --graph=http://experts.ucdavis.edu/oap/ oapolicy.ttl
 
 # Save the graphs
-aeq --endpoint=${HARVEST_ENDPOINT}/sparql query --format=ttl <<<'CONSTRUCT {?s ?p ?o } WHERE { graph <http://experts.ucdavis.edu/oap/> { ?s ?p ?o.}}' > oap.ttl
-
+for i in experts.ucdavis.edu%2Foap experts.ucdavis.edu%2Fiam
+graph="http://"$(echo $i | sed -e 's|%2F|/|g')"/"
+echo "aeq --endpoint=${HARVEST_ENDPOINT}/sparql query --format=ttl \<\<\<\"CONSTRUCT {?s ?p ?o } WHERE { graph <${graph}> { ?s ?p ?o.}}\" \> $i/graph.ttl"
+end
 
 #+END_SRC
 
