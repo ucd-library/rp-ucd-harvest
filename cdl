@@ -62,14 +62,30 @@ require the functions, C<pod2usage> and C<pod2text> to work properly.
 
 =cut
 
+declare -A G=(
+  [api]='https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5'
+  [graph]='http://oapolicy.universityofcalifornia.edu/'
+  [auth]=''
+  [data]=''
+  [http_session]="elements"
+  [cache]="/var/lib/harvest/cdl"
+  [util_rsync]="rsync"
+  [util_xml2json]="xml2json"
+  [util_xmlstarlet]="xmlstarlet"
+  [util_http]="http"
+);
+
 function init() {
-    local opts=`$GETOPT -o A:bnhS:vt:d:c: --long verbose,base:,api:,data:,cache:,tdb:,http_session:,session:,dry-run,help -n 'elements' -- "$@"`
-    if [ $? != 0 ] ; then echo "Bad Command Options." >&2 ; exit 1 ; fi
+  local opts;
+  if ! opts=$($GETOPT -o A:bnhS:vt:d:c: --long verbose,base:,api:,data:,cache:,tdb:,http_session:,session:,dry-run,help -n 'cdl' -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
 
     local i
-    declare -A CMD;
+    declare -A CMD=(
+      [verbose]=0
+      );
     while true; do
 	    case $1 in
         --api) CMD[api]=$2; shift 2;;
@@ -77,8 +93,7 @@ function init() {
         -t | --tdb ) CMD[tdb]=$2; shift 2;;
         -d | --data ) CMD[data]=$2; shift 2;;
         -c | --cache ) CMD[cache]=$2; shift 2;;
-	      -v | --verbose) CMD[verbose]=1;  shift;;
-	      -n | --dry-run) CMD[noop]=1; shift ;;
+	      -v | --verbose) let CMD[verbose]=CMD[verbose]+1;  shift;;
         -h | --help ) exec pod2text $0;;
 	      -- ) shift; break;;
 	      *) shift; break;
@@ -96,8 +111,6 @@ function init() {
       [[ -n ${CMD[$i]} ]] && G[$i]=${CMD[$i]};
     done
 
-    [[ -d ${G[cache]} ]] || err 1 "cache ${G[cache]} doesn't exist or isn't a directory"
-
 }
 
 
@@ -108,13 +121,10 @@ function init() {
 =head1 COMMANDS
 
 Next there are a set of commands that communicate with the CDL service. Note,
-that ezid uses L<httpie|https://httpie.org/> for its http communcation. This
-allows users to combine ezid with other httpie requests if required. Login
-infomation is stored using the standard C<httpie> methodology, see L</"GLOBAL OPTIONS"> for httpid options.
-
-C<elements [options] harvest --full> Harvests a number of feeds from the
-Elements database and stores each record in a separate file.  This is to match how
-the Sympletic Harvester works
+that cdl uses L<httpie|https://httpie.org/> for its http communcation.  This
+allows users to combine the program with other httpie requests if
+required. Login infomation is stored using the standard C<httpie> methodology,
+see L</"GLOBAL OPTIONS"> for httpie options.
 
 =cut
 
@@ -131,7 +141,10 @@ function main.cmd () {
 	    load_jsonld | xml2jsonld ) # utility requests
 	      $cmd "$@";
 	      ;;
-      declare ) # informational requests
+      config | declare ) # informational requests
+        log -v "Verbose Log"
+        log -v -v "Verbosex2 Log"
+
         declare -p G;
         ;;
 	    *)
@@ -142,7 +155,23 @@ function main.cmd () {
 
 
 function log() {
-  [[ -n ${G[verbose]} ]] && (>&2 echo LOG: $@)
+  local opts;
+  if ! opts=$($GETOPT -o v --long verbose -n 'cdl log' -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ; fi
+
+    eval set -- "$opts"
+
+    local log_verbose=0
+
+    while true; do
+	    case $1 in
+	      -v | --verbose) let log_verbose=$log_verbose+1;  shift;;
+	      -- ) shift; break;;
+	      *) shift; break;
+      esac
+    done
+
+  (( ${G[verbose]} >= $log_verbose )) && (echo $@)
 }
 
 function err() {
@@ -156,6 +185,52 @@ function err() {
   fi
   exit $n;
 }
+
+
+function url_fetch() {
+  local opts;
+  local begin;
+
+  if ! opts=$($GETOPT -o f:o --long file:,overwrite,no-overwrite -n 'cdl fetch' -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ;
+  fi
+
+  eval set -- "$opts"
+
+  declare -A CMD=(
+    [overwrite]=''
+  );
+
+  while true; do
+	  case $1 in
+	    -f | --file) CMD[file]=$2;  shift 2;;
+	    -o | --overwrite) CMD[overwrite]=1;  shift ;;
+	    -n | --no-overwrite) CMD[overwrite]='';  shift;;
+	    -- ) shift; break;;
+	    *) shift; break;
+    esac
+  done
+
+  local http="${G[util_http]} --check-status --session-read-only=${G[http_session]} --print=b "
+
+  begin=$SECONDS
+  if [[ -n ${CMD[file]} ]]; then
+    if [[ ! -f ${CMD[file]} || -n ${CMD[overwrite]} ]]; then
+      log -v -v -- "${http} '$1' > ${CMD[file]}"
+      ${http} "$1" > ${CMD[file]}
+    else
+      log -v -v -- "${CMD[file]} exists"
+    fi
+    log -v "http ${CMD[file]} time=$(($SECONDS-$begin))"
+  else
+    log -v -v -- "${http} '$1' > /dev/null"
+    ${http} "$1" > /dev/null
+    log -v "http (test) time=$(($SECONDS-$begin))"
+  fi
+
+}
+
+
 
 :<<=cut
 
@@ -201,8 +276,11 @@ function login() {
 	      *) shift; break;
       esac
     done
-    local http="${G[util_http]} --check-status --session=${G[http_session]} --print=hH"
-    $http --auth=${auth} ${G[api]}/groups
+    if [[ -z $auth ]]; then
+      auth=${G[auth]}
+    fi
+
+    url_fetch ${G[api]}/groups
 }
 
 :<<=cut
@@ -289,7 +367,7 @@ function xml2jsonld() {
   G[jsonld_publication_context]=${G[jsonld_context_map_id]}
 
   while [[ -n "$1" ]]; do
-    log "${G[util_xml2json]} < "$1" | jq '${G[jsonld_${type}_context]} + {\"@graph\":[${G[jsonld_${type}_path]}]}' > ${1//.xml/.jsonld}"
+    log -v -v "${G[util_xml2json]} < "$1" | jq '${G[jsonld_${type}_context]} + {\"@graph\":[${G[jsonld_${type}_path]}]}' > ${1//.xml/.jsonld}"
     ${G[util_xml2json]} < "$1" | jq "${G[jsonld_${type}_context]}"' + {"@graph":['"${G[jsonld_${type}_path]}"']}' > ${1//.xml/.jsonld}
     shift
   done
@@ -298,32 +376,76 @@ function xml2jsonld() {
 
 :<<=cut
 
-=head2 groups
+=head2 load_jsonld
 
-  cdl <global-elements> groups
+  cdl <global-elements> load_jsonld <--log=messege> filenames
 
-B<cdl groups> uses the ATOM feed api to retreive the CDL groups from the
-elements database.
+  B<cdl load_jsonld> loads all filenames passed to the function.
+
+=over 4
+
+=item C<--log>
+
+You can specify a messege to include in the log file
+
+=back
 
 =cut
 
 function load_jsonld () {
   local file;
+  local count;
+  local opts;
+  if ! opts=$($GETOPT -o l: --long log -n 'cdl load_jsonld' -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ; fi
+
+  eval set -- "$opts"
+
+  local log
+  local file_log
+
+  while true; do
+	  case $1 in
+	    -l | --log) let log=$2;  shift 2;;
+	    -- ) shift; break;;
+	    *) shift; break;
+    esac
+  done
+
+  # G[data] is a SPARQL DATA LOAD
   if [[ -n ${G[data]} ]]; then
     local auth=admin:${FUSEKI_PASSWORD}
     local load=${G[data]}
     for file in "$@"; do
-      riot --formatted=ttl $file > $file.ttl
-      log "curl --location --request POST --user ${auth} -H \"Content-Type:multipart/form-data\" -F \"file=@${file}\" \"${load}?graph=${G[graph]}\""
-      curl --location --request POST --user ${auth} -H "Content-Type:multipart/form-data" -F "file=@${file}" "${load}?graph=${G[graph]}"
+      if [[ -f $file ]]; then
+        riot --formatted=ttl $file > $file.ttl
+        log -v -v "curl --location --request POST --user ${auth} -H \"Content-Type:multipart/form-data\" -F \"file=@${file}\" \"${load}?graph=${G[graph]}\""
+        count=$(curl -s --location --request POST --user ${auth} -H "Content-Type:multipart/form-data" -F "file=@${file}" "${load}?graph=${G[graph]}" | jq .count)
+        if [[ -n $log ]]; then
+          log -v "$log $count"
+        else
+          log -v "load $file graph=$G{[graph]} => $count"
+        fi
+      else
+        log "$file not found"
+      fi
     done
   fi
-  # No can load both
+  # G[tdb] is a tdbloader command
   if [[ -n ${G[tdb]} ]]; then
     for file in "$@"; do
-      riot --formatted=ttl $file > $file.ttl
-      log "tdb2.tdbloader --loc=${G[tdb]} --graph=${G[graph]} $file.ttl"
-      tdb2.tdbloader --loc=${G[tdb]} --graph=${G[graph]} $file.ttl
+      if [[ -f $file ]]; then
+        riot --formatted=ttl $file > $file.ttl
+        log -v -v "tdb2.tdbloader --loc=${G[tdb]} --graph=${G[graph]} $file.ttl"
+        count=$(tdb2.tdbloader --loc=${G[tdb]} --graph=${G[graph]} $file.ttl)
+        if [[ -n $log ]]; then
+          log -v "$log $count"
+        else
+          log -v "load $file graph=${G[graph]} => $count"
+        fi
+      else
+        log "$file not found"
+      fi
     done
   fi
 }
@@ -331,8 +453,9 @@ function load_jsonld () {
 function groups() {
   local http="${G[util_http]} --check-status --session-read-only=${G[http_session]} --print=b "
 
-  log "${http} ${G[api]}/groups > ${G[cache]}/groups.xml"
-  ${http} ${G[api]}/groups > ${G[cache]}/groups.xml
+  [[ -d ${G[cache]} ]] || err 1 "cache ${G[cache]} doesn't exist or isn't a directory"
+
+  url_fetch --file=${G[cache]}/groups.xml ${G[api]}/groups
   xml2jsonld --type=groups ${G[cache]}/groups.xml
   load_jsonld ${G[cache]}/groups.jsonld
 }
@@ -366,7 +489,6 @@ function users () {
   local opts=`$GETOPT -o g:u:pn --long tdb:,per-page:,groups:,detail:,usernames:,ids:,user-groups,pubs,no-pubs -n 'elements feed' -- "$@"`
   if [ $? != 0 ] ; then echo "Bad Command Options." >&2 ; exit 1 ; fi
 
-  log "$opts"
   eval set -- "$opts"
 
   local run='--run'
@@ -386,9 +508,9 @@ function users () {
     [[ -n ${CMD[$i]} ]] && G[$i]=${CMD[$i]};
   done
 
-  local http="${G[util_http]} --check-status --session-read-only=${G[http_session]} --print=b "
   local g n N uf;
-  [[ -d ${G[cache]} ]] || mkdir ${G[cache]}
+
+  [[ -d ${G[cache]} ]] || err 1 "cache ${G[cache]} doesn't exist or isn't a directory"
 
   local selT="${G[util_xmlstarlet]} sel -T -N a=http://www.w3.org/2005/Atom"
 
@@ -400,9 +522,7 @@ function users () {
       while [[ -n ${next} ]]; do
         printf -v N "%03d" $n
         fn=${G[cache]}/users.${g}.${N};
-        log "${http} '${next}' > ${fn}.xml"
-        [[ -f ${fn}.xml ]] || ${http} "${next}" > ${fn}.xml;
-        log next=$(${selT} -t -v '//api:page[@position="next"]/@href' ${fn}.xml)
+        url_fetch --no-overwrite --file=${fn}.xml "${next}"
         next=$(${selT} -t -v '//api:page[@position="next"]/@href' ${fn}.xml);
         let n+=1;
       done
@@ -417,11 +537,9 @@ function users () {
     while [[ -n ${next} ]]; do
       printf -v N "%03d" $n
       fn=${G[cache]}/users.${username}.${N};
-      log "${http} '${next}' > ${fn}.xml"
-      [[ -f ${fn}.xml ]] || ${http} ${next} > ${fn}.xml
+      url_fetch --no-overwrite --file=${fn}.xml "${next}"
       xml2jsonld --type=user ${fn}.xml
       load_jsonld ${fn}.jsonld
-      log next=$(${selT} -t -v '//api:page[@position="next"]/@href' ${fn}.xml)
       next=$(${selT} -t -v '//api:page[@position="next"]/@href' ${fn}.xml);
       let n+=1;
     done
@@ -436,8 +554,7 @@ function users () {
         while [[ -n ${next} ]]; do
           printf -v N "%03d" $n
           fn=${G[cache]}/user-relationships.${username}.${id}.${N};
-          log "${http} ${next} > ${fn}"
-          [[ -f ${fn}.xml ]] || ${http} "${next}" > ${fn}.xml;
+          url_fetch --no-overwrite --file=${fn}.xml "${next}"
          # xml2jsonld --type=user-relationship ${fn}.xml
          # load_jsonld ${fn}.jsonld
           next=$(${selT} -t -v '//api:page[@position="next"]/@href' ${fn}.xml);
@@ -452,8 +569,7 @@ function users () {
       tfn=${tfn%.xml}
       ids=$($selT -t -v /a:feed/a:entry/api:relationship/@id ${fn} | sort -u | paste -sd ',' )
       if [[ -n $ids ]] ; then
-        log ${http} "${G[api]}/relationships?ids=${ids}&detail=ref&per-page=250" '>' ${tfn}.xml
-        [[ -f ${tfn}.xml ]] || ${http} "${G[api]}/relationships?ids=${ids}&detail=ref&per-page=250" > ${tfn}.xml
+        url_fetch --no-overwrite --file=${tfn}.xml "${G[api]}/relationships?ids=${ids}&detail=ref&per-page=250"
         xml2jsonld --type=relationship ${tfn}.xml
         load_jsonld ${tfn}.jsonld
       fi
@@ -471,11 +587,9 @@ function users () {
           while [[ -n ${next} ]]; do
             printf -v N "%03d" $n
             ttfn=${tfn}.${N};
-            log "${http} '${next}' > ${ttfn}.xml"
-            [[ -f ${ttfn}.xml ]] || ${http} ${next} > ${ttfn}.xml
+            url_fetch --no-overwrite --file=${ttfn}.xml "$next"
             xml2jsonld --type=publication ${ttfn}.xml
             load_jsonld ${ttfn}.jsonld
-            log next=$(${selT} -t -v '//api:page[@position="next"]/@href' ${ttfn}.xml)
             next=$(${selT} -t -v '//api:page[@position="next"]/@href' ${ttfn}.xml);
             let n+=1;
           done
@@ -526,22 +640,6 @@ ${FLAGS_GETOPT_CMD:-getopt}
 Quinn Hart <qjhart@ucdavis.edu>
 
 =cut
-
-
-#MAIN
-# global Variables
-declare -A G=(
-  [api]='https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5'
-  [auth]=''
-  [http_session]="elements"
-  [cache]="/var/lib/harvest/cdl"
-  [util_rsync]="rsync"
-  [util_xml2json]="xml2json"
-  [util_xmlstarlet]="xmlstarlet"
-  [util_http]="http"
-#  [tdb]='/var/lib/harvest/experts'
-  [graph]='http://oapolicy.universityofcalifornia.edu/'
-);
 
 OPTS=();
 while true; do

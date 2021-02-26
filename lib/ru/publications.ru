@@ -144,6 +144,7 @@ INSERT {
                                    vcard:givenName ?authorFirstName ;
                                  ] ;
                  ] .
+		?experts_work_id vivo:relatedBy ?authorship.
 		?personURI vivo:relatedBy ?authorship.
   }
 }
