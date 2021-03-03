@@ -12,7 +12,7 @@ harvest - overall harvest command
 harvest [-b|--base=<base>]
   <command> [<args>]
 
-  where <command> is one of xslt
+  where <command> is one of db,load,update,query,login,run,export,config.
 
 
 =head1 GLOBAL OPTIONS
@@ -44,6 +44,7 @@ function main.init() {
   declare -g -A G=(
 		[harvest_base]=/var/lib/harvest
 		[cdl_auth]=ucd:unspecified
+		[ucdid_auth]=ucd:unspecified
       [harvest_home]="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../lib/harvest" >/dev/null 2>&1 && pwd )"
       [iam_api_endpoint]="iam.api:=https://iet-ws.ucdavis.edu/api/iam"
       [iam_search]=""
@@ -125,6 +126,9 @@ function main.cmd () {
       db | load | update | query ) # Fuseki commands
         $cmd "$@";
         ;;
+			login) # API commands
+				$cmd "$@"
+				;;
 			run ) # Import a set of people
         $cmd "$@";
         ;;
@@ -132,7 +136,7 @@ function main.cmd () {
         $cmd "$@";
         ;;
       config ) # informational requests
-        _${cmd} "$@";
+        declare -p G;
         ;;
 	    *)
 	      exec pod2usage $0
@@ -142,22 +146,24 @@ function main.cmd () {
 
 function log() {
   local opts;
-  if ! opts=$(${G[util_getopt]} -o v --long verbose -n 'harvest log' -- "$@"); then
+  if ! opts=$(${G[util_getopt]} -o nv --long verbose -n 'harvest log' -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ;
 	fi
 
   eval set -- "$opts"
 
   local log_verbose=0
+  local parm_n=''
 
   while true; do
 	  case $1 in
 	    -v | --verbose) let log_verbose=$log_verbose+1;  shift;;
+	    -n ) parm_n='-n';  shift;;
 	    -- ) shift; break;;
 	    *) shift; break;
     esac
   done
-	(( ${G[verbose]} >= $log_verbose )) && (echo $@)
+	(( ${G[verbose]} >= $log_verbose )) && (echo $parm_n $@)
 }
 
 function err() {
@@ -244,6 +250,49 @@ function db() {
   echo "${dbs[@]}"
 }
 
+
+: <<='cut'
+=pod
+
+=head2 COMMAND
+
+harvest I<-v> I<-v> login I<--cdl_auth=cdl_auth> -I<--ucdid_auth=ucdid_auth>
+
+Logs into the various required APIs.  You can specify the authentications on the
+command line.  If these parameters are not specified, then uses the
+environment variables C<CDL_AUTH> and C<UCDID_AUTH> respectively.  This is just
+a convenience function that calls C<cdl login> and C<ucdid login>.
+
+=cut
+
+function login() {
+  local opts;
+  if ! opts=$(${G[util_getopt]} -o c:u: --long cdl:,ucdid: -n 'harvest login' -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ; fi
+
+  eval set -- "$opts"
+
+  declare -A CMD=(
+    [cdl_auth]=${G[cdl_auth]}
+    [ucdid_auth]=${G[ucdid_auth]}
+    );
+
+  while true; do
+	  case $1 in
+	    -c | --cdl_auth) CMD[cdl_auth]=$2;  shift 2;;
+	    -u | --ucdid_auth) CMD[ucdid_auth]=$2;  shift 2;;
+	    -- ) shift; break;;
+	    *) shift; break;
+    esac
+  done
+
+	local v_s=$(for i in $(seq ${G[verbose]} ); do echo -n " -v"; done)
+
+	log -v -n "cdl."
+	cdl ${v_s} login --auth=${CMD[cdl_auth]}
+	log -v -n "ucdid."
+	ucdid ${v_s} login --auth=${CMD[ucdid_auth]}
+}
 
 
 : <<='cut'

@@ -280,7 +280,10 @@ function login() {
       auth=${G[auth]}
     fi
 
-    url_fetch ${G[api]}/groups
+    local http="${G[util_http]} --check-status --session=${G[http_session]} --auth=$auth --print=h "
+    log -v -v -- $http ${G[api]}/groups
+    local res=$($http ${G[api]}/groups | head -n 1)
+    log -v login: $res
 }
 
 :<<=cut
