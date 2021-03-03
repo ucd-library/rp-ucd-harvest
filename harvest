@@ -345,13 +345,13 @@ after processing.
 
 function run () {
   local opts;
-  if ! opts=$(${G[util_getopt]} -o is:rnm: --long init,search:,remove,no-remove,last-modified -n 'harvest load' -- "$@"); then
+  if ! opts=$(${G[util_getopt]} -o is:rnm: --long init,no-init,search:,remove,no-remove,last-modified -n 'harvest load' -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
   eval set -- "$opts"
 
   declare -A CMD=(
-    [init]=''
+    [init]=1
     [search]=''
     [remove]=1
     [modified]=''
@@ -360,6 +360,7 @@ function run () {
   while true; do
 	  case $1 in
 	    -i | --init) CMD[init]=1;  shift;;
+	    --no-init) CMD[init]='';  shift;;
 	    -s | --search) CMD[search]=$2;  shift 2;;
       -r | --remove) CMD[remove]=1; shift;;
       -n | --no-remove) CMD[remove]=''; shift;;
