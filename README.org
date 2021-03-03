@@ -33,28 +33,35 @@ These simple example need might include update queries?
 
 #+BEGIN_SRC bash
 
+# Login to the CDL database (one time)
+# Logs in using CDL_AUTH and UCDID_AUTH
+dc exec harvest harvest login
+
 userIds="benthem chmkim jcgib jkmason mleite ramram rhcastro rkukreja sbsen sjmccorm spgentry sshong ytakamur"
 for id in $userIds; do
-dc harvest harvest -v run --search=userId=$id --init --remove
+  dc exec harvest harvest -v run --search=userId=$id --init --remove
 done
 
 # BAE Senate
 emails="mahamed@ucdavis.edu gbornhorst@ucdavis.edu adaccache@ucdavis.edu jdemourabell@ucdavis.edu jmearles@ucdavis.edu jzfan@ucdavis.edu fathallah@ucdavis.edu megrismer@ucdavis.edu ylhsieh@ucdavis.edu bmjenkins@ucdavis.edu tjeoh@ucdavis.edu ikisekka@ucdavis.edu amoghimi@ucdavis.edu jsmullin@ucdavis.edu nnitin@ucdavis.edu npan@ucdavis.edu dcs@ucdavis.edu gysun@ucdavis.edu svougioukas@ucdavis.edu rhzhang@ucdavis.edu"
 for id in $emails; do
-dc harvest harvest -v run --search=email=$id --init --remove
+  dc exec harvest harvest -v run --search=email=$id --init --remove
 done
 
 # BAE Federation
 emails="irdonisgon@ucdavis.edu jdfernandezbayo@ucdavis.edu dafrank@ucdavis.edu thung@ucdavis.edu fkhorsandi@ucdavis.edu kkorn@ucdavis.edu palarbi@ucdavis.edu zlpan@ucdavis.edu apourreza@ucdavis.edu hbscher@ucdavis.edu jsvander@ucdavis.edu"
 for id in $emails; do
-dc harvest harvest -v run --search=email=$id --init --remove
+  dc exec harvest harvest -v run --search=email=$id --init --remove
 done
 
 #+END_SRC
 
-#+BEGIN_SRC bash
+** Comparisons to the Elements Harvester command
 
-# Alternatively  use `elements` to fetch the data, and harvest XLST to convert
+The harvest command will also run the XSLT processing from the sympletic
+harvester.  This might be used to compare previous VIVO pulls.
+
+#+BEGIN_SRC bash
 
 export ELEMENTS_BASE=/usr/local/vivo/harvester/data
 mkdir -p $ELEMENTS_BASE/raw-records

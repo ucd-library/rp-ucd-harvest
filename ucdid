@@ -94,7 +94,7 @@ function parse_url() {
 function main.init() {
 
     declare -g -A G=(
-      [auth]=
+      [auth]=ucd:unspecified
       [endpoint]='https://iet-ws.ucdavis.edu/api/iam'
       #  [stage_api]='https://iet-ws-stage.ucdavis.edu/api/iam'
       [base]='http://iam.ucdavis.edu/'
@@ -121,7 +121,7 @@ function main.init() {
         -E | --endpoint ) CMD[endpoint]=$2; shift 2;;
 	      --session | --http-session) CMD[http_session]=$2;  shift 2;;
         --auth ) CMD[auth]=$2; shift 2;;
-	      -v | --verbose) CMD[verbose]+="v";  shift;;
+	      -v | --verbose) let CMD[verbose]=CMD[verbose]+1;  shift;;
         -h | --help ) exec pod2text "$0";;
 	      -- ) shift; break;;
 	      *) shift; break;
@@ -191,14 +191,23 @@ function main.cmd () {
 }
 
 function log() {
-  if [[ $1 = '-v' ]]; then
-    shift
-    if [[ ${G[verbose]} ]]; then
-      echo -e >&2 LOG -V: "${@:-$(</dev/stdin)}"
-    fi
-  else
-    echo -e >&2 LOG: "${@:-$(</dev/stdin)}"
-  fi
+  local opts;
+  if ! opts=$(${G[shell_getopt]} -o v --long verbose -n 'ucdid log' -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ; fi
+
+    eval set -- "$opts"
+
+    local log_verbose=0
+
+    while true; do
+	    case $1 in
+	      -v | --verbose) let log_verbose=$log_verbose+1;  shift;;
+	      -- ) shift; break;;
+	      *) shift; break;
+      esac
+    done
+
+  (( ${G[verbose]} >= $log_verbose )) && (echo $@)
 }
 
 function err() {
@@ -208,9 +217,9 @@ function err() {
   else
     n=$1
     shift
-    (>&2 echo err: "$@")
+    (>&2 echo err: $@)
   fi
-  exit "$n";
+  exit $n;
 }
 
 : <<='cut'
@@ -222,7 +231,7 @@ function err() {
   B<ucd login> allows the user to persist their authentication.  The IAM API
   uses a C<key> parameter, and not a header variable, so the data can not really
   be persisted in a more standard format.  However, we still use the C<httpie
-  --auth=USER:PASS> setup.  The authorization
+  --auth=USER:PASS> setup.
 
   login --session=ucd login --auth=ucd:
 
@@ -236,7 +245,8 @@ the saved authorization.
 =item B<-a|--auth=USER:PASS>
 
 You specify the basic authentication for the server. For iam, the user does not
-matter, and the PASS is passed as the key for the
+matter, and the PASS is passed as the key for each command.  If unspecified, the
+environment variable C<UCDID_AUTH> is used.
 
 =back
 
@@ -248,7 +258,7 @@ function login() {
 
     eval set -- "$opts"
 
-    local auth=
+    local auth=${G[auth]}
     local key=
 
     while true; do
@@ -261,8 +271,10 @@ function login() {
 
     key=${auth#*:}
 
-    local http="${G[util_http]} --check-status --session=${G[http_session]} --auth=${auth} --print=hH"
-    $http ${G[endpoint]}/orginfo/sis/colleges key==${key}
+    local http="${G[util_http]} --check-status --session=${G[http_session]} --auth=${auth} --print=h"
+    log -v -v "${http} ${G[endpoint]}/orginfo/sis/colleges key==${key}"
+    res=$($http ${G[endpoint]}/orginfo/sis/colleges key==${key} | head -n 1)
+    log -v login: $res
 }
 
 
@@ -447,7 +459,6 @@ while true; do
 	esac
 done
 
-#log "${OPTS[@]}"
 main.init "${OPTS[@]}"
 main.cmd "$@"
 
