@@ -357,16 +357,16 @@ function xml2jsonld() {
   G[jsonld_user_path]='.feed.entry["api:object"]|(with_entries(if .key=="id" then .key="@id" else . end))';
   G[jsonld_user_context]=${G[jsonld_context_no_map_id]}
 
-  G[jsonld_groups_path]='.feed.entry[]["api:user-group"]|(with_entries(if .key=="id" then .key="@id" else . end))';
+  G[jsonld_groups_path]='.feed.entry[]["api:user-group"]?//.feed.entry["api:user-group"]|(with_entries(if .key=="id" then .key="@id" else . end))';
   G[jsonld_groups_context]=${G[jsonld_context_map_id]}
 
-  G[jsonld_user-relationship_path]='.feed.entry[]["api:relationship"]|(with_entries(if .key=="id" then .key="@id" else . end))';
+  G[jsonld_user-relationship_path]='.feed.entry[]["api:relationship"]?//.feed.entry["api:relationship"]|(with_entries(if .key=="id" then .key="@id" else . end))';
   G[jsonld_user-relationship_context]=${G[jsonld_context_no_map_id]}
 
-  G[jsonld_relationship_path]='.feed.entry[]["api:relationship"]|(with_entries(if .key=="id" then .key="@id" else . end))';
+  G[jsonld_relationship_path]='.feed.entry[]["api:relationship"]?//.feed.entry["api:relationship"]|(with_entries(if .key=="id" then .key="@id" else . end))';
   G[jsonld_relationship_context]=${G[jsonld_context_no_map_id]}
 
-  G[jsonld_publication_path]='.feed.entry[]["api:object"]|(with_entries(if .key=="id" then .key="@id" else . end))';
+  G[jsonld_publication_path]='.feed.entry[]["api:object"]?//.feed.entry["api:object"]|(with_entries(if .key=="id" then .key="@id" else . end))';
   G[jsonld_publication_context]=${G[jsonld_context_map_id]}
 
   while [[ -n "$1" ]]; do

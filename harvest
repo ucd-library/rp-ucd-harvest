@@ -469,7 +469,7 @@ function export () {
 		[[ -d $d ]] || mkdir $d;
 		local g=$(printf 'http://%b/' ${dir//%/\\x})
 		log -v "curl \"${get}?graph=$g\" | gzip > $d/graph.ttl"
-    curl -s "${get}?graph=$g" | gzip > $d/graph.ttl
+    curl -s "${get}?graph=$g" | gzip > $d/graph.ttl.gz
 	done
 
 }

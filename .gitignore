@@ -2,6 +2,9 @@
 *~
 *#
 
+#
+.env
+
 # harvester info
 data
 

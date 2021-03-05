@@ -2,7 +2,7 @@
 version: '3'
 services:
   harvest:
-    image: ucdlib/rp-ucd-harvest:1.0.0
+    image: ucdlib/rp-ucd-harvest:dev
     command: tail -f /dev/null
     environment:
       - VIVO_BASEURI_PREFIX=http://experts.library.ucdavis.edu/

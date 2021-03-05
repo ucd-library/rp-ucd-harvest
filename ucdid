@@ -103,8 +103,8 @@ function main.init() {
       [util_http]="http"
       [util_jq]="jq"
       [util_riot]="riot"
+      [verbose]=0
       [shell_getopt]=${FLAGS_GETOPT_CMD:-getopt}
-      [home]="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../lib/harvest" >/dev/null 2>&1 && pwd )"
 );
 
   local opts;
