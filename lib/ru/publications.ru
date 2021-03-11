@@ -137,9 +137,9 @@ INSERT {
     vivo:relates ?personURI ;
     vivo:relates ?experts_work_id ;
     vivo:favorite ?favorite;
-    vivo:relates [ a vcard:Individual ;
-                   vivo:relatedBy ?authorship ;
-                   vcard:hasName [ a vcard:Name ;
+    ?vivorelates [ a ?vcardIndividual ;
+                   vivo:relatedBy ?vcard ;
+                   ?vcardhasName [ a ?vcardName ;
                                    vcard:familyName ?authorLastName ;
                                    vcard:givenName ?authorFirstName ;
                                  ] ;
