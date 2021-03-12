@@ -61,9 +61,7 @@ done
 
 ** Manual Updates to the rc database
 
-dc down
 dc pull
-
 dc down
 update .env for testing
 dc up -d
