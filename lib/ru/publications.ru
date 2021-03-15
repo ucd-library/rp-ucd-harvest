@@ -137,13 +137,19 @@ INSERT {
     vivo:relates ?personURI ;
     vivo:relates ?experts_work_id ;
     vivo:favorite ?favorite;
-    vivo:relates [ a vcard:Individual ;
-                   vivo:relatedBy ?authorship ;
-                   vcard:hasName [ a vcard:Name ;
-                                   vcard:familyName ?authorLastName ;
-                                   vcard:givenName ?authorFirstName ;
-                                 ] ;
-                 ] .
+    vivo:relates ?authorship_vcard;
+    .
+
+    ?authorship_vcard a ?vcardIndividual ;
+                   vivo:relatedBy ?vcard ;
+                   vcard:hasName ?authorship_vcard_name;
+    .
+
+    ?authorship_vcard_name  a vcard:Name ;
+       vcard:familyName ?authorLastName ;
+       vcard:givenName ?authorFirstName ;
+    .
+
 		?experts_work_id vivo:relatedBy ?authorship.
 		?personURI vivo:relatedBy ?authorship.
   }
@@ -157,6 +163,9 @@ WHERE { GRAPH harvest_oap: {
   ?native oap:field [ oap:name "authors" ; oap:people/oap:person [ list:index(?pos ?elem) ] ] .
   BIND(?pos+1 AS ?authorRank)
 	BIND(uri(concat(replace(str(?experts_work_id),str(work:),str(authorship:)),"-",str(?authorRank))) as ?authorship)
+	BIND(uri(concat(str(?authorship),"#vcard")) as ?authorship_vcard)
+	BIND(uri(concat(str(?authorship_vcard),"-name")) as ?authorship_vcard_name)
+
 
 	# Everything of the blank node needs to be a variable, or else we'll happily create
 	# empty nodes
@@ -171,11 +180,6 @@ WHERE { GRAPH harvest_oap: {
 		?elem oap:last-name ?authorLastName ;
 		oap:first-names ?authorFirstName ;
 		.
-		NOT EXISTS {
-			graph experts_oap: {
-				?authorship vivo:relates [ a vcard:Individual; vcard:hasName [ a vcard:Name ]] .
-			}
-		}
 	}
 
   OPTIONAL {

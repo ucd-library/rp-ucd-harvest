@@ -28,6 +28,8 @@ These simple example need might include update queries?
 
 #+END_SRC
 
+
+
 ** Example Testing Script
 
 
@@ -55,6 +57,30 @@ for id in $emails; do
 done
 
 #+END_SRC
+
+
+** Manual Updates to the rc database
+
+dc pull
+dc down
+update .env for testing
+dc up -d
+
+Get Users
+
+users=$(http --print=b --follow http://gold.experts.library.ucdavis.edu:8081/experts/query query=='PREFIX ucdrp: <http://experts.ucdavis.edu/schema#> select ?userId WHERE { [] a ucdrp:person; ucdrp:casId ?userId} order by ?userId' Accept:text/csv | tail -n+2 | tr -s '\n\r' ' ')
+
+dc exec harvest db new
+
+http -f --auth=admin:a7a0e8a1-728d-4f7c-a8ba-57d87b263ca0 http://localhost:8081/harvest.voZs/update update='delete { graph ?g {?s ?p ?o } } WHERE { values ?g { <http://experts.ucdavis.edu/oap/> <http://experts.ucdavis.edu/iam/> } graph ?g { ?s ?p ?o } }'
+
+dc exec harvest harvest db rm harvest.voZs
+
+
+dc exec harvest harvest -v login
+
+ for id in $users; do dc exec harvest harvest -v run --search=userId=$id --init --remove; done
+
 
 ** Comparisons to the Elements Harvester command
 
