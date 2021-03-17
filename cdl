@@ -191,7 +191,7 @@ function url_fetch() {
   local opts;
   local begin;
 
-  if ! opts=$($GETOPT -o f:o --long file:,overwrite,no-overwrite -n 'cdl fetch' -- "$@"); then
+  if ! opts=$($GETOPT -o f:o --long file:,overwrite,no-overwrite -n 'cdl url_fetch' -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ;
   fi
 
@@ -211,7 +211,7 @@ function url_fetch() {
     esac
   done
 
-  local http="${G[util_http]} --check-status --session-read-only=${G[http_session]} --print=b "
+  local http="${G[util_http]} --timeout=60 --check-status --session-read-only=${G[http_session]} --print=b "
 
   begin=$SECONDS
   if [[ -n ${CMD[file]} ]]; then
