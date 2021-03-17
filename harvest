@@ -227,20 +227,24 @@ function db() {
       http --print=b --auth=${auth} GET ${G[fuseki_host]}/\$/datasets | jq '.datasets[]["ds.name"]'
       ;;
     list)
-      http --print=b --auth=${auth} GET ${G[fuseki_admin]}/harvestdb
+      dbs=($(http --print=b --auth=${auth} GET ${G[fuseki_admin]}/harvestdb | tr -d "\r" | grep ...))
       ;;
     rm)
       while [[ -n "$1" ]]; do
-        dbs+=($(http --auth=${auth} DELETE ${G[fuseki_admin]}/harvestdb?name="$1"))
+        dbs+=($(http --auth=${auth} DELETE ${G[fuseki_admin]}/harvestdb?name="$1" | tr -d '\r'))
+        if [[ -d ${G[harvest_base]}/"$1" ]]; then
+          log -v "rm -rf ${G[harvest_base]}/$1"
+          rm -rf "${G[harvest_base]}/$1"
+        fi
         shift
       done
       ;;
     new)
       if [[ -z "$1" ]]; then
-        dbs+=($(http --auth=${auth} POST ${G[fuseki_admin]}/harvestdb))
+        dbs+=($(http --auth=${auth} POST ${G[fuseki_admin]}/harvestdb | tr -d '\r'))
       else
         while [[ -n "$1" ]]; do
-          dbs+=($(http --auth=${auth} POST ${G[fuseki_admin]} /harvestdb?name="$1"))
+          dbs+=($(http --auth=${auth} POST ${G[fuseki_admin]} /harvestdb?name="$1" | tr -d '\r'))
           shift
         done
       fi
@@ -394,10 +398,10 @@ function run () {
     load --graph=http://iam.ucdavis.edu/ $profiles_ttl
 
   # Now run an update to convert IAM to vivo users
-  update iam_to_vivo
+  update iam_experts
 
   # Now get all the casIDs, This doesn't use experts, but the harvestdb
-  ids="$(aeq --endpoint="$ep"/sparql query --format=json <<<"select ?id where { graph harvest_iam: {[] iam:userID ?id. }} order by ?id" | jq -r .results.bindings[].id.value | tr [:space:] ' ')"
+  ids="$(aeq --endpoint="$ep"/sparql query --format=json <<<"select ?id where { {graph harvest_iam: {?u iam:userID ?id; filter(NOT EXISTS {?u iam:directory ?d }) } } UNION { graph harvest_iam: {[] iam:userID ?id; iam:directory/iam:displayName/iam:nameWwwFlag 'Y'. }}} order by ?id" | jq -r .results.bindings[].id.value | tr [:space:] ' ')"
 
 	local v_s
   v_s="$(for i in $(seq ${G[verbose]} ); do echo -n " -v"; done)"
@@ -406,12 +410,12 @@ function run () {
 
   # Then, run the update scripts for new data
   update update_harvest_records
+  update experts
   update journal publications pub_FoR pub_free keywords expert_concepts;
 
 	if [[ -n ${CMD[remove]} ]]; then
-		log -v "db rm ${G[harvest_db]}; rm -rf $cache"
+		log -v "db rm ${G[harvest_db]};"
 		db rm ${G[harvest_db]}
-		rm -rf $cache
 	fi;
 }
 
