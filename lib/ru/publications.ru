@@ -170,10 +170,6 @@ WHERE { GRAPH harvest_oap: {
 	# Everything of the blank node needs to be a variable, or else we'll happily create
 	# empty nodes
 	OPTIONAL {
-    bind(vcard:Name as ?vcardName)
-    bind(vcard:Individual as ?vcardIndividual)
-    bind(vivo:relates as ?vivorelates)
-    bind(vcard:hasName as ?vcardhasName)
 		?elem oap:last-name ?authorLastName ;
   		  oap:first-names ?authorFirstName ;
 		.
@@ -184,7 +180,6 @@ WHERE { GRAPH harvest_oap: {
 
   OPTIONAL {
     ?elem oap:links/oap:link ?userLink.
-
     bind(replace(str(?userLink),str(harvest_oap:),'') as ?user_id)
 
     [] oap:type "publication-user-authorship";
@@ -192,14 +187,51 @@ WHERE { GRAPH harvest_oap: {
        oap:related [ oap:category "publication";
                      oap:id ?pub_id;
                    ];
-    oap:related [ oap:category "user";
+       oap:related [ oap:category "user";
                   oap:id ?user_id;
                 ];
-    oap:is-favourite ?favorite;
+       oap:is-favourite ?favorite;
     .
     ?userLink  oap:username ?username .
     BIND(URI(CONCAT(STR("http://experts.ucdavis.edu/person/"),md5(STRBEFORE(?username,"@")))) AS ?personURI)
   }
+}};
+
+# Additionally, we need to add relationships that are not added by CDL elements.
+# For these, we don't know exaclty what author is being assigned to this relationship,
+#
+INSERT {
+  GRAPH experts_oap: {
+    ?authorship a vivo:Authorship,ucdrp:authorship ;
+    vivo:relates ?personURI ;
+    vivo:relates ?experts_work_id ;
+    vivo:favorite ?favorite;
+    .
+
+	?experts_work_id vivo:relatedBy ?authorship.
+		?personURI vivo:relatedBy ?authorship.
+  }
+}
+WHERE { GRAPH harvest_oap: {
+  ?work oap:best_native_record ?native;
+              oap:experts_work_id ?experts_work_id;
+             oap:work_number ?pub_id;
+  .
+	BIND(uri(concat(replace(str(?experts_work_id),str(work:),str(authorship:)))) as ?authorship)
+
+  [] oap:type "publication-user-authorship";
+     oap:is-visible "true";
+     oap:related [ oap:category "publication";
+                   oap:id ?pub_id;
+                 ];
+  oap:related [ oap:category "user";
+                oap:id ?user_id;
+              ];
+  oap:is-favourite ?favorite;
+  .
+  bind(uri(concat(str(harvest_oap:),?user_id)) as ?userLink)
+  ?userLink  oap:username ?username .
+  BIND(URI(CONCAT(STR("http://experts.ucdavis.edu/person/"),md5(STRBEFORE(?username,"@")))) AS ?personURI)
 }};
 
 # If it appeared in a journal, identify that relationship
