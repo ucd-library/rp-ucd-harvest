@@ -22,7 +22,6 @@ PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 INSERT {
 	GRAPH harvest_oap: {
 		?user oap:experts_person_id ?person_id;
-        oap:harvest_pub_tags true;
 				.
 	}
 } WHERE {

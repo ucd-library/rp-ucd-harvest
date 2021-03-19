@@ -130,7 +130,7 @@ function main.cmd () {
 			login) # API commands
 				$cmd "$@"
 				;;
-			run ) # Import a set of people
+			user ) # Import a set of people
         $cmd "$@";
         ;;
 			export ) # Export Experts database.
@@ -306,7 +306,7 @@ function login() {
 
 =head2 COMMAND
 
-harvest I<global_options> B<run> I<options>
+harvest I<global_options> B<user> I<options>
 
 Run a complete harvest operation for a particular ucdid search.  This command
 will first initialize a HARVEST_DB if one does not exist.  Then the program will
@@ -349,7 +349,7 @@ after processing.
 
 =cut
 
-function run () {
+function user () {
   local opts;
   if ! opts=$(${G[util_getopt]} -o is:rnm: --long init,no-init,search:,remove,no-remove,last-modified -n 'harvest load' -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
@@ -403,9 +403,10 @@ function run () {
   # Now get all the casIDs, This doesn't use experts, but the harvestdb
   ids="$(aeq --endpoint="$ep"/sparql query --format=json <<<"select ?id where { {graph harvest_iam: {?u iam:userID ?id; filter(NOT EXISTS {?u iam:directory ?d }) } } UNION { graph harvest_iam: {[] iam:userID ?id; iam:directory/iam:displayName/iam:nameWwwFlag 'Y'. }}} order by ?id" | jq -r .results.bindings[].id.value | tr [:space:] ' ')"
 
+  log -v "cdl for ids='$ids'"
+
 	local v_s
   v_s="$(for i in $(seq ${G[verbose]} ); do echo -n " -v"; done)"
-#  cdl $v_s --data=$ep login --auth=${CDL_AUTH}
   cdl $v_s --cache=$cache --data=$ep users --pubs $ids
 
   # Then, run the update scripts for new data
@@ -416,123 +417,6 @@ function run () {
 	if [[ -n ${CMD[remove]} ]]; then
 		log -v "db rm ${G[harvest_db]};"
 		db rm ${G[harvest_db]}
-	fi;
-}
-
-: <<='cut'
-=pod
-
-=head2 COMMAND
-
-harvest I<global_options> B<update> I<options>
-
-Run a complete harvest operation for a particular ucdid search.  This command
-will first initialize a HARVEST_DB if one does not exist.  Then the program will
-query the C<ucdid> with the the passed C<--search> query, and collect a set of
-users.  It will then contact the CDL elements database (via the cdl command) and
-download all user and publication information for these users.  Then the command
-will run a series of sparql updates (via C<harvest update>) to update the
-experts database.  The command will then clean up, by removing the HARVEST_DB,
-and the cache of files downloaded from the services.
-
-=over 4
-
-=item B<--init>
-
-Specify whether to initialize a new database.  By default, this will check to
-see if there is a global database already set.  If not, then this will
-initialize a new database.  If a global database exists, then use that.  This
-can be set either with the B<HARVEST_DB> environment variable, or with the
-C<--db=I<harvest_db>> global option.  If C<--init> is set, then create a new
-harvest_db regardless of the existance of a current HARVEST_DB.
-
-This is B<not> the experts database, this is the harvest database.
-
-=item B<--search=<ucdid --search parameter>
-
-Specify the initial ucdid query to get the list of users to harvest, and update.
-This is passed as the C<--search> to the C<ucdid> command.  All users from this
-command will be included in the harvest operations.
-
-=item B<--last-modified=<only included items changed since this date-time>
-
-The C<--last-modified> takes a ISO datetime string, and only includes items that
-have been modified since that date.  If unspecified, all items from the query
-will be updated.
-
-=item B<--remove|--no-remove>
-
-Specify whether to remove the HARVEST_DB service and the resultant cache files
-after processing.
-
-=back
-
-=cut
-
-function update_user () {
-  local opts;
-  if ! opts=$(${G[util_getopt]} -o is:rnm: --long init,no-init,search:,remove,no-remove,last-modified -n 'harvest load' -- "$@"); then
-    echo "Bad Command Options." >&2 ; exit 1 ; fi
-
-  eval set -- "$opts"
-
-  declare -A CMD=(
-    [init]=0
-    [remove]=1
-    [modified]=''
-    );
-
-  while true; do
-	  case $1 in
-	    -i | --init) CMD[init]=1;  shift;;
-	    --no-init) CMD[init]='';  shift;;
-      -r | --remove) CMD[remove]=1; shift;;
-      -n | --no-remove) CMD[remove]=''; shift;;
-      -m | --last-modified) CMD[modified]=$2; shift 2;;
-	    -- ) shift; break;;
-	    *) break;
-    esac
-  done
-
-  # If no passed data on the command line, then update all ids in the current harvest
-  if [[ -z $1 ]]; then
-    set -- $(aeq --endpoint=$ep/sparql query --format=json <<<"select ?id where { graph harvest_iam: {[] iam:userID ?id. }} order by ?id" | jq -r .results.bindings[].id.value | tr [:space:] ' ')
-  fi
-
-  if [[ -n ${CMD[init]} || -z ${G[db]} ]]; then
-    G[harvest_db]=$(db new);
-  fi
-	local ep=http://fuseki:3030/${G[harvest_db]}
-
-  # Now fetch all the data w/ CDL
-  local cache=${G[harvest_base]}/${G[harvest_db]}
-	log -v -v "cache: $cache"
-  mkdir $cache;
-
-  # call UCDID w/ query
-  local profiles_ttl=$cache/profiles.ttl
-  log -v -v "ucdid fetch --format=ttl --search=\"${CMD[search]}\" profiles > $profiles_ttl"
-  ucdid fetch --format=ttl --search="${CMD[search]}" profiles > $profiles_ttl
-  load --graph=http://iam.ucdavis.edu/ $profiles_ttl
-
-  # Now run an update to convert IAM to vivo users
-  update iam_to_vivo
-
-  # Now get all the casIDs, This doesn't use experts, but the harvestdb
-
-	local v_s
-  v_s=$(for i in $(seq ${G[verbose]} ); do echo -n " -v"; done)
-#  cdl $v_s --data=$ep login --auth=${CDL_AUTH}
-  cdl $v_s --cache=$cache --data=$ep users --pubs $ids
-
-  # Then, run the update scripts for new data
-  update update_harvest_records
-  update journal publications pub_FoR pub_free keywords expert_concepts;
-
-	if [[ -n ${CMD[remove]} ]]; then
-		log -v "db rm ${G[harvest_db]}; rm -rf $cache"
-		db rm ${G[harvest_db]}
-		rm -rf $cache
 	fi;
 }
 

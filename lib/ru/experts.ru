@@ -20,10 +20,13 @@ PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
 
 # First, Insert citation BIBO stuff
 INSERT {
+  # Remember we have concepts
+  GRAPH harvest_oap: {
+    ?user oap:user_supplied_concepts ?user_supplied_concepts;
+    }
 	GRAPH experts_oap: {
     ?person_id a ucdrp:person, foaf:Person;
        rdfs:label ?name ;
-    ucdrp:user_supplied_concepts ?user_supplied_concepts;
     vivo:overview ?overview;
     obo:ARG_2000028 ?vcard;
     .
@@ -97,10 +100,11 @@ WHERE { GRAPH harvest_oap: {
                            oap:type "keyword-list";
                            oap:keywords/oap:keyword [
                                                       oap:field-value ?value;
-                                                      oap:schema ?scheme;
+                                                      oap:scheme ?scheme;
                                                     ]
                          ].
     bind(uri(concat(str(?vocab),replace(?value," .*",""))) as ?concept)
-    bind(true as ?user_supplied_concepts)
+    bind(true as ?keyword_list)
     }
+  bind(coalesce(?keyword_list,false) as ?user_supplied_concepts)
 }}

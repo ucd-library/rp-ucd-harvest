@@ -33,9 +33,10 @@ SELECT ?expert (uri(replace(?keywords,?f,"$1")) as ?concept) WHERE {
                  filter(isiri(?expert))
                }
                graph ?h {
-                 ?user oap:experts_person_id ?expert ;
-                 oap:harvest_pub_tags true;
-                 .
+                 ?user oap:experts_person_id ?expert .
+                 filter not exists {
+                   ?user oap:user_supplied_concepts true.
+                   }
                }
              } GROUP BY ?expert ?concept order by desc(?cnt)
            } group by ?expert
