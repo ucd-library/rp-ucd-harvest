@@ -81,7 +81,7 @@ ucdrp:casId ?userId} order by ?userId' Accept:text/csv | tail -n+2 | tr -s
 
 dc exec harvest harvest -v login
 
-for id in $users; do dc exec harvest harvest -v run --search=userId=$id --init --remove; done
+for id in $users; do dc exec harvest harvest -v user --search=userId=$id --init --remove; done
 
 
 ** Comparisons to the Elements Harvester command
