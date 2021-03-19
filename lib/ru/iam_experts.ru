@@ -33,35 +33,39 @@ WHERE {
 };
 
 INSERT {
-	graph experts_oap: {
-		?user a ucdrp:person;
-			}
 	graph experts_iam: {
   ?user a ?emp_type, ucdrp:person;
           rdfs:label ?label;
           ucdrp:casId ?kerb;
           ucdrp:indentifier ?user_id;
-          obo:ARG_2000028 _:vcard;
+          obo:ARG_2000028 ?vcard;
   .
-  _:vcard a vcard:Individual;
+  ?vcard a vcard:Individual;
             ucdrp:identifier ?vid;
             vivo:rank ?order ;
-            vcard:hasName [a vcard:Name;
+    vcard:hasName ?vcard_name;
+    vcard:hasTitle ?vcard_title;
+    vcard:hasOrganizationalUnit ?vcard_unit;
+    vcard:hasEmail ?vcard_email;
+    .
+
+    ?vcard_name a vcard:Name;
                 vcard:givenName ?fname;
                 vcard:familyName ?lname;
-                ];
-            vcard:hasTitle [
-                a vcard:Title;
-                vcard:title ?title];
-            vcard:hasOrganizationalUnit [
-                a vcard:Organization;
-                vcard:title ?dept
-                ];
-            vcard:hasEmail [a vcard:Email,vcard:Work;
-                vcard:email ?email];
-   .
+                .
+
+    ?vcard_title a vcard:Title;
+                 vcard:title ?title;
+                 .
+
+    ?vcard_unit a vcard:Organization;
+                vcard:title ?dept;
+                .
+    ?vcard_email a vcard:Email,vcard:Work;
+                 vcard:email ?email;
+                 .
 } } WHERE {
-  select ?user ?label ?kerb ?vid ?title ?email ?dept ?fname ?lname ?order ?emp_type
+  select ?user ?label ?kerb ?vid ?title ?email ?dept ?fname ?lname ?order ?emp_type ?vcard ?vcard_name ?vcard_title ?vcard_unit ?vcard_email
   where { graph harvest_iam: {
     ?s iam:email ?email;
        iam:userID ?kerb;
@@ -108,5 +112,12 @@ INSERT {
     bind(md5(?kerb) as ?user_id)
     bind(uri(concat(str(person:),?user_id)) as ?user)
     bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
+
+    bind(uri(concat(str(?user),"#",?vid)) as ?vcard)
+    bind(uri(concat(str(?vcard),"-name")) as ?vcard_name)
+    bind(uri(concat(str(?vcard),"-title")) as ?vcard_title)
+    bind(uri(concat(str(?vcard),"-unit")) as ?vcard_unit)
+    bind(uri(concat(str(?vcard),"-email")) as ?vcard_email)
+
   }}
 }
