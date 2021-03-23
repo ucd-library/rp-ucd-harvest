@@ -78,7 +78,6 @@ http://gold.experts.library.ucdavis.edu:8081/experts/query query=='PREFIX ucdrp:
 ucdrp:casId ?userId} order by ?userId' Accept:text/csv | tail -n+2 | tr -s
 '\n\r' ' ')
 
-
 dc exec harvest harvest -v login
 
 for id in $users; do dc exec harvest harvest -v user --search=userId=$id --init --remove; done
