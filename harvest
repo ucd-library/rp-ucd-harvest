@@ -412,7 +412,8 @@ function user () {
   # Then, run the update scripts for new data
   update update_harvest_records
   update experts
-  update journal publications pub_FoR pub_free keywords expert_concepts;
+  update journal publications authorships
+  update pub_FoR pub_free keywords expert_concepts;
 
 	if [[ -n ${CMD[remove]} ]]; then
 		log -v "db rm ${G[harvest_db]};"
