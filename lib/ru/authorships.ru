@@ -33,7 +33,7 @@ INSERT {
     vivo:relates ?authorship_vcard;
     .
 
-    ?authorship_vcard a ?vcardIndividual ;
+    ?authorship_vcard a vcard:Individual ;
                    vivo:relatedBy ?vcard ;
                    vcard:hasName ?authorship_vcard_name;
     .
@@ -60,14 +60,9 @@ WHERE { GRAPH harvest_oap: {
 	BIND(uri(concat(str(?authorship_vcard),"-name")) as ?authorship_vcard_name)
 
 
-	# Everything of the blank node needs to be a variable, or else we'll happily create
-	# empty nodes
 	OPTIONAL {
 		?elem oap:last-name ?authorLastName ;
   		  oap:first-names ?authorFirstName ;
-		.
-		?elem oap:last-name ?authorLastName ;
-		oap:first-names ?authorFirstName ;
 		.
 	}
 
