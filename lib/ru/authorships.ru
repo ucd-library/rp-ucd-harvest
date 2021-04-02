@@ -61,9 +61,10 @@ WHERE { GRAPH harvest_oap: {
 
 
 	OPTIONAL {
-		?elem oap:last-name ?authorLastName ;
-  		  oap:first-names ?authorFirstName ;
-		.
+		?elem oap:last-name ?authorLastName .
+  }
+  OPTIONAL {
+    ?elem oap:first-names ?authorFirstName .
 	}
 
   OPTIONAL {

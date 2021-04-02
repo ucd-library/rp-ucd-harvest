@@ -5,31 +5,74 @@
 :header-args:sparql: :url http://localhost:3030/experts_private/sparql :format text/csv
 :END:
 
+** Manual Updates to the rc database
 
-#+name: prefixes
-#+BEGIN_SRC sparql :no-tangle
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX experts_pub: <http://experts.ucdavis.edu/pubs/>
-PREFIX experts_iam: <http://experts.ucdavis.edu/iam/>
-PREFIX iam: <http://experts.ucdavis.edu/iam/schema#>
+dc pull
+dc down
+update .env for testing
+dc up -d
+
+# Just fetch the experts graph.
+experts_git=gitlab.dams.library.ucdavis.edu/experts/experts-data.git
+docker-compose exec fuseki fuseki-import-graphs \
+--clone="https://quinn:${GITLAB_PUSH_TOKEN}@${experts_git} \
+--single-branch --branch=experts-dev" --graph=experts.ucdavis.edu
+
+# Get users from other setup
+src=http://blue.experts.library.ucdavis.edu:8081/experts/query
+users=$(http --print=b --follow ${src} query=='PREFIX ucdrp: <http://experts.ucdavis.edu/schema#> select ?userId WHERE { [] a ucdrp:person;
+ucdrp:casId ?userId} order by ?userId' Accept:text/csv | tail -n+2 | tr -s '\n\r' ' ')
+
+
+dc exec harvest harvest -v login
+
+for id in $users; do dc exec harvest harvest -v user --search=userId=$id --init --remove; done
+
+
+*** Exporting data
+
+One you have all the data installed, you may like to
+
+#+BEGIN_SRC bash
+dc exec harvest harvest export
 #+END_SRC
 
-
-These simple example need might include update queries?
-#+name: update_example
-#+BEGIN_SRC sparql
-<<prefixes>>
-#insert  {graph experts_pub: { experts:quinn experts:is experts:great. }} WHERE {}
-#delete { graph ?g {?s ?p ?o} } WHERE { graph ?g {?s ?p ?o}}
-#select ?g (count(*) as ?cnt) WHERE { graph ?g {?s ?p ?o.}} group by ?g
-#select ?o (count(*) as ?cnt) WHERE { graph ?g {?s a ?o. filter(isiri(?s))}} group by ?o
-
+#+BEGIN_SRC bash
+cd ~/experts-data
+docker cp rp-ucd-deployment_harvest_1:/var/lib/harvest/export experts
 #+END_SRC
 
+*** Mulitple Users
 
-** Example Testing Script
+You time the extent with 2 or three users by doing:
+
+
+dc exec harvest harvest -v user --search=userId=quinn
+dc exec harvest harvest -v user --search=userId=jrmerz
+
+dc exec harvest harvest -v user --search=userId=quinn,jrmerz
+
+#! /bin/make
+users:=quinn jrmerz vensburg benthem
+
+finished:=$(patsubst %,%.out ${users})   # finshe:=quinn.out jrmerz.out...
+
+all:${finished}
+
+${finished}:%.out
+   time $(dc exec harvest harvest -v user --search=userId=$* --init --remove >
+   $@) > $*.time
+
+
+
+$> make -j 5 all 2
+
+
+
+
+
+** Older Issues
+*** Example Testing Script
 
 
 #+BEGIN_SRC bash
@@ -58,32 +101,7 @@ done
 #+END_SRC
 
 
-** Manual Updates to the rc database
-
-dc pull
-dc down
-update .env for testing
-dc up -d
-
-# Just fetch the experts graph.
-experts_git=gitlab.dams.library.ucdavis.edu/experts/experts-data.git
-docker-compose exec fuseki fuseki-import-graphs \
---clone="https://quinn:${GITLAB_PUSH_TOKEN}@${experts_git} \
---single-branch --branch=experts-dev" --graph=experts.ucdavis.edu
-
-# Get users from other setup
-users=$(http --print=b --follow
-http://gold.experts.library.ucdavis.edu:8081/experts/query query=='PREFIX ucdrp:
-<http://experts.ucdavis.edu/schema#> select ?userId WHERE { [] a ucdrp:person;
-ucdrp:casId ?userId} order by ?userId' Accept:text/csv | tail -n+2 | tr -s
-'\n\r' ' ')
-
-dc exec harvest harvest -v login
-
-for id in $users; do dc exec harvest harvest -v user --search=userId=$id --init --remove; done
-
-
-** Comparisons to the Elements Harvester command
+*** Comparisons to the Elements Harvester command
 
 The harvest command will also run the XSLT processing from the sympletic
 harvester.  This might be used to compare previous VIVO pulls.
