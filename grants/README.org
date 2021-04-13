@@ -1,0 +1,105 @@
+# Grant harvesting
+
+This process could do with quite a bit of refinement, but as it stands there are three files: a password file, a shell script, and a SPARQL query file. The shell script gets the agexpert_app password from the password file, connects to the Finance database and runs a SQL query, then pipelines the query result set to tarql, which transmogrifies it to a CONSTRUCT statement, which in turn creates a graph of grant data.
+
+The password file is created as follows:
+
+#+BEGIN_SRC bash
+
+echo <the password for the agexpert_app Oracle account goes here> > fin_pass.pw
+chmod 400 fin_pass.pw
+
+#+END_SRC bash
+
+A limited-rights password file is among the hackiest ways to not have the password in cleartext in the call to SQL*Plus, but it was good enough to get the initial grants triples generated. To productionize this process a better method is likely called for.
+
+The shell script, the bulk of which is a SQL*Plus query file, looks like so:
+
+#+BEGIN_SRC bash
+
+#!/bin/sh
+pw=`cat fin_pass.pw`
+/Users/jtyzzer/Oracle/instantclient_19_8/sqlplus -S agexpert_app/$pw@'(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(COMMUNITY=TCP.ucdavis.edu)(PROTOCOL=TCP)(Host=fis-dss.ucdavis.edu)(Port=1521)))(CONNECT_DATA=(SID=dsprod)(GLOBAL_NAME=fis_ds_prod.ucdavis.edu)))' <<EOF
+SET MARKUP CSV ON QUOTE ON
+SET FEEDBACK OFF
+SELECT
+     awd.cgprpsl_nbr AS "CG_Prpsl_Nbr"
+    , COALESCE(per.PRNCPL_NM, c.PRNCPL_NM) AS "PI_ID"
+    , awd.CGAWD_PROJ_TTL AS "Award_Title"
+    , awd.CGAWD_TOT_AMT "Grant_Amount"
+    , awd.CG_AGENCY_FULL_NM AS "Agency"
+    , awd.CG_AGENCY_NBR AS "Agency_Nbr"
+	, REGEXP_REPLACE(awd.ROOT_AWARD_NBR, '[ \t\r\n\f]+','-') "Grantor_Award_ID"
+    , awd.CGAWD_BEG_DT AS "Start_Date"
+    , awd.CGAWD_END_DT AS "End_Date"
+    , COALESCE(per.PERSON_NM,c.PRSN_NM) AS "PI_Name"
+FROM FINANCE.AWARD awd
+JOIN FINANCE.CG_AWD_PRJDR_T pi
+    ON pi.CGPRPSL_NBR = awd.CGPRPSL_NBR
+LEFT OUTER JOIN FINANCE.RICE_UC_KRIM_PERSON_MV per
+    ON per.PRNCPL_ID = pi.PERSON_UNVL_ID
+LEFT OUTER JOIN FINANCE.RICE_KRIM_ENTITY_CACHE_T c
+    ON c.PRNCPL_ID = pi.PERSON_UNVL_ID
+WHERE awd.FISCAL_YEAR = 9999
+    AND awd.FISCAL_PERIOD = '--'
+    AND pi.CGAWD_PRMPRJDR_IND = 'Y'
+    AND pi.ROW_ACTV_IND = 'Y'
+    AND COALESCE(per.PRNCPL_NM, c.PRNCPL_NM) IN ('amoghimi', 'benthem', 'bougis', 'chmkim', 'daccache', 'dafrank', 'danhung', 'dcs', 'ergoman', 'fkhorsan', 'fzjenkin', 'gangsun', 'gmb', 'ikisekka', 'irdonisg', 'jcgib', 'jdemoura', 'jdfbayo', 'jkmason', 'jmearles', 'jrmerz', 'jsmullin', 'jsvander', 'jzfan', 'kkorn', 'mahamed', 'mgrismer', 'mleite', 'nnitin', 'npan', 'palarbi', 'pourreza', 'quinn', 'ramram', 'rhcastro', 'rhzhang', 'rkukreja', 'sbsen', 'sjmccorm', 'spgentry', 'sshong', 'tjeoh', 'vensberg', 'ylhsieh', 'ytakamur', 'zlpan')
+ORDER BY "PI_ID";
+
+DISCONNECT
+QUIT
+
+#+END_SRC
+
+The SPARQL query file looks like this:
+
+#+BEGIN_SRC sparql
+
+PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX obo: <http://purl.obolibrary.org/obo/>
+CONSTRUCT {
+	?grant
+	   a vivo:Grant ;
+	   rdfs:label ?Award_Title ;
+	   vivo:sponsorAwardId ?Grantor_Award_ID ;
+	   vivo:totalAwardAmount ?Grant_Amount ;
+	   vivo:assignedBy ?fundOrg ;
+	   vivo:relates ?piRole;
+	   vivo:relates ?person ;
+	   vivo:dateTimeInterval [ a vivo:DateTimeInterval ; rdfs:label "Grant start date" ; vivo:dateTime ?Start_Date ; vivo:dateTimePrecision vivo:yearMonthDayPrecision ] ;
+	   vivo:dateTimeInterval [ a vivo:DateTimeInterval ; rdfs:label "Grant end date" ; vivo:dateTime ?End_Date ; vivo:dateTimePrecision vivo:yearMonthDayPrecision ] .
+	?fundOrg
+		a vivo:FundingOrganization ;
+		rdfs:label ?Agency ;
+		vivo:assigns ?grant .
+	?piRole
+		a vivo:PrincipalInvestigatorRole ;
+		vivo:relatedBy ?grant ;
+		obo:RO_000052 ?person .
+	?person
+		vivo:relatedBy ?grant ;
+		obo:RO_000053 ?piRole .
+}
+FROM
+	<file:file1.csv>
+WHERE {
+	BIND(URI(CONCAT(str(experts:), "pi_role/", md5(?PI_ID), "-", ?Grantor_Award_ID)) as ?piRole)
+	BIND(URI(CONCAT(str(experts:), "grant/", ?CG_Prpsl_Nbr)) AS ?grant)
+	BIND(URI(CONCAT(str(experts:), "person/", md5(?PI_ID))) as ?person)
+	BIND(URI(CONCAT(str(experts:), "funding_org/", ?Agency_Nbr)) as ?fundOrg)
+}
+
+#+END_SRC
+
+Assuming the three files (password, shell, and SPARQL) are collocated and tarql is installed, the command to generate the grants Turtle file is:
+
+#+BEGIN_SRC bash
+
+./getGrants.sh | /Applications/tarql-1.2/bin/tarql --stdin ~/temp/grants.rq > grants.ttl
+
+#+END_SRC
+
+Among the next steps in development would be to pipe the .ttl file to tdb2.tdbloader or otherwise subsequently call it to load the Turtle file.
