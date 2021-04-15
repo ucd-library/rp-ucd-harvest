@@ -28,6 +28,17 @@ dc exec harvest harvest -v login
 
 for id in $users; do dc exec harvest harvest -v user --search=userId=$id --init --remove; done
 
+# We have to make a special change for Kim, Sangtae
+db=$(dc exec harvest harvest db new)
+http --auth=admin:quinnisgreat http://localhost:8081/${db}/update Content-type:application/sparql-update <<<'
+PREFIX experts_iam: <http://experts.ucdavis.edu/iam/>
+PREFIX person: <http://experts.ucdavis.edu/person/>
+PREFIX vivo: <http://vivoweb.org/ontology/core#>
+delete { graph experts_iam: {person:1b9f745893ea8c821a3fc847e9775dbe a vivo:Academic. } }
+insert { graph experts_iam: {person:1b9f745893ea8c821a3fc847e9775dbe a vivo:FacultyMember. } }
+WHERE {}'
+
+dc exec harvest harvest rm $db
 
 *** Exporting data
 

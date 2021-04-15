@@ -9,6 +9,7 @@ PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX oapx: <http://experts.ucdavis.edu/oap/vocab#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX person: <http://experts.ucdavis.edu/person/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -27,9 +28,24 @@ INSERT {
 	GRAPH experts_oap: {
     ?person_id a ucdrp:person, foaf:Person;
        rdfs:label ?name ;
-    vivo:overview ?overview;
-    obo:ARG_2000028 ?vcard;
+       vivo:overview ?overview;
+       obo:ARG_2000028 ?vcard;
+       ucdrp:oapolicyId ?oapolicy_id;
+       .
+
+  ?person_id ucdrp:identifier ?identifier_oapolicy_id.
+  ?identifier_oapolicy_id a ucdrp:Identifier;
+    ucdrp:scheme "oapolicy";
+    ucdrp:value  ?oapolicy_id;
     .
+
+  ?person_id ?id_pred ?id_value.
+
+  ?person_id ucdrp:identifier ?assoc_identifier.
+    ?assoc_identifier a ucdrp:Identifier;
+      ucdrp:scheme ?assoc_scheme;
+      ucdrp:value  ?assoc_value;
+      .
 
     ?vcard a vcard:Individual;
            ucdrp:identifier "oap-1";
@@ -68,10 +84,31 @@ WHERE { GRAPH harvest_oap: {
         oap:experts_person_id ?person_id;
         oap:last-name ?ln;
         oap:first-name ?fn;
+        oap:user-identifier-associations ?assoc;
         .
+
+
   bind(concat(?fn," ",?ln) as ?name)
   bind(uri(concat(str(?person_id),"#vcard")) as ?vcard)
   bind(uri(concat(str(?person_id),"#vcard-name")) as ?vcard_name)
+
+  ?assoc oap:user-id ?oapolicy_id.
+  bind(uri(concat(str(?person_id),"#oapolicyId")) as ?identifier_oapolicy_id)
+
+  OPTIONAL {
+#    values ?assoc_scheme { "researcherid" "orcid" "scopus-author-id" "figshare-for-institutions-user-account-id" }
+    values ?assoc_scheme { "researcherid" "orcid" "scopus-author-id" "figshare-for-institutions-user-account-id" }
+    ?assoc oap:user-identifier-association [ oap:field-value  ?assoc_value ; oap:scheme ?assoc_scheme ].
+  }
+  bind(uri(concat(str(?person_id),"#identifier-",?assoc_scheme,"-",?assoc_value)) as ?assoc_identifier)
+
+  OPTIONAL {
+    values (?oap_scheme ?id_pred) {
+      ("researcherid" vivo:researcherId)
+      ("orcid" vivo:orcidId)
+      ("scopus-author-id" vivo:scopusId) }
+    ?assoc oap:user-identifier-association [ oap:field-value  ?id_value ; oap:scheme ?oap_scheme ].
+  }
 
   OPTIONAL {
     ?user oap:records/oap:record/oap:native ?native.
@@ -96,7 +133,7 @@ WHERE { GRAPH harvest_oap: {
 
   OPTIONAL {
     values (?scheme ?vocab) { ("for" FoR:) }
-    ?user oap:all-labels [
+       ?user oap:all-labels [
                            oap:type "keyword-list";
                            oap:keywords/oap:keyword [
                                                       oap:field-value ?value;
