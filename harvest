@@ -45,16 +45,16 @@ function main.init() {
 		[harvest_base]=/var/lib/harvest
 		[cdl_auth]=ucd:unspecified
 		[ucdid_auth]=ucd:unspecified
-      [harvest_home]="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../lib/harvest" >/dev/null 2>&1 && pwd )"
-      [iam_api_endpoint]="iam.api:=https://iet-ws.ucdavis.edu/api/iam"
-      [iam_search]=""
-      [fuseki_host]='http://fuseki:3030'
-      [harvest_db]=''
-      [fuseki_admin]='http://fuseki:8080'
-      [fuseki_user]='admin'
-      [fuseki_password]=''
-      [fuseki_auth]=''
-      [util_getopt]=${HARVEST_UTIL_GETOPT:-${FLAGS_GETOPT_CMD:-getopt}}
+    [harvest_home]="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../lib/harvest" >/dev/null 2>&1 && pwd )"
+    [iam_api_endpoint]="iam.api:=https://iet-ws.ucdavis.edu/api/iam"
+    [iam_search]=""
+    [fuseki_host]='http://fuseki:3030'
+    [harvest_db]=''
+    [fuseki_admin]='http://fuseki:8080'
+    [fuseki_user]='admin'
+    [fuseki_password]=''
+    [fuseki_auth]=''
+    [util_getopt]=${HARVEST_UTIL_GETOPT:-${FLAGS_GETOPT_CMD:-getopt}}
     );
 
     local opts;
@@ -64,6 +64,7 @@ function main.init() {
     eval set -- "$opts"
 
     local i
+    local v
     declare -A CMD=(
 			[verbose]=0
 			);
@@ -74,8 +75,8 @@ function main.init() {
 	      -d | --db) CMD[harvest_db]=$2;  shift 2;;
 	      --fuseki-admin) CMD[fuseki_admin]=$2;  shift 2;;
 	      -a | --fuseki-auth) CMD[fuseki_auth]=$2;  shift 2;;
-	      -v | --verbose) let CMD[verbose]=${CMD[verbose]}+1;  shift;;
-        -h | --help ) exec pod2text $0;;
+	      -v | --verbose) (( CMD[verbose]=CMD[verbose]+1 ));  shift;;
+        -h | --help ) exec pod2text "$0";;
 	      -- ) shift; break;;
 	      *) shift; break;
       esac
@@ -129,7 +130,7 @@ function main.cmd () {
 			login) # API commands
 				$cmd "$@"
 				;;
-			run ) # Import a set of people
+			user ) # Import a set of people
         $cmd "$@";
         ;;
 			export ) # Export Experts database.
@@ -163,7 +164,7 @@ function log() {
 	    *) shift; break;
     esac
   done
-	(( ${G[verbose]} >= $log_verbose )) && (echo $parm_n $@)
+	(( G[verbose] >= "$log_verbose" )) && (echo $parm_n "$@")
 }
 
 function err() {
@@ -173,9 +174,9 @@ function err() {
   else
     n=$1
     shift
-    (>&2 echo err: $@)
+    (>&2 echo err: "$@")
   fi
-  exit $n;
+  exit "$n";
 }
 
 : <<='cut'
@@ -226,20 +227,24 @@ function db() {
       http --print=b --auth=${auth} GET ${G[fuseki_host]}/\$/datasets | jq '.datasets[]["ds.name"]'
       ;;
     list)
-      http --print=b --auth=${auth} GET ${G[fuseki_admin]}/harvestdb
+      dbs=($(http --print=b --auth=${auth} GET ${G[fuseki_admin]}/harvestdb | tr -d "\r" | grep ...))
       ;;
     rm)
       while [[ -n "$1" ]]; do
-        dbs+=$(http --auth=${auth} DELETE ${G[fuseki_admin]}/harvestdb?name=$1)
+        dbs+=($(http --auth=${auth} DELETE ${G[fuseki_admin]}/harvestdb?name="$1" | tr -d '\r'))
+        if [[ -d ${G[harvest_base]}/"$1" ]]; then
+          log -v "rm -rf ${G[harvest_base]}/$1"
+          rm -rf "${G[harvest_base]}/$1"
+        fi
         shift
       done
       ;;
     new)
       if [[ -z "$1" ]]; then
-        dbs+=$(http --auth=${auth} POST ${G[fuseki_admin]}/harvestdb)
+        dbs+=($(http --auth=${auth} POST ${G[fuseki_admin]}/harvestdb | tr -d '\r'))
       else
         while [[ -n "$1" ]]; do
-          dbs+=$(http --auth=${auth} POST ${G[fuseki_admin]} /harvestdb?name=$1)
+          dbs+=($(http --auth=${auth} POST ${G[fuseki_admin]} /harvestdb?name="$1" | tr -d '\r'))
           shift
         done
       fi
@@ -286,7 +291,8 @@ function login() {
     esac
   done
 
-	local v_s=$(for i in $(seq ${G[verbose]} ); do echo -n " -v"; done)
+	local v_s
+  v_s=$(for i in $(seq ${G[verbose]} ); do echo -n " -v"; done)
 
 	log -v -n "cdl."
 	cdl ${v_s} login --auth=${CMD[cdl_auth]}
@@ -300,7 +306,7 @@ function login() {
 
 =head2 COMMAND
 
-harvest I<global_options> B<run> I<options>
+harvest I<global_options> B<user> I<options>
 
 Run a complete harvest operation for a particular ucdid search.  This command
 will first initialize a HARVEST_DB if one does not exist.  Then the program will
@@ -343,7 +349,7 @@ after processing.
 
 =cut
 
-function run () {
+function user () {
   local opts;
   if ! opts=$(${G[util_getopt]} -o is:rnm: --long init,no-init,search:,remove,no-remove,last-modified -n 'harvest load' -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
@@ -366,7 +372,7 @@ function run () {
       -n | --no-remove) CMD[remove]=''; shift;;
       -m | --last-modified) CMD[modified]=$2; shift 2;;
 	    -- ) shift; break;;
-	    *) shift; break;
+	    *) Shift; break;
     esac
   done
 
@@ -377,37 +383,41 @@ function run () {
   if [[ -n ${CMD[init]} || -z ${G[db]} ]]; then
     G[harvest_db]=$(db new);
   fi
-	local ep=http://fuseki:3030/${G[harvest_db]}
+	local ep=${G[fuseki_host]}/${G[harvest_db]}
 
-  # Now fetch all the data w/ CDL
-  local cache=${G[harvest_base]}/${G[harvest_db]}
-	log -v -v "cache: $cache"
-  mkdir $cache;
-
-  # call UCDID w/ query
-  local profiles_ttl=$cache/profiles.ttl
-  log -v -v "ucdid fetch --format=ttl --search=\"${CMD[search]}\" profiles > $profiles_ttl"
-  ucdid fetch --format=ttl --search="${CMD[search]}" profiles > $profiles_ttl
-  load --graph=http://iam.ucdavis.edu/ $profiles_ttl
+  if ${CMD[fetch]} ; then
+    # Now fetch all the data w/ CDL
+    local cache=${G[harvest_base]}/${G[harvest_db]}
+	  log -v -v "cache: $cache"
+    mkdir $cache;
+  fi
+    # call UCDID w/ query
+    local profiles_ttl=$cache/profiles.ttl
+    log -v -v "ucdid fetch --format=ttl --search=\"${CMD[search]}\" profiles > $profiles_ttl"
+    ucdid fetch --format=ttl --search="${CMD[search]}" profiles > $profiles_ttl
+    load --graph=http://iam.ucdavis.edu/ $profiles_ttl
 
   # Now run an update to convert IAM to vivo users
-  update iam_to_vivo
+  update iam_experts
 
   # Now get all the casIDs, This doesn't use experts, but the harvestdb
-  ids=$(aeq --endpoint=$ep/sparql query --format=json <<<"select ?id where { graph harvest_iam: {[] iam:userID ?id. }} order by ?id" | jq -r .results.bindings[].id.value | tr [:space:] ' ')
+  ids="$(aeq --endpoint="$ep"/sparql query --format=json <<<"select ?id where { {graph harvest_iam: {?u iam:userID ?id; filter(NOT EXISTS {?u iam:directory ?d }) } } UNION { graph harvest_iam: {[] iam:userID ?id; iam:directory/iam:displayName/iam:nameWwwFlag 'Y'. }}} order by ?id" | jq -r .results.bindings[].id.value | tr [:space:] ' ')"
 
-	local v_s=$(for i in $(seq ${G[verbose]} ); do echo -n " -v"; done)
-#  cdl $v_s --data=$ep login --auth=${CDL_AUTH}
+  log -v "cdl for ids='$ids'"
+
+	local v_s
+  v_s="$(for i in $(seq ${G[verbose]} ); do echo -n " -v"; done)"
   cdl $v_s --cache=$cache --data=$ep users --pubs $ids
 
   # Then, run the update scripts for new data
   update update_harvest_records
-  update journal publications pub_FoR pub_free keywords expert_concepts;
+  update experts
+  update journal publications authorships
+  update pub_FoR pub_free keywords expert_concepts;
 
 	if [[ -n ${CMD[remove]} ]]; then
-		log -v "db rm ${G[harvest_db]}; rm -rf $cache"
+		log -v "db rm ${G[harvest_db]};"
 		db rm ${G[harvest_db]}
-		rm -rf $cache
 	fi;
 }
 
@@ -469,7 +479,7 @@ function export () {
 		[[ -d $d ]] || mkdir $d;
 		local g=$(printf 'http://%b/' ${dir//%/\\x})
 		log -v "curl \"${get}?graph=$g\" | gzip > $d/graph.ttl"
-    curl -s "${get}?graph=$g" | gzip > $d/graph.ttl
+    curl -s "${get}?graph=$g" | gzip > $d/graph.ttl.gz
 	done
 
 }
