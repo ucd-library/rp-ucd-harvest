@@ -94,7 +94,7 @@ function parse_url() {
 function main.init() {
 
     declare -g -A G=(
-      [auth]=ucd:unspecified
+      [auth]=
       [endpoint]='https://iet-ws.ucdavis.edu/api/iam'
       #  [stage_api]='https://iet-ws-stage.ucdavis.edu/api/iam'
       [base]='http://iam.ucdavis.edu/'
