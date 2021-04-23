@@ -20,6 +20,22 @@ PREFIX venue: <http://experts.ucdavis.edu/venue/>
 PREFIX work: <http://experts.ucdavis.edu/work/>
 PREFIX authorship: <http://experts.ucdavis.edu/authorship/>
 
+
+# Leave in previous insertionTimes, since it's a good indication we didn't clean
+# our db.
+#DELETE {
+#  GRAPH experts_oap: {
+#    ?experts_work_id ucdrp:insertionDateTime ?t.
+#  }
+#} WHERE {
+#  GRAPH harvest_oap: {
+#    ?work oap:experts_work_id ?experts_work_id
+#  }
+#  GRAPH experts_oap: {
+#    ?experts_work_id ucdrp:insertionDateTime ?t.
+#  }
+#}
+
 # First, Insert citation BIBO stuff
 INSERT {
   GRAPH experts_oap: {
@@ -91,11 +107,23 @@ WHERE {
       ?native oap:field [ oap:name ?field_name ; oap:text ?field_text ].
 }};
 
+# Insert our Precision.  This is really just vivo:Schema stuff.
+INSERT {
+  GRAPH experts: {
+    vivo:yearPrecision a vivo:DateTimePrecision.
+    vivo:yearMonthPrecision a vivo:DateTimePrecision.
+    vivo:yearDayPrecision a vivo:DateTimePrecision.
+  }
+} WHERE {};
+
 # Insert the Work Date in VIVO format.
 INSERT {
   GRAPH experts_oap: {
-    ?experts_work_id vivo:dateTimeValue [ a vivo:DateTimeValue ; vivo:dateTime ?workDateTime ;  vivo:dateTimePrecision ?dateTimePrecision ]  .
-    ?dateTimePrecision a vivo:DateTimePrecision .
+    ?experts_work_id vivo:dateTimeValue ?work_date.
+
+    ?work_date a vivo:DateTimeValue ;
+      vivo:dateTime ?workDateTime ;
+      vivo:dateTimePrecision ?dateTimePrecision  .
   }
 }
 WHERE {
@@ -123,6 +151,7 @@ WHERE {
         BIND(vivo:yearMonthDayPrecision AS ?yearMonthDayPrecision)
       }
     }
+    bind(uri(concat(str(?experts_work_id),"#date")) as ?work_date)
       BIND(xsd:dateTime(CONCAT(?workDateYear, "-", COALESCE(?workDateMonth, "01"), "-", COALESCE(?workDateDay, "01"), "T00:00:00")) AS ?workDateTime)
       BIND(COALESCE(?yearMonthDayPrecision, ?yearMonthPrecision, ?yearPrecision) AS ?dateTimePrecision)
 }};
