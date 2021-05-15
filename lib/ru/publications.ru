@@ -107,15 +107,6 @@ WHERE {
       ?native oap:field [ oap:name ?field_name ; oap:text ?field_text ].
 }};
 
-# Insert our Precision.  This is really just vivo:Schema stuff.
-INSERT {
-  GRAPH experts: {
-    vivo:yearPrecision a vivo:DateTimePrecision.
-    vivo:yearMonthPrecision a vivo:DateTimePrecision.
-    vivo:yearDayPrecision a vivo:DateTimePrecision.
-  }
-} WHERE {};
-
 # Insert the Work Date in VIVO format.
 INSERT {
   GRAPH experts_oap: {

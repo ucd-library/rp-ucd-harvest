@@ -19,9 +19,10 @@ docker-compose exec fuseki fuseki-import-graphs \
 --single-branch --branch=experts-dev" --graph=experts.ucdavis.edu
 
 # Get users from other setup
-src=http://blue.experts.library.ucdavis.edu:8081/experts/query
-users=$(http --print=b --follow ${src} query=='PREFIX ucdrp: <http://experts.ucdavis.edu/schema#> select ?userId WHERE { [] a ucdrp:person;
-ucdrp:casId ?userId} order by ?userId' Accept:text/csv | tail -n+2 | tr -s '\n\r' ' ')
+src=http://gold.experts.library.ucdavis.edu:8081/experts/query
+q='PREFIX : <http://experts.ucdavis.edu/schema#> select ?userId WHERE { [] a :person; :casId ?userId} order by ?userId'
+
+users=$(http --print=b --follow ${src} query=="$q" Accept:text/csv | tail -n+2 | tr -s '\n\r' ' ')
 
 
 dc exec harvest harvest -v login
@@ -49,9 +50,15 @@ dc exec harvest harvest export
 #+END_SRC
 
 #+BEGIN_SRC bash
+branch=experts-dev
 cd ~/experts-data
-docker cp rp-ucd-deployment_harvest_1:/var/lib/harvest/export experts
+git checkout $branch
+p=rp-ucd-deployment_harvest_1:/var/lib/harvest/export
+docker cp $p/experts.ucdavis.edu%2Fiam/graph.ttl.gz  experts/experts.ucdavis.edu%2Fiam
+gzip -d -f experts/experts.ucdavis.edu%2Fiam/graph.ttl.gz
+docker cp $p/experts.ucdavis.edu%2Foap/graph.ttl.gz  experts/experts.ucdavis.edu%2Foap
 #+END_SRC
+
 
 *** Mulitple Users
 

@@ -1,13 +1,6 @@
 # Now create our version
 FROM openjdk:11-jdk
 
-# VIVO Havester Section
-COPY --from=ucdlib/vivo_harvester:dev /usr/local/vivo /usr/local/vivo/
-COPY --from=ucdlib/vivo_harvester:dev /usr/local/bin/docker-vivo-harvester-entrypoint.sh /usr/local/bin/
-
-COPY config/*.properties /etc/vivo/harvester/
-COPY config/scripts /etc/vivo/harvester/scripts/
-
 # Get JENA binaries
 COPY --from=stain/jena:3.14.0 /jena /jena/
 ENV PATH=$PATH:/jena/bin

@@ -427,7 +427,7 @@ function load_jsonld () {
         if [[ -n $log ]]; then
           log -v "$log $count"
         else
-          log -v "load $file graph=$G{[graph]} => $count"
+          log -v "load $file graph=${G[graph]} => $count"
         fi
       else
         log "$file not found"
