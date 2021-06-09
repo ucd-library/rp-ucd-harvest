@@ -1,0 +1,19 @@
+{
+  "name": "node",
+  "version": "1.0.0",
+  "description": "",
+  "main": "testing.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@ucd-lib/node-kafka": "^0.0.3",
+    "bunyan": "^1.8.15",
+    "isomorphic-fetch": "^3.0.0",
+    "redis": "^3.1.2",
+    "uuid": "^8.3.2",
+    "xml2js": "^0.4.23"
+  }
+}

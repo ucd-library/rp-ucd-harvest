@@ -37,6 +37,15 @@ COPY cdl /usr/local/bin
 COPY harvest /usr/local/bin
 COPY lib /usr/local/lib/harvest
 
+# Copy NodeJS service
+RUN mkdir /service
+WORKDIR /service
+COPY lib/node/package.json .
+COPY lib/node/package-lock.json .
+RUN npm install --production
+COPY lib/node/lib lib
+COPY lib/node/index.js .
+
 # Our entrypoint calls the generic VIVO one
 COPY rp-ucd-harvest-entrypoint.sh /
 
