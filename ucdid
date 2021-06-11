@@ -100,7 +100,7 @@ function main.init() {
       [base]='http://iam.ucdavis.edu/'
       [ucdid_fetch_format]='json'
       [http_session]="ucd"
-      [util_http]="http"
+      [util_http]="http --ignore-stdin"
       [util_jq]="jq"
       [util_riot]="riot"
       [verbose]=0
@@ -408,7 +408,7 @@ function fetch() {
 
   # They all get added together, IDK, might work?
   for i in "$@"; do
-    fetch="http ${url[$1]} Content-Type:application/json key==${key} v==1.0"
+    fetch="http --ignore-stdin ${url[$1]} Content-Type:application/json key==${key} v==1.0"
     if [[ "$i" == "profiles" ]]; then
       search=$(sed -e 's/\([^=]\)=\([^=]\)/\1==\2/g' <<<"$search")
       fetch+=" ${search}"

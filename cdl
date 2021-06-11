@@ -72,7 +72,7 @@ declare -A G=(
   [util_rsync]="rsync"
   [util_xml2json]="xml2json"
   [util_xmlstarlet]="xmlstarlet"
-  [util_http]="http"
+  [util_http]="http --ignore-stdin"
 );
 
 function init() {
