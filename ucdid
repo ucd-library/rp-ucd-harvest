@@ -361,7 +361,7 @@ function fetch() {
 
   local envelope=''
   local search=''
-  local output=/dev/stdout
+  local output
   declare -A CMD;
   while true; do
 	  case $1 in
@@ -406,6 +406,8 @@ function fetch() {
     fi
   done
 
+  # Redirect if need be
+  [[ -n "$output" ]] && exec 1>$output
   # They all get added together, IDK, might work?
   for i in "$@"; do
     fetch="http ${url[$1]} Content-Type:application/json key==${key} v==1.0"
@@ -423,19 +425,21 @@ function fetch() {
   done |
     case ${mime[${G[ucdid_fetch_format]}]} in
       application/json)
-        cat - > ${output}
+        cat -
         shift;;
       application/ld+json)
         log -v ${G[util_jq]} "${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' ' | '${G[util_riot]}' --formatted=jsonld --syntax=jsonld'
-        ${G[util_jq]} "${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' | ${G[util_riot]} --formatted=jsonld --syntax=jsonld > ${output}
+        ${G[util_jq]} "${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' | ${G[util_riot]} --formatted=jsonld --syntax=jsonld
         shift;;
       text/turtle)
         log -v ${G[util_jq]} "${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' ' | '"${G[util_riot]} --formatted=ttl --syntax=jsonld"
-        ${G[util_jq]} "${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' | ${G[util_riot]} --formatted=ttl --syntax=jsonld > ${output}
+        ${G[util_jq]} "${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' | ${G[util_riot]} --formatted=ttl --syntax=jsonld
         shift;;
       *)
         err 1 ${G[ucid_fetch_format]} is invalid format
     esac
+
+  [[ -n $output ]] && exec 1>&-
 }
 
 : <<=cut
