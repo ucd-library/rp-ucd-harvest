@@ -51,7 +51,6 @@ INSERT {
            ucdrp:identifier "oap-1";
            vivo:rank 20 ;
     vcard:hasName ?vcard_name;
-#    vcard:hasTitle ?vcard_title;
     vcard:hasEmail ?vcard_email;
     .
 
@@ -63,15 +62,12 @@ INSERT {
                   vcard:email ?email;
                   .
 
-
-#    ?vcard_title a vcard:Title;
-#                 vcard:title ?position;
-#                 vcard:hasOrganizationalUnit ?vcard_org_unit
-#                 .
-
-#    ?vcard_org_unit a vcard:Organization;
-#                    vcard:title ?dept;
-#                    .
+    ?vcard_web a vcard:URL;
+               vcard:url ?web_url;
+               vivo:rank ?web_rank;
+               rdfs:label ?web_label;
+               ucdrp:urlType ?web_type;
+    .
 
     # Research Areas
     ?person_id vivo:hasResearchArea ?concept.
@@ -122,7 +118,23 @@ WHERE { GRAPH harvest_oap: {
                                                                   ]
                                               ]
                         ].
-      }
+    }
+    OPTIONAL {
+      ?native oap:field [ oap:name "personal-websites";
+                          oap:web-address [ list:index(?pos ?elem) ]
+                        ].
+
+      ?elem oap:label ?web_label;
+            oap:privacy "public";
+            oap:type ?web_type_text;
+            oap:url ?web_url;
+      .
+
+      bind(?pos as ?web_rank)
+      bind(uri(concat(str(?ucdrp),"WebType_",?web_type_text)) as ?web_type)
+      bind(uri(concat(str(?person_id),"#",?pos)) as ?vcard_web)
+    }
+
     OPTIONAL {
       ?native oap:field [ oap:name "overview";
                           oap:text/oap:field-value ?overview;

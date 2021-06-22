@@ -405,7 +405,8 @@ function user () {
 
 	local v_s
   v_s="$(for i in $(seq ${G[verbose]} ); do echo -n " -v"; done)"
-  cdl $v_s --cache=$cache --data=$ep/data users --pubs $ids
+  cdl $v_s --cache=$cache --data=$ep/data
+  users --pubs $ids
 
   # Then, run the update scripts for new data
   update update_harvest_records

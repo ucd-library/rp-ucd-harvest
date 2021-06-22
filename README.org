@@ -7,6 +7,7 @@
 
 ** Manual Updates to the rc database
 
+#+BEGIN_SRC bash
 dc pull
 dc down
 update .env for testing
@@ -40,6 +41,8 @@ insert { graph experts_iam: {person:1b9f745893ea8c821a3fc847e9775dbe a vivo:Facu
 WHERE {}'
 
 dc exec harvest harvest rm $db
+
+#+END_SRC
 
 *** Exporting data
 
