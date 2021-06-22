@@ -350,6 +350,7 @@ function xml2jsonld() {
   "field-name":"api:field-name",
   "field-number":"api:field-number",
   "$t":"api:field-value",
+  "api:web-address":{ "@container": "@list" },
   "categoryxx":{"@type":"@id","@id":"rdf:type"},
   "typexx":{"@type":"@id","@id":"rdf:type"}
 }}';
@@ -398,22 +399,6 @@ You can specify a messege to include in the log file
 function load_jsonld () {
   local file;
   local count;
-  local opts;
-  if ! opts=$($GETOPT -o l: --long log -n 'cdl load_jsonld' -- "$@"); then
-    echo "Bad Command Options." >&2 ; exit 1 ; fi
-
-  eval set -- "$opts"
-
-  local log
-  local file_log
-
-  while true; do
-	  case $1 in
-	    -l | --log) let log=$2;  shift 2;;
-	    -- ) shift; break;;
-	    *) shift; break;
-    esac
-  done
 
   # G[data] is a SPARQL DATA LOAD
   if [[ -n ${G[data]} ]]; then
@@ -421,8 +406,8 @@ function load_jsonld () {
     local load=${G[data]}
     for file in "$@"; do
       if [[ -f $file ]]; then
-        riot --formatted=ttl $file > $file.ttl
-        log -v -v "curl --location --request POST --user ${auth} -H \"Content-Type:multipart/form-data\" -F \"file=@${file}\" \"${load}?graph=${G[graph]}\""
+        #riot --formatted=ttl $file > $file.ttl
+        log -v -v "curl -s --location --request POST --user ${auth} -H \"Content-Type:multipart/form-data\" -F \"file=@${file}\" \"${load}?graph=${G[graph]}\""
         count=$(curl -s --location --request POST --user ${auth} -H "Content-Type:multipart/form-data" -F "file=@${file}" "${load}?graph=${G[graph]}" | jq .count)
         if [[ -n $log ]]; then
           log -v "$log $count"
