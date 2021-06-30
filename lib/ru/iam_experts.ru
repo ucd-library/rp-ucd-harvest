@@ -18,9 +18,11 @@ PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 #First Delete all existing records, (Should this be in oap as well?)
-DELETE { graph experts_iam: {?user ?p ?o }}
+DELETE { graph experts_iam: {?s ?p ?o }}
 WHERE {
-  graph experts_iam: {?user ?p ?o .}
+  graph experts_iam: {?s ?p ?o .
+    filter(regex(?s,concat("^",str(?user))))
+  }
   graph harvest_iam: {
     ?s iam:userID ?kerb;
     .
@@ -104,18 +106,23 @@ INSERT {
     ?vcard_unit a vcard:Organization;
                 vcard:title ?dept;
                 .
-    ?vcard_email a vcard:Email,vcard:Work;
+    ?vcard_email a vcard:Email;
                  vcard:email ?email;
                  .
+    ?vcard_url a vcard:URL;
+               vcard:url ?website;
+               ucdrp:urlType "other";
+               .
+
 } } WHERE {
-  select ?user ?vcard_name ?vid ?title ?email ?dept ?order ?vcard ?vcard_title ?vcard_unit ?vcard_email
+  select ?user ?vcard_name ?vid ?title ?email ?dept ?order ?vcard ?vcard_title ?vcard_unit ?vcard_url ?vcard_email ?email ?website
   where { graph harvest_iam: {
-    ?s iam:email ?email;
+    ?s iam:email ?default_email;
        iam:userID ?kerb;
        .
     OPTIONAL {
       {
-        select ?s ?vid ?title ?dept ?order
+        select ?s ?vid ?title ?dept ?order ?website ?tile_email
         WHERE { graph harvest_iam: {
           ?s iam:directory ?dir .
           ?dir iam:listings ?list;
@@ -126,11 +133,21 @@ INSERT {
                   iam:title ?title;
                   iam:deptName ?dept;
                   .
+            OPTIONAL {
+              ?list iam:websiteWwwFlag "Y";
+                    iam:website ?website;
+                    .
+                  }
+            OPTIONAL {
+              ?list iam:emailWwwFlag "Y";
+                    iam:email ?title_email;
+                    .
+                  }
             bind(concat("odr-",str(?order)) as ?vid)
           }
         }}
       } UNION {
-        select ?s ?vid ?title ?dept ?order
+        select ?s ?vid ?title ?dept ?order ?use_default_email
         where { graph harvest_iam: {
           ?s iam:ppsAssociations [iam:assocRank ?a_order;
                                  iam:titleOfficialName ?otitle;
@@ -139,6 +156,7 @@ INSERT {
           bind(replace(?otitle," -.*","") as ?title)
           bind(xsd:integer(?a_order)+10 as ?order)
           bind(concat("pps-",str(?a_order)) as ?vid)
+          bind(true as ?use_default_email)
         } }
       }
     }
@@ -146,9 +164,16 @@ INSERT {
     bind(uri(concat(str(person:),?user_id)) as ?user)
     bind(uri(concat(str(?user),"#vcard-name")) as ?vcard_name)
     bind(uri(concat(str(?user),"#vcard-",?vid)) as ?vcard)
-    bind(uri(concat(str(?vcard),"-title")) as ?vcard_title)
-    bind(uri(concat(str(?vcard),"-unit")) as ?vcard_unit)
-    # need to keep this as positions have emails
-    bind(uri(concat(str(?vcard),"-email")) as ?vcard_email)
+
+    bind(if(bound(?title),uri(concat(str(?vcard),"-title")),"") as ?vcard_title)
+
+
+    bind(if(bound(?title_email),?title_email,if(bound(?use_default_email),?default_email,"")) as ?email)
+    bind(if(bound(?email),uri(concat(str(?vcard),"-email")),"") as ?vcard_email)
+
+    bind(if(bound(?website),uri(concat(str(?vcard),"-url")),"") as ?vcard_url)
+    bind(if(bound(?dept),uri(concat(str(?vcard),"-unit")),"") as ?vcard_unit)
+
+
   }}
 }

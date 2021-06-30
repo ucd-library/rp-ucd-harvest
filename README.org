@@ -1,4 +1,4 @@
-* Example Queries
+* Harvesting Notes
 :PROPERTIES:
 :header-args:http: :host http://localhost:3030 :user admin:quinnisgreat
 :header-args:sparqlx: :url http://sparql.org/sparql :format text/csv
@@ -20,11 +20,10 @@ docker-compose exec fuseki fuseki-import-graphs \
 --single-branch --branch=experts-dev" --graph=experts.ucdavis.edu
 
 # Get users from other setup
-src=http://gold.experts.library.ucdavis.edu:8081/experts/query
+src=http://gold.experts.library.ucdavis.edu:3005/experts/query
 q='PREFIX : <http://experts.ucdavis.edu/schema#> select ?userId WHERE { [] a :person; :casId ?userId} order by ?userId'
 
 users=$(http --print=b --follow ${src} query=="$q" Accept:text/csv | tail -n+2 | tr -s '\n\r' ' ')
-
 
 dc exec harvest harvest -v login
 
@@ -36,13 +35,16 @@ http --auth=admin:quinnisgreat http://localhost:8081/${db}/update Content-type:a
 PREFIX experts_iam: <http://experts.ucdavis.edu/iam/>
 PREFIX person: <http://experts.ucdavis.edu/person/>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
-delete { graph experts_iam: {person:1b9f745893ea8c821a3fc847e9775dbe a vivo:Academic. } }
+delete { graph experts_iam: {person:1b9f745893ea8c821a3fc847e9775dbe a vivo:NonAcademic. } }
 insert { graph experts_iam: {person:1b9f745893ea8c821a3fc847e9775dbe a vivo:FacultyMember. } }
 WHERE {}'
 
 dc exec harvest harvest rm $db
 
 #+END_SRC
+
+#+RESULTS:
+: Email bug reports to:  bug-dc@gnu.org .
 
 *** Exporting data
 
