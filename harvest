@@ -294,8 +294,8 @@ function login() {
 	local v_s
   v_s=$(for i in $(seq ${G[verbose]} ); do echo -n " -v"; done)
 
-	log -v -n "cdl."
-	cdl ${v_s} login --auth=${CMD[cdl_auth]}
+	log -v -n "cdl-elements."
+	cdl-elements ${v_s} login --auth=${CMD[cdl_auth]}
 	log -v -n "ucdid."
 	ucdid ${v_s} login --auth=${CMD[ucdid_auth]}
 }
@@ -311,11 +311,11 @@ harvest I<global_options> B<user> I<options>
 Run a complete harvest operation for a particular ucdid search.  This command
 will first initialize a HARVEST_DB if one does not exist.  Then the program will
 query the C<ucdid> with the the passed C<--search> query, and collect a set of
-users.  It will then contact the CDL elements database (via the cdl command) and
-download all user and publication information for these users.  Then the command
-will run a series of sparql updates (via C<harvest update>) to update the
-experts database.  The command will then clean up, by removing the HARVEST_DB,
-and the cache of files downloaded from the services.
+users.  It will then contact the CDL elements database (via the cdl-elements
+command) and download all user and publication information for these users.
+Then the command will run a series of sparql updates (via C<harvest update>) to
+update the experts database.  The command will then clean up, by removing the
+HARVEST_DB, and the cache of files downloaded from the services.
 
 =over 4
 
@@ -403,11 +403,9 @@ function user () {
   # Now get all the casIDs, This doesn't use experts, but the harvestdb
   ids="$(aeq --endpoint="$ep"/sparql query --format=json <<<"select ?id where { {graph harvest_iam: {?u iam:userID ?id; filter(NOT EXISTS {?u iam:directory ?d }) } } UNION { graph harvest_iam: {[] iam:userID ?id; iam:directory/iam:displayName/iam:nameWwwFlag 'Y'. }}} order by ?id" | jq -r .results.bindings[].id.value | tr [:space:] ' ')"
 
-#  log -v "cdl for ids='$ids'"
-
 	local v_s
   v_s="$(for i in $(seq ${G[verbose]} ); do echo -n " -v"; done)"
-  cdl $v_s --cache=$cache --data=$ep/data users --pubs $ids
+  cdl-elements $v_s --cache=$cache --data=$ep/data users --pubs $ids
 
   # Then, run the update scripts for new data
   update update_harvest_records

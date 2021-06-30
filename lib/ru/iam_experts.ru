@@ -18,28 +18,78 @@ PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 #First Delete all existing records, (Should this be in oap as well?)
-DELETE { graph experts_iam: {?user ?p ?o }}
+DELETE { graph experts_iam: {?s ?p ?o }}
 WHERE {
-  graph experts_iam: {?user ?p ?o .}
+  graph experts_iam: {?s ?p ?o .
+    filter(regex(?s,concat("^",str(?user))))
+  }
   graph harvest_iam: {
-    ?s iam:email ?email;
-       iam:userID ?kerb;
-       iam:dLastName ?iam_lname;
-       iam:dFirstName ?iam_fname;
-       iam:isFaculty ?faculty
+    ?s iam:userID ?kerb;
     .
     bind(uri(concat(str(experts:),md5(?kerb))) as ?user)
   }
 };
 
+# Add the user's best name, and their type
 INSERT {
 	graph experts_iam: {
   ?user a ?emp_type, ucdrp:person;
           rdfs:label ?label;
           ucdrp:casId ?kerb;
-          ucdrp:indentifier ?user_id;
-          obo:ARG_2000028 ?vcard;
+          vcard:hasName ?vcard_name;
   .
+
+    ?vcard_name a vcard:Name;
+                vcard:givenName ?fname;
+                vcard:middleName ?mname;
+                vcard:familyName ?lname;
+                vcard:pronoun ?pronoun;
+                .
+
+} } WHERE {
+  graph harvest_iam: {
+    ?s iam:email ?email;
+       iam:userID ?kerb;
+       iam:dLastName ?iam_lname;
+       iam:dFirstName ?iam_fname;
+       iam:isFaculty ?faculty;
+       .
+    OPTIONAL {
+        ?s iam:dMiddleName ?iam_mname .
+    }
+    OPTIONAL {
+      ?s iam:directory/iam:displayName ?dname.
+      ?dname iam:nameWwwFlag "Y";
+             iam:preferredFname ?better_fname;
+             iam:preferredLname ?better_lname;
+             .
+      OPTIONAL {
+        ?dname iam:preferredMname ?better_mname .
+        bind(concat(?better_fname," ",?better_mname," ",?better_lname) as ?better_mlabel)
+      }
+      OPTIONAL {
+        ?dname iam:preferredPronouns ?pronoun .
+      }
+    }
+    bind(coalesce(?better_fname,?iam_fname) as ?fname)
+    bind(coalesce(?better_lname,?iam_lname) as ?lname)
+    # Use this to include UCPATH mname
+    #bind(coalesce(?better_mname,?iam_mname) as ?lname)
+    bind(?better_mname as ?mname)
+    bind(coalesce(?better_mlabel,concat(?fname," ",?lname)) as ?label)
+
+    bind(md5(?kerb) as ?user_id)
+    bind(uri(concat(str(person:),?user_id)) as ?user)
+    bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
+
+    bind(uri(concat(str(?user),"#vcard-name")) as ?vcard_name)
+  }
+};
+
+# Now add their roles seperately.  Currently ODR implies the same name for all listings
+INSERT {
+	graph experts_iam: {
+  ?user obo:ARG_2000028 ?vcard.
   ?vcard a vcard:Individual;
             ucdrp:identifier ?vid;
             vivo:rank ?order ;
@@ -49,11 +99,6 @@ INSERT {
     vcard:hasEmail ?vcard_email;
     .
 
-    ?vcard_name a vcard:Name;
-                vcard:givenName ?fname;
-                vcard:familyName ?lname;
-                .
-
     ?vcard_title a vcard:Title;
                  vcard:title ?title;
                  .
@@ -61,39 +106,48 @@ INSERT {
     ?vcard_unit a vcard:Organization;
                 vcard:title ?dept;
                 .
-    ?vcard_email a vcard:Email,vcard:Work;
+    ?vcard_email a vcard:Email;
                  vcard:email ?email;
                  .
+    ?vcard_url a vcard:URL;
+               vcard:url ?website;
+               ucdrp:urlType "other";
+               .
+
 } } WHERE {
-  select ?user ?label ?kerb ?vid ?title ?email ?dept ?fname ?lname ?order ?emp_type ?vcard ?vcard_name ?vcard_title ?vcard_unit ?vcard_email
+  select ?user ?vcard_name ?vid ?title ?email ?dept ?order ?vcard ?vcard_title ?vcard_unit ?vcard_url ?vcard_email ?email ?website
   where { graph harvest_iam: {
-    ?s iam:email ?email;
+    ?s iam:email ?default_email;
        iam:userID ?kerb;
-       iam:dLastName ?iam_lname;
-       iam:dFirstName ?iam_fname;
-       iam:isFaculty ?faculty
-    .
+       .
     OPTIONAL {
       {
-        select ?s ?vid ?better_fname ?better_lname ?title ?dept ?order
+        select ?s ?vid ?title ?dept ?order ?website ?tile_email
         WHERE { graph harvest_iam: {
-           ?s iam:directory ?dir .
+          ?s iam:directory ?dir .
           ?dir iam:listings ?list;
-               iam:displayName [ iam:nameWwwFlag "Y";
-                                iam:preferredFname ?better_fname;
-                                iam:preferredLname ?better_lname ];
-                                                   .
+               .
           OPTIONAL {
             ?list iam:deptWwwFlag "Y";
                   iam:listingOrder ?order;
                   iam:title ?title;
                   iam:deptName ?dept;
                   .
+            OPTIONAL {
+              ?list iam:websiteWwwFlag "Y";
+                    iam:website ?website;
+                    .
+                  }
+            OPTIONAL {
+              ?list iam:emailWwwFlag "Y";
+                    iam:email ?title_email;
+                    .
+                  }
             bind(concat("odr-",str(?order)) as ?vid)
           }
         }}
       } UNION {
-        select ?s ?vid ?better_fname ?better_lname ?title ?dept ?order
+        select ?s ?vid ?title ?dept ?order ?use_default_email
         where { graph harvest_iam: {
           ?s iam:ppsAssociations [iam:assocRank ?a_order;
                                  iam:titleOfficialName ?otitle;
@@ -102,22 +156,24 @@ INSERT {
           bind(replace(?otitle," -.*","") as ?title)
           bind(xsd:integer(?a_order)+10 as ?order)
           bind(concat("pps-",str(?a_order)) as ?vid)
+          bind(true as ?use_default_email)
         } }
       }
     }
-    bind(coalesce(?better_fname,?iam_fname) as ?fname)
-    bind(coalesce(?better_lname,?iam_lname) as ?lname)
-    bind(concat(?fname," ",?lname) as ?label)
-
     bind(md5(?kerb) as ?user_id)
     bind(uri(concat(str(person:),?user_id)) as ?user)
-    bind(if(?faculty=true,vivo:FacultyMember,vivo:NonAcademic) as ?emp_type)
+    bind(uri(concat(str(?user),"#vcard-name")) as ?vcard_name)
+    bind(uri(concat(str(?user),"#vcard-",?vid)) as ?vcard)
 
-    bind(uri(concat(str(?user),"#",?vid)) as ?vcard)
-    bind(uri(concat(str(?vcard),"-name")) as ?vcard_name)
-    bind(uri(concat(str(?vcard),"-title")) as ?vcard_title)
-    bind(uri(concat(str(?vcard),"-unit")) as ?vcard_unit)
-    bind(uri(concat(str(?vcard),"-email")) as ?vcard_email)
+    bind(if(bound(?title),uri(concat(str(?vcard),"-title")),"") as ?vcard_title)
+
+
+    bind(if(bound(?title_email),?title_email,if(bound(?use_default_email),?default_email,"")) as ?email)
+    bind(if(bound(?email),uri(concat(str(?vcard),"-email")),"") as ?vcard_email)
+
+    bind(if(bound(?website),uri(concat(str(?vcard),"-url")),"") as ?vcard_url)
+    bind(if(bound(?dept),uri(concat(str(?vcard),"-unit")),"") as ?vcard_unit)
+
 
   }}
 }

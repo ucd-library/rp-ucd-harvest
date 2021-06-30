@@ -15,4 +15,4 @@ function expandVarsStrict(){
 }
 
 # Switch to CMD
-exec docker-vivo-harvester-entrypoint.sh "$@"
+exec "$@"

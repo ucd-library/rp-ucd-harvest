@@ -1,6 +1,7 @@
-[submodule "elements"]
-	path = elements
-	url = https://github.com/ucd-library/elements.git
 [submodule "aeq"]
 	path = aeq
 	url = https://github.com/qjhart/aeq.git
+
+[submodule "cdl-elements"]
+	path = cdl-elements
+	url = https://github.com/ucd-library/cdl-elements.git

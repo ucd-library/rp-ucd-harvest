@@ -19,7 +19,6 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR/>
 PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
 
-# First, Insert citation BIBO stuff
 INSERT {
   # Remember we have concepts
   GRAPH harvest_oap: {
@@ -50,8 +49,9 @@ INSERT {
     ?vcard a vcard:Individual;
            ucdrp:identifier "oap-1";
            vivo:rank 20 ;
-    vcard:hasName ?vcard_name;
-    vcard:hasEmail ?vcard_email;
+           vcard:hasName ?vcard_name;
+           vcard:hasEmail ?vcard_email;
+           vcard:hasUrl ?vcard_web;
     .
 
     ?vcard_name a vcard:Name;
@@ -85,14 +85,13 @@ WHERE { GRAPH harvest_oap: {
 
 
   bind(concat(?fn," ",?ln) as ?name)
-  bind(uri(concat(str(?person_id),"#vcard")) as ?vcard)
-  bind(uri(concat(str(?person_id),"#vcard-name")) as ?vcard_name)
+  bind(uri(concat(str(?person_id),"#vcard-oap-1")) as ?vcard)
+  bind(uri(concat(str(?vcard),"-name")) as ?vcard_name)
 
   ?assoc oap:user-id ?oapolicy_id.
   bind(uri(concat(str(?person_id),"#oapolicyId")) as ?identifier_oapolicy_id)
 
   OPTIONAL {
-#    values ?assoc_scheme { "researcherid" "orcid" "scopus-author-id" "figshare-for-institutions-user-account-id" }
     values ?assoc_scheme { "researcherid" "orcid" "scopus-author-id" "figshare-for-institutions-user-account-id" }
     ?assoc oap:user-identifier-association [ oap:field-value  ?assoc_value ; oap:scheme ?assoc_scheme ].
   }
@@ -121,7 +120,7 @@ WHERE { GRAPH harvest_oap: {
     }
     OPTIONAL {
       ?native oap:field [ oap:name "personal-websites";
-                          oap:web-address [ list:index(?pos ?elem) ]
+                          oap:web-addresses/oap:web-address [ list:index(?pos ?elem) ]
                         ].
 
       ?elem oap:label ?web_label;
@@ -131,8 +130,7 @@ WHERE { GRAPH harvest_oap: {
       .
 
       bind(?pos as ?web_rank)
-      bind(uri(concat(str(?ucdrp),"WebType_",?web_type_text)) as ?web_type)
-      bind(uri(concat(str(?person_id),"#",?pos)) as ?vcard_web)
+      bind(uri(concat(str(ucdrp:),"WebType_",?web_type_text)) as ?web_type)
     }
 
     OPTIONAL {
@@ -141,7 +139,8 @@ WHERE { GRAPH harvest_oap: {
                         ].
       }
   }
-  bind(uri(concat(str(?person_id),"#",md5(?email))) as ?vcard_email)
+  bind(uri(concat(str(?vcard),"-email-",md5(?email))) as ?vcard_email)
+  bind(uri(concat(str(?vcard),"-web-",str(?pos))) as ?vcard_web)
 
   OPTIONAL {
     values (?scheme ?vocab) { ("for" FoR:) }
