@@ -51,7 +51,7 @@ INSERT {
            vivo:rank 20 ;
            vcard:hasName ?vcard_name;
            vcard:hasEmail ?vcard_email;
-           vcard:hasUrl ?vcard_web;
+           vcard:hasURL ?vcard_web;
     .
 
     ?vcard_name a vcard:Name;

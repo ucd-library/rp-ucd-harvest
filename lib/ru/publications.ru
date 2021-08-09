@@ -100,9 +100,10 @@ WHERE {
       ("journal" bibo:journal)
       ("number" bibo:number)
       ("publish-url" bibo:uri)
+      ("public-url" bibo:uri)
+      ("c-eschol-id" bibo:identifier)
       ("volume" bibo:volume)
       }
-    #      ("",bibo:)
 
       ?native oap:field [ oap:name ?field_name ; oap:text ?field_text ].
 }};
