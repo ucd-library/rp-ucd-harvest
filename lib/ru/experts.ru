@@ -51,7 +51,7 @@ INSERT {
            vivo:rank 20 ;
            vcard:hasName ?vcard_name;
            vcard:hasEmail ?vcard_email;
-           vcard:hasUrl ?vcard_web;
+           vcard:hasURL ?vcard_web;
     .
 
     ?vcard_name a vcard:Name;
@@ -130,7 +130,7 @@ WHERE { GRAPH harvest_oap: {
       .
 
       bind(?pos as ?web_rank)
-      bind(uri(concat(str(ucdrp:),"WebType_",?web_type_text)) as ?web_type)
+      bind(uri(concat(str(ucdrp:),"URLType_",?web_type_text)) as ?web_type)
     }
 
     OPTIONAL {

@@ -97,6 +97,7 @@ INSERT {
     vcard:hasTitle ?vcard_title;
     vcard:hasOrganizationalUnit ?vcard_unit;
     vcard:hasEmail ?vcard_email;
+    vcard:hasURL ?vcard_url;
     .
 
     ?vcard_title a vcard:Title;
@@ -111,7 +112,7 @@ INSERT {
                  .
     ?vcard_url a vcard:URL;
                vcard:url ?website;
-               ucdrp:urlType "other";
+               ucdrp:urlType ucdrp:URLType_other;
                .
 
 } } WHERE {
@@ -122,7 +123,7 @@ INSERT {
        .
     OPTIONAL {
       {
-        select ?s ?vid ?title ?dept ?order ?website ?tile_email
+        select ?s ?vid ?title ?dept ?order ?website ?title_email
         WHERE { graph harvest_iam: {
           ?s iam:directory ?dir .
           ?dir iam:listings ?list;
@@ -165,14 +166,14 @@ INSERT {
     bind(uri(concat(str(?user),"#vcard-name")) as ?vcard_name)
     bind(uri(concat(str(?user),"#vcard-",?vid)) as ?vcard)
 
-    bind(if(bound(?title),uri(concat(str(?vcard),"-title")),"") as ?vcard_title)
+    bind(if(bound(?title),uri(concat(str(?vcard),"-title")),?undefined_var) as ?vcard_title)
 
 
-    bind(if(bound(?title_email),?title_email,if(bound(?use_default_email),?default_email,"")) as ?email)
-    bind(if(bound(?email),uri(concat(str(?vcard),"-email")),"") as ?vcard_email)
+    bind(if(bound(?title_email),?title_email,if(bound(?use_default_email),?default_email,?undefined_var)) as ?email)
+    bind(if(bound(?email),uri(concat(str(?vcard),"-email")),?undefined_var) as ?vcard_email)
 
-    bind(if(bound(?website),uri(concat(str(?vcard),"-url")),"") as ?vcard_url)
-    bind(if(bound(?dept),uri(concat(str(?vcard),"-unit")),"") as ?vcard_unit)
+    bind(if(bound(?website),uri(concat(str(?vcard),"-url")),?undefined_var) as ?vcard_url)
+    bind(if(bound(?dept),uri(concat(str(?vcard),"-unit")),?undefined_var) as ?vcard_unit)
 
 
   }}

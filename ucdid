@@ -329,6 +329,7 @@ function fetch() {
   # declare -A items=(
   #   [profiles]='User profile information'
   #   [odr.departments]='Department list from the online directory.'
+  #   [pps.departments]='Payroll services (PPS) departments.'
   #   [pps.divisions]='Payroll services (PPS) divisions.'
   #   [pps.titles]='Payroll services (PPS) titles.'
   #   [sis.colleges]='Student Information System (SIS) colleges.'
@@ -338,6 +339,7 @@ function fetch() {
   declare -A url=(
     [profiles]="${G[endpoint]}/people/profile/search"
     [odr.departments]="${G[endpoint]}/orginfo/odr/depts"
+    [pps.departments]="${G[endpoint]}/orginfo/pps/depts"
     [pps.divisions]="${G[endpoint]}/orginfo/pps/divisions"
     [pps.titles]="${G[endpoint]}/orginfo/pps/titles"
     [sis.colleges]="${G[endpoint]}/orginfo/sis/colleges"
