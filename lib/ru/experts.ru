@@ -130,7 +130,7 @@ WHERE { GRAPH harvest_oap: {
       .
 
       bind(?pos as ?web_rank)
-      bind(uri(concat(str(ucdrp:),"WebType_",?web_type_text)) as ?web_type)
+      bind(uri(concat(str(ucdrp:),"URLType_",?web_type_text)) as ?web_type)
     }
 
     OPTIONAL {

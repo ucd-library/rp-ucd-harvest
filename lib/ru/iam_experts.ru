@@ -112,7 +112,7 @@ INSERT {
                  .
     ?vcard_url a vcard:URL;
                vcard:url ?website;
-               ucdrp:urlType "other";
+               ucdrp:urlType ucdrp:URLType_other;
                .
 
 } } WHERE {
