@@ -28,7 +28,7 @@ PREFIX authorship: <http://experts.ucdavis.edu/authorship/>
 #    ?experts_work_id ucdrp:insertionDateTime ?t.
 #  }
 #} WHERE {
-#  GRAPH harvest_oap: {
+#  GRAPH arvest_oap: {
 #    ?work oap:experts_work_id ?experts_work_id
 #  }
 #  GRAPH experts_oap: {

@@ -1,0 +1,167 @@
+* Describe
+:PROPERTIES:
+:header-args:sparql: :url http://localhost:8081/experts/sparql
+:END:
+
+The most simple and useful query uses the describe function.  It's also a good
+introduction to using the parameter matching on our files.  The Parameter
+matching in our calls, *should* emulate what our ttl files show as well.
+
+#+name: lob-ingest
+#+BEGIN_SRC elisp
+(org-babel-lob-ingest "describe.org");
+#+END_SRC
+
+#+CALL: prefixes.org:lob_ingest
+
+#+name: describe_query_only
+#+BEGIN_SRC sparql :no-tangle
+  describe ?uri
+#+END_SRC
+
+#+name: describe
+#+BEGIN_SRC sparql :format raw :noweb yes :var uri="ucdrp:null"
+<<prefixes>>
+<<describe_query_only>>
+#+END_SRC
+
+#+name: describe_hash_query_only
+#+BEGIN_SRC sparql :no-tangle
+describe ?s where {
+ ?s ?p ?o.
+ filter(isiri(?s))
+ filter(regex(str(?s),concat("^",str(?uri),"#?")))
+}
+#+END_SRC
+
+#+name: describe_hash
+#+BEGIN_SRC sparql :no-tangle :format raw :noweb yes :var uri="work:3266506" :wrap SRC ttl
+<<prefixes>>
+<<describe_hash_query_only>>
+#+END_SRC
+
+Now, we can use this function to describe any particular subject in the database.
+
+#+call: describe_hash(uri="authorship:3266506-3")
+
+*** Describe of Type
+
+We are are interested in the shape of a particular $rdf:type$ then the
+describe_of_type can be used to see a few examples.
+
+
+#+name: describe_of_type_query_only
+#+BEGIN_SRC sparql :no-tangle
+describe ?s WHERE {
+select ?s WHERE {
+  ?s a ?type.
+} limit ?limit
+}
+#+END_SRC
+
+#+name: describe_of_type
+#+BEGIN_SRC sparql :format raw :no-tangle :wrap SRC ttl :noweb yes :var type="ucdrp:person" limit="5"
+<<prefixes>>
+<<describe_of_type_query_only>>
+#+END_SRC
+
+#+call: describe_of_type(limit="1")
+
+#+RESULTS:
+#+BEGIN_SRC ttl
+@prefix experts_oap: <http://experts.ucdavis.edu/oap/> .
+@prefix work:  <http://experts.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix experts_iam: <http://experts.ucdavis.edu/iam/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+
+person:825ce359f69a5b6b72412590d4913a79
+        a                     foaf:Person , vivo:FacultyMember , ucdrp:person ;
+        rdfs:label            "Ralph Aldredge" ;
+        ucdrp:casId           "aldredge" ;
+        ucdrp:identifier      <http://experts.ucdavis.edu/person/825ce359f69a5b6b72412590d4913a79#identifier-figshare-for-institutions-user-account-id-10219516> , <http://experts.ucdavis.edu/person/825ce359f69a5b6b72412590d4913a79#oapolicyId> , <http://experts.ucdavis.edu/person/825ce359f69a5b6b72412590d4913a79#identifier-scopus-author-id-7003385807> ;
+        ucdrp:oapolicyId      "15062" ;
+        obo:ARG_2000028       <http://experts.ucdavis.edu/person/825ce359f69a5b6b72412590d4913a79#vcard-oap-1> , <http://experts.ucdavis.edu/person/825ce359f69a5b6b72412590d4913a79#vcard-pps-2> , <http://experts.ucdavis.edu/person/825ce359f69a5b6b72412590d4913a79#vcard-odr-1> , <http://experts.ucdavis.edu/person/825ce359f69a5b6b72412590d4913a79#vcard-pps-1> ;
+        obo:RO_000053         <http://experts.ucdavis.edu/pi_role/825ce359f69a5b6b72412590d4913a79-NCC3-845> , <http://experts.ucdavis.edu/pi_role/825ce359f69a5b6b72412590d4913a79-N00014-96-1-0419> , <http://experts.ucdavis.edu/pi_role/825ce359f69a5b6b72412590d4913a79-A21-2387> , <http://experts.ucdavis.edu/pi_role/825ce359f69a5b6b72412590d4913a79-CTS-05-00505> ;
+        vivo:hasResearchArea  <http://experts.ucdavis.edu/concept/free/dcc45fc4c35b37356045c425c03f8dbc> , <http://experts.ucdavis.edu/concept/FoR/09> , <http://experts.ucdavis.edu/concept/free/5cc28f31113ec7cd7e546b836ccae2b9> , <http://experts.ucdavis.edu/concept/FoR/0913> , <http://experts.ucdavis.edu/concept/FoR/0904> ;
+        vivo:relatedBy        authorship:1460429 , authorship:1460429-2 , authorship:1460423-1 , authorship:1491832-1 , authorship:1460416-1 , authorship:2373709 , authorship:1460422 , authorship:1460420-1 , authorship:1460423 , authorship:1460432 , authorship:1460437 , authorship:1460437-1 , authorship:576251 , authorship:2187092-1 , authorship:1140100-1 , authorship:1460428 , authorship:1460442 , authorship:433321 , authorship:1460421-1 , authorship:1875931-1 , authorship:1460424-1 , authorship:1460426 , authorship:1491839-1 , authorship:1491830-2 , authorship:1460418 , authorship:1460442-2 , authorship:1460436 , <http://experts.ucdavis.edu/grant/2488> , authorship:1460414-2 , authorship:1460417-1 , authorship:1450924 , authorship:1460425-1 , authorship:1460441-1 , authorship:1491839 , authorship:2187092 , authorship:1875931 , authorship:1372402 , authorship:1460444-1 , authorship:1460421 , authorship:1460432-2 , authorship:1372402-2 , authorship:1460431 , authorship:1460426-1 , authorship:433321-7 , authorship:1460422-1 , authorship:1460444 , authorship:1491833 , authorship:1460415 , authorship:1460427 , authorship:1460419-1 , authorship:1460441 , authorship:576251-7 , <http://experts.ucdavis.edu/grant/4357> , authorship:1140100 , authorship:1491831 , authorship:1460420 , authorship:1460435-2 , authorship:1460434-1 , authorship:1460425 , authorship:2373710-1 , authorship:1491831-1 , authorship:1460417 , authorship:1460435 , authorship:1460427-1 , authorship:1460440-1 , authorship:1460443-3 , authorship:1460430-1 , authorship:1460418-1 , <http://experts.ucdavis.edu/grant/1659> , authorship:1460436-2 , authorship:2424939 , authorship:1460433-1 , authorship:1252590 , authorship:2350352 , authorship:1460424 , authorship:1460415-1 , authorship:1460428-1 , authorship:1460416 , authorship:1460431-1 , authorship:2246307 , authorship:2350352-4 , authorship:1460430 , authorship:2373709-3 , authorship:2373710 , authorship:1450924-2 , authorship:1460443 , authorship:1491832 , authorship:1460414 , authorship:1460440 , authorship:1460419 , authorship:2246307-2 , authorship:1491830 , authorship:1460433 , authorship:1491833-2 , authorship:1252590-2 , <http://experts.ucdavis.edu/grant/127202> , authorship:2424939-1 , authorship:1460434 ;
+        vivo:scopusId         "7003385807" ;
+        vcard:hasName         <http://experts.ucdavis.edu/person/825ce359f69a5b6b72412590d4913a79#vcard-name> .
+#+END_SRC
+
+
+** Description File
+
+#+BEGIN_SRC ttl :noweb yes :tangle describe.ttl
+  <<prefixes>>
+
+  q:uri
+      a aeq:Bind ;
+      rdfs:label "Generic URI" ;
+      aeq:bind_to "?uri" ;
+      aeq:bind_type xsd:uri ;
+      .
+
+  q:uri_null_opt
+      a aeq:Parameter ;
+      aeq:bind q:uri ;
+      aeq:bind_default aeq:null ;
+      aeq:bind_required false ;
+      .
+
+  q:describe
+      rdf:type  aeq:ConstructQuery, aeq:Query;
+      rdfs:label "Describe" ;
+      rdfs:description """
+
+    The describe command simply call the describe function bound to the ?uri
+    parameter, (default ucdrp:null).
+
+  """ ;
+      aeq:parameter [
+          aeq:bind q:uri ;
+          aeq:required false ;
+          aeq:bind_default aeq:null ;
+          ] ;
+     aeq:query """
+    <<describe_query_only>>
+  """ ;
+      .
+
+  q:describe_hash
+      rdf:type  aeq:ConstructQuery, aeq:Query;
+      rdfs:label "Described Hashed" ;
+      rdfs:description """
+
+  The describe_hash query returns all objects associated with a ?uri and any
+  objects with the name ?uri#any_name.  In Aggie Experts, we use this method to
+  keep track of what might otherwise be blank nodes in the system.  This is a
+  quick way to see a more complete record of a complex item.
+
+  """ ;
+      aeq:parameter q:uri_null_opt ;
+      aeq:query """
+    <<describe_hash_query_only>>
+  """ ;
+      .
+
+#+END_SRC

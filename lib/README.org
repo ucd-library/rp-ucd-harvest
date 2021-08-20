@@ -1,456 +1,56 @@
-* Standard Select and update queries
+* AEQ Standard Queries
 :PROPERTIES:
 :header-args:http: :host http://localhost:8081 :user admin:quinnisgreat
 :header-args:sparqlx: :url http://sparql.org/sparql :format text/csv
 :header-args:sparql: :url http://localhost:8081/experts/sparql :format text/csv
 :END:
 
-This file is meant to be something of a literate programming environment for a
-standard set of sparql queries.  Eventually, this will be moved to the ~aeq~
-prioject for a single point of entry for queries to the system.  This should be
-an interactive file, that you can use to test queries, and then untangle this
-file, once you are ready to save these particular queries.
-
-This [[https://www.gnu.org/software/emacs/refcards/pdf/orgcard.pdf][Shortcut]] list is helpful to remember things like how to show the composed
-query.  This standard org-mode page on the [[https://orgmode.org/manual/Environment-of-a-Code-Block.html][Environment of a
-Code Block]] is also handy.
-
-This uses [[https://github.com/ljos/sparql-mode][sparql-mode]] which is actually pretty nice for queries.  For updates,
-I'm starting to look into the [[https://github.com/federicotdn/verb/blob/master/README.md][verb]] package, which might be the best for org-mode
-interaction.
-
-** Prefixes
-
-These are the Aggie Experts semi official prefixes.
-
-#+name: prefixes
-#+BEGIN_SRC sparql :no-tangle
-PREFIX aeq: <http://experts.ucdavis.edu/queries/schema#>
-PREFIX authorship: <http://experts.ucdavis.edu/authorship/>
-PREFIX bibo: <http://purl.org/ontology/bibo/>
-PREFIX bind: <http://experts.ucdavis.edu/schema/bind/>
-PREFIX experts: <http://experts.library.ucdavis.edu/>
-PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX experts_iam: <http://experts.ucdavis.edu/iam/>
-PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
-PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-PREFIX harvest_iam: <http://iam.ucdavis.edu/>
-PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
-PREFIX iam: <http://iam.ucdavis.edu/schema#>
-PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
-PREFIX obo: <http://purl.obolibrary.org/obo/>
-PREFIX person: <http://experts.ucdavis.edu/person/>
-PREFIX purl: <http://purl.org/ontology/bibo/>
-PREFIX q: <http://experts.ucdavis.edu/queries/>
-PREFIX query: <http://experts.ucdavis.edu/schema/queries/>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
-PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
-PREFIX vivo: <http://vivoweb.org/ontology/core#>
-PREFIX work: <http://experts.ucdavis.edu/work/>
-PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+#+name: lob-ingest-file
+#+BEGIN_SRC emacs-lisp :var file="prefixes.org"
+(org-babel-lob-ingest file);
 #+END_SRC
+
+
+Prefixes are in their own file.  You can add them to [[https://orgmode.org/manual/Library-of-Babel.html][Library of Babel]] with:
+
+#+CALL: prefixes.org:lob-ingest()
+
+#+RESULTS:
+: 2
 
 ** Describe
-:PROPERTIES:
-:header-args:sparql: :url http://localhost:8081/experts/sparql :format raw :wrap SRC ttl
-:END:
 
-The most simple and useful query uses the describe function.  It's also a good
-introduction to using the parameter matching on our files.
-
-#+name: describe
-#+BEGIN_SRC sparql :format raw :noweb yes :var uri="ucdrp:null"
-<<prefixes>>
-  describe ?uri
-#+END_SRC
-
-#+name: describe_hashed
-#+BEGIN_SRC sparql :format raw :noweb yes :var uri="work:3266506"
-<<prefixes>>
-describe ?s where {
- ?s ?p ?o.
- filter(isiri(?s))
- filter(regex(str(?s),concat("^",str(?uri),"#?")))
-}
-#+END_SRC
-
-Now, we can use this function to describe any particular subject in the database.
-
-#+call: describe_hashed(uri="authorship:3266506-3")
+#+CALL: lob-ingest-file(file="prefixes.org")
 
 #+RESULTS:
-#+BEGIN_SRC ttl
-@prefix experts_oap: <http://experts.ucdavis.edu/oap/> .
-@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
-@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
-@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
-@prefix purl:  <http://purl.org/ontology/bibo/> .
-@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
-@prefix bind:  <http://experts.ucdavis.edu/schema/bind/> .
-@prefix iam:   <http://iam.ucdavis.edu/schema#> .
-@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
-@prefix vivo:  <http://vivoweb.org/ontology/core#> .
-@prefix harvest_iam: <http://iam.ucdavis.edu/> .
-@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
-@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
-@prefix work:  <http://experts.ucdavis.edu/work/> .
-@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
-@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
-@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
-@prefix q:     <http://experts.ucdavis.edu/queries/> .
-@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix person: <http://experts.ucdavis.edu/person/> .
-@prefix experts_iam: <http://experts.ucdavis.edu/iam/> .
-@prefix bibo:  <http://purl.org/ontology/bibo/> .
-@prefix experts: <http://experts.ucdavis.edu/> .
-@prefix obo:   <http://purl.obolibrary.org/obo/> .
+: 2
 
-authorship:3266506-3  a  ucdrp:authorship , vivo:Authorship ;
-        vivo:rank     3 ;
-        vivo:relates  <http://experts.ucdavis.edu/authorship/3266506-3#vcard> , work:3266506 .
+#+CALL: describe.org:lob-ingest()
 
-<http://experts.ucdavis.edu/authorship/3266506-3#vcard-name>
-        a                 vcard:Name ;
-        vcard:familyName  "Pastrana" ;
-        vcard:givenName   "Ana M" .
+#+RESULTS:
+: 7
 
-<http://experts.ucdavis.edu/authorship/3266506-3#vcard>
-        vcard:hasName  <http://experts.ucdavis.edu/authorship/3266506-3#vcard-name> .
-#+END_SRC
+#+call: describe_hash(uri="authorship:3266506-3")
+
 
 ** Select
-For selections we use ~sparql-mode~, which has variable injection similar
-to how it's used in the JENA, where variables are overwritten directly over
-their variable name counterparts.   The queries can be modified to include a
 
-For some queries this works really well, but there are some gotchas.  This
-simple query for counting graphs is a good example.
-
-*** Graph Count
-
-#+name: graph_count_example
-#+BEGIN_SRC sparql
-select ?graph  (count(*) as ?cnt) WHERE {
-{
-  graph ?graph { ?s ?p ?o. }
-} UNION {
-  bind ("default" as ?graph)
-  {?s ?p ?o.}
-}
-} group by ?graph
-
-#+END_SRC
-
-#+RESULTS: graph_count_example
-| graph                           |  cnt |
-|---------------------------------+------|
-| http://experts.ucdavis.edu/oap/ | 2507 |
-| http://experts.ucdavis.edu/iam/ |   40 |
-| default                         | 2545 |
-
-#+call: graph_count_example(graph="<http://experts.ucdavis.edu/oap/>")
-
-The problem with the above, is that when you overwrite a variable that's an IRI,
-and is in the select part of the statement, then you get an error.  The method
-to use is to create *another* variable, and only use that to bind to the
-variable in the statement you want to use.  The example below shows that
-setup, where ~_graph_~ is shadowing the variables.  Another helpful part of
-this, is that if your query is big, the shadow variables can be used to limit
-the query when parameters aren't passed in.
-
-#+name: graph_count
-#+BEGIN_SRC sparql :noweb yes :var _graph_="<http://none>"
-<<prefixes>>
-select ?graph (count(*) as ?cnt) WHERE {
-{
-  bind($_graph_ as ?graph)
-  graph ?graph { ?s ?p ?o. }
-} UNION {
-  bind ("default" as ?graph)
-  {?s ?p ?o.}
-}
-} group by ?graph
-
-#+END_SRC
-
-#+RESULTS: graph_count
-| graph   |    cnt |
-|---------+--------|
-| default | 228751 |
-
-So now, you can limit your query to a single graph.
-
-#+call: graph_count(_graph_="<http://experts.ucdavis.edu/iam/>")
+#+call: basic_select.org:lob-ingest()
 
 #+RESULTS:
-| graph                           |    cnt |
-|---------------------------------+--------|
-| http://experts.ucdavis.edu/iam/ |   2542 |
-| default                         | 237279 |
+: 3
 
-
-If you are clever,you can also break out of the box that the default values
-defined.
-
-#+call: graph_count(_graph_="?g")
+#+call: select_of_type(type="ucdrp:authorship",limit="1")
 
 #+RESULTS:
-| graph                           |    cnt |
-|---------------------------------+--------|
-| http://experts.ucdavis.edu/oap/ | 226087 |
-| http://experts.ucdavis.edu/iam/ |   2710 |
-| default                         | 228751 |
-
-You are stll able to update the varibles we haven't thought about.  They may not
-always work, but often will.
-
-#+call: graph_count(_graph_="?g",p="rdf:type")
-
-#+RESULTS:
-| graph                           |   cnt |
-|---------------------------------+-------|
-| http://experts.ucdavis.edu/oap/ | 55906 |
-| http://experts.ucdavis.edu/iam/ |   950 |
-| default                         | 56810 |
-
-*** Type Counts
-
-We can do somthing similar for type counts
-
-#+name: type_count
-#+BEGIN_SRC sparql :noweb yes :var _graph_="<http://none>"
-<<prefixes>>
-select ?graph ?type (count(*) as ?cnt) WHERE {
-{
-  bind($_graph_ as ?graph)
-  graph ?graph { ?s a ?type. }
-} UNION {
-  bind ("default" as ?graph)
-  {?s a ?type.}
-}
-} group by ?graph ?type order by ?graph ?type
-
-#+END_SRC
-
-#+call: type_count()
-
-#+RESULTS:
-| graph   | type                                               | cnt |
-|---------+----------------------------------------------------+-----|
-| default | http://experts.ucdavis.edu/schema#authorship       | 166 |
-| default | http://experts.ucdavis.edu/schema#concept          |  23 |
-| default | http://experts.ucdavis.edu/schema#person           |   1 |
-| default | http://experts.ucdavis.edu/schema#venue            |  21 |
-| default | http://experts.ucdavis.edu/schema#work             |  27 |
-| default | http://purl.org/ontology/bibo/AcademicArticle      |  15 |
-| default | http://purl.org/ontology/bibo/Journal              |  21 |
-| default | http://vivoweb.org/ontology/core#Authorship        | 166 |
-| default | http://vivoweb.org/ontology/core#ConferencePaper   |  12 |
-| default | http://vivoweb.org/ontology/core#DateTimePrecision |   2 |
-| default | http://vivoweb.org/ontology/core#DateTimeValue     |  27 |
-| default | http://vivoweb.org/ontology/core#NonAcademic       |   1 |
-| default | http://www.w3.org/2004/02/skos/core#Concept        |  23 |
-| default | http://www.w3.org/2004/02/skos/core#ConceptScheme  |   2 |
-| default | http://www.w3.org/2006/vcard/ns#Email              |   3 |
-| default | http://www.w3.org/2006/vcard/ns#Individual         |   3 |
-| default | http://www.w3.org/2006/vcard/ns#Name               | 142 |
-| default | http://www.w3.org/2006/vcard/ns#Organization       |   2 |
-| default | http://www.w3.org/2006/vcard/ns#Title              |   2 |
-| default | http://www.w3.org/2006/vcard/ns#Work               |   3 |
-| default | http://xmlns.com/foaf/0.1/Person                   |   1 |
-
-
-#+name: s_of_type
-#+BEGIN_SRC sparql :noweb yes :var type="ucdrp:person" limit="5"
-<<prefixes>>
-select ?s WHERE {
-  ?s a ?type.
-} limit ?limit
-#+END_SRC
-
-#+call: s_of_type()
-
-#+RESULTS:
-| s                                                                  |
-|--------------------------------------------------------------------|
-| http://experts.ucdavis.edu/person/f9ef1e530c617cd598171497b4a49e82 |
-
-
-#+name: describe_of_type
-#+BEGIN_SRC sparql :format raw :wrap SRC ttl :noweb yes :var type="ucdrp:person" limit="5"
-<<prefixes>>
-describe ?s WHERE {
-select ?s WHERE {
-  ?s a ?type.
-} limit ?limit
-}
-#+END_SRC
-
-#+call: describe_of_type()  :format raw
-
-#+RESULTS:
-#+BEGIN_SRC ttl
-@prefix experts_oap: <http://experts.ucdavis.edu/oap/> .
-@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
-@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
-@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
-@prefix purl:  <http://purl.org/ontology/bibo/> .
-@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
-@prefix bind:  <http://experts.ucdavis.edu/schema/bind/> .
-@prefix iam:   <http://iam.ucdavis.edu/schema#> .
-@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
-@prefix vivo:  <http://vivoweb.org/ontology/core#> .
-@prefix harvest_iam: <http://iam.ucdavis.edu/> .
-@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
-@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
-@prefix work:  <http://experts.ucdavis.edu/work/> .
-@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
-@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
-@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
-@prefix q:     <http://experts.ucdavis.edu/queries/> .
-@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix person: <http://experts.ucdavis.edu/person/> .
-@prefix experts_iam: <http://experts.ucdavis.edu/iam/> .
-@prefix bibo:  <http://purl.org/ontology/bibo/> .
-@prefix experts: <http://experts.ucdavis.edu/> .
-@prefix obo:   <http://purl.obolibrary.org/obo/> .
-
-person:f9ef1e530c617cd598171497b4a49e82
-        a                     foaf:Person , ucdrp:person , vivo:NonAcademic ;
-        rdfs:label            "Quinn Hart" ;
-        ucdrp:casId           "quinn" ;
-        obo:ARG_2000028       <http://experts.ucdavis.edu/person/f9ef1e530c617cd598171497b4a49e82#vcard> , <http://experts.ucdavis.edu/person/f9ef1e530c617cd598171497b4a49e82#pps-1> , <http://experts.ucdavis.edu/person/f9ef1e530c617cd598171497b4a49e82#odr-1> ;
-        vivo:hasResearchArea  <http://experts.ucdavis.edu/concept/FoR/080106> , <http://experts.ucdavis.edu/concept/FoR/080306> , <http://experts.ucdavis.edu/concept/FoR/080604> , <http://experts.ucdavis.edu/concept/FoR/080505> , <http://experts.ucdavis.edu/concept/FoR/08> , <http://experts.ucdavis.edu/concept/FoR/080302> , <http://experts.ucdavis.edu/concept/FoR/080404> , <http://experts.ucdavis.edu/concept/FoR/0804> , <http://experts.ucdavis.edu/concept/FoR/0806> ;
-        vivo:overview         "I am currently the digital applications manager for the UC Davis library.  At the Library, I develop research and educational applications for use at the library and to our researchers and the public.\n\nI've been at UC Davis since 1992.  Before coming to the library in 2016, I worked as a programmer under various projects in the Dept. of Land, Air, and Water Resources." ;
-        vivo:relatedBy        authorship:2713713 , authorship:1765064 , authorship:2713718 , authorship:1452167-3 , authorship:639836-5 , authorship:2713714-2 , authorship:1442407 , authorship:2713714 , authorship:1875203 , authorship:639836 , authorship:2327636-4 , authorship:2364120 , authorship:1452140-3 , authorship:2713715 , authorship:1765066 , authorship:1765064-1 , authorship:2713720-1 , authorship:2713719 , authorship:1452140 , authorship:1442407-2 , authorship:2439616 , authorship:1765066-2 , authorship:1452167 , authorship:2713712-4 , authorship:2713711 , authorship:1452104-1 , authorship:2713715-3 , authorship:2713717-9 , authorship:1442289-1 , authorship:1434606 , authorship:2449942-1 , authorship:2713718-1 , authorship:1442413-2 , authorship:2713716-2 , authorship:1442400-3 , authorship:2713719-1 , authorship:1445886-4 , authorship:1442400 , authorship:2439616-1 , authorship:2449942 , authorship:2713720 , authorship:2713716 , authorship:2327636 , authorship:2713717 , authorship:1445886 , authorship:2713713-2 , authorship:2713711-2 , authorship:1452104 , authorship:2713712 , authorship:1442413 , authorship:1442289 , authorship:1434606-5 .
-#+END_SRC
-
-#+name: author
-#+BEGIN_SRC sparql :format raw :wrap SRC ttl :noweb yes :var type="ucdrp:person" limit="5"
-<<prefixes>>
-describe ?s WHERE {
-  select ?s WHERE {
-    ?s a ?type.
-  } limit ?limit
-}
-#+END_SRC
-
-#+call: author(limit="1") :format raw
-
-#+RESULTS:
-#+BEGIN_SRC ttl
-@prefix experts_oap: <http://experts.ucdavis.edu/oap/> .
-@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
-@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
-@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
-@prefix purl:  <http://purl.org/ontology/bibo/> .
-@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
-@prefix bind:  <http://experts.ucdavis.edu/schema/bind/> .
-@prefix iam:   <http://iam.ucdavis.edu/schema#> .
-@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
-@prefix vivo:  <http://vivoweb.org/ontology/core#> .
-@prefix harvest_iam: <http://iam.ucdavis.edu/> .
-@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
-@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
-@prefix work:  <http://experts.ucdavis.edu/work/> .
-@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
-@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
-@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
-@prefix q:     <http://experts.ucdavis.edu/queries/> .
-@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix person: <http://experts.ucdavis.edu/person/> .
-@prefix experts_iam: <http://experts.ucdavis.edu/iam/> .
-@prefix bibo:  <http://purl.org/ontology/bibo/> .
-@prefix experts: <http://experts.ucdavis.edu/> .
-@prefix obo:   <http://purl.obolibrary.org/obo/> .
-
-person:f9ef1e530c617cd598171497b4a49e82
-        a                     foaf:Person , ucdrp:person , vivo:NonAcademic ;
-        rdfs:label            "Quinn Hart" ;
-        ucdrp:casId           "quinn" ;
-        obo:ARG_2000028       <http://experts.ucdavis.edu/person/f9ef1e530c617cd598171497b4a49e82#vcard> , <http://experts.ucdavis.edu/person/f9ef1e530c617cd598171497b4a49e82#pps-1> , <http://experts.ucdavis.edu/person/f9ef1e530c617cd598171497b4a49e82#odr-1> ;
-        vivo:hasResearchArea  <http://experts.ucdavis.edu/concept/FoR/080106> , <http://experts.ucdavis.edu/concept/FoR/080306> , <http://experts.ucdavis.edu/concept/FoR/080604> , <http://experts.ucdavis.edu/concept/FoR/080505> , <http://experts.ucdavis.edu/concept/FoR/08> , <http://experts.ucdavis.edu/concept/FoR/080302> , <http://experts.ucdavis.edu/concept/FoR/080404> , <http://experts.ucdavis.edu/concept/FoR/0804> , <http://experts.ucdavis.edu/concept/FoR/0806> ;
-        vivo:overview         "I am currently the digital applications manager for the UC Davis library.  At the Library, I develop research and educational applications for use at the library and to our researchers and the public.\n\nI've been at UC Davis since 1992.  Before coming to the library in 2016, I worked as a programmer under various projects in the Dept. of Land, Air, and Water Resources." ;
-        vivo:relatedBy        authorship:2713713 , authorship:1765064 , authorship:2713718 , authorship:1452167-3 , authorship:639836-5 , authorship:2713714-2 , authorship:1442407 , authorship:2713714 , authorship:1875203 , authorship:639836 , authorship:2327636-4 , authorship:2364120 , authorship:1452140-3 , authorship:2713715 , authorship:1765066 , authorship:1765064-1 , authorship:2713720-1 , authorship:2713719 , authorship:1452140 , authorship:1442407-2 , authorship:2439616 , authorship:1765066-2 , authorship:1452167 , authorship:2713712-4 , authorship:2713711 , authorship:1452104-1 , authorship:2713715-3 , authorship:2713717-9 , authorship:1442289-1 , authorship:1434606 , authorship:2449942-1 , authorship:2713718-1 , authorship:1442413-2 , authorship:2713716-2 , authorship:1442400-3 , authorship:2713719-1 , authorship:1445886-4 , authorship:1442400 , authorship:2439616-1 , authorship:2449942 , authorship:2713720 , authorship:2713716 , authorship:2327636 , authorship:2713717 , authorship:1445886 , authorship:2713713-2 , authorship:2713711-2 , authorship:1452104 , authorship:2713712 , authorship:1442413 , authorship:1442289 , authorship:1434606-5 .
-#+END_SRC
-
-#+name: author_authorship
-#+BEGIN_SRC sparql  :noweb yes :var limit="5"
-<<prefixes>>
-#describe ?s WHERE {
-#select ?s WHERE {
-select ?a
-WHERE {
-  ?a a ucdrp:authorship;
-     vivo:relates ?s;
-  .
-  {select ?s WHERE {
-    ?s a ucdrp:person.
-  } limit ?limit}
-}
-#+END_SRC
-
-#+RESULTS: author_authorship
-| a                                               |
+| s                                               |
 |-------------------------------------------------|
-| http://experts.ucdavis.edu/authorship/2713713-2 |
-| http://experts.ucdavis.edu/authorship/1442400-3 |
-| http://experts.ucdavis.edu/authorship/1452104-1 |
-| http://experts.ucdavis.edu/authorship/2713716-2 |
-| http://experts.ucdavis.edu/authorship/1452167-3 |
-| http://experts.ucdavis.edu/authorship/1434606-5 |
-| http://experts.ucdavis.edu/authorship/2439616-1 |
-| http://experts.ucdavis.edu/authorship/1765064-1 |
-| http://experts.ucdavis.edu/authorship/2713718-1 |
-| http://experts.ucdavis.edu/authorship/2713714-2 |
-| http://experts.ucdavis.edu/authorship/1452140-3 |
-| http://experts.ucdavis.edu/authorship/2713717-9 |
-| http://experts.ucdavis.edu/authorship/2713712-4 |
-| http://experts.ucdavis.edu/authorship/1445886-4 |
-| http://experts.ucdavis.edu/authorship/2713715-3 |
-| http://experts.ucdavis.edu/authorship/2327636-4 |
-| http://experts.ucdavis.edu/authorship/2449942-1 |
-| http://experts.ucdavis.edu/authorship/1765066-2 |
-| http://experts.ucdavis.edu/authorship/2713711-2 |
-| http://experts.ucdavis.edu/authorship/1442413-2 |
-| http://experts.ucdavis.edu/authorship/1442289-1 |
-| http://experts.ucdavis.edu/authorship/1442407-2 |
-| http://experts.ucdavis.edu/authorship/639836-5  |
-| http://experts.ucdavis.edu/authorship/2713720-1 |
-| http://experts.ucdavis.edu/authorship/2713719-1 |
-| http://experts.ucdavis.edu/authorship/2713713   |
-| http://experts.ucdavis.edu/authorship/1442400   |
-| http://experts.ucdavis.edu/authorship/1452104   |
-| http://experts.ucdavis.edu/authorship/2713716   |
-| http://experts.ucdavis.edu/authorship/1452167   |
-| http://experts.ucdavis.edu/authorship/1434606   |
-| http://experts.ucdavis.edu/authorship/2364120   |
-| http://experts.ucdavis.edu/authorship/2439616   |
-| http://experts.ucdavis.edu/authorship/1765064   |
-| http://experts.ucdavis.edu/authorship/2713718   |
-| http://experts.ucdavis.edu/authorship/2713714   |
-| http://experts.ucdavis.edu/authorship/1452140   |
-| http://experts.ucdavis.edu/authorship/2713717   |
-| http://experts.ucdavis.edu/authorship/2713712   |
-| http://experts.ucdavis.edu/authorship/1445886   |
-| http://experts.ucdavis.edu/authorship/1875203   |
-| http://experts.ucdavis.edu/authorship/2713715   |
-| http://experts.ucdavis.edu/authorship/2327636   |
-| http://experts.ucdavis.edu/authorship/2449942   |
-| http://experts.ucdavis.edu/authorship/1765066   |
-| http://experts.ucdavis.edu/authorship/2713711   |
-| http://experts.ucdavis.edu/authorship/1442413   |
-| http://experts.ucdavis.edu/authorship/1442289   |
-| http://experts.ucdavis.edu/authorship/1442407   |
-| http://experts.ucdavis.edu/authorship/639836    |
-| http://experts.ucdavis.edu/authorship/2713720   |
-| http://experts.ucdavis.edu/authorship/2713719   |
+| http://experts.ucdavis.edu/authorship/1460430-1 |
+
+
+* TBD
+
+** Database Summary
 
 
 *** Authors
@@ -1906,3 +1506,19 @@ harvest_oap:10508705  oap:format  "native" ;
         oap:source-id            "13" ;
         oap:source-name          "crossref" .
 #+END_SRC
+
+* Colpolon
+
+This file is meant to be something of a literate programming environment for a
+standard set of sparql queries.  Eventually, this will be moved to the ~aeq~
+prioject for a single point of entry for queries to the system.  This should be
+an interactive file, that you can use to test queries, and then untangle this
+file, once you are ready to save these particular queries.
+
+This [[https://www.gnu.org/software/emacs/refcards/pdf/orgcard.pdf][Shortcut]] list is helpful to remember things like how to show the composed
+query.  This standard org-mode page on the [[https://orgmode.org/manual/Environment-of-a-Code-Block.html][Environment of a
+Code Block]] is also handy.
+
+This uses [[https://github.com/ljos/sparql-mode][sparql-mode]] which is actually pretty nice for queries.  For updates,
+I'm starting to look into the [[https://github.com/federicotdn/verb/blob/master/README.md][verb]] package, which might be the best for org-mode
+interaction.

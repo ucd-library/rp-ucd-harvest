@@ -244,7 +244,7 @@ function db() {
         dbs+=($(http --auth=${auth} POST ${G[fuseki_admin]}/harvestdb | tr -d '\r'))
       else
         while [[ -n "$1" ]]; do
-          dbs+=($(http --auth=${auth} POST ${G[fuseki_admin]} /harvestdb?name="$1" | tr -d '\r'))
+          dbs+=($(http --auth=${auth} POST ${G[fuseki_admin]}/harvestdb?name="$1" | tr -d '\r'))
           shift
         done
       fi
@@ -468,6 +468,7 @@ function export () {
 		experts.ucdavis.edu
 		experts.ucdavis.edu%2Fiam
 		experts.ucdavis.edu%2Foap
+		experts.ucdavis.edu%2Ffis
 	)
 
 	local get=http://fuseki:3030/experts/get

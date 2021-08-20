@@ -1,0 +1,335 @@
+* Signature Calculations
+:PROPERTIES:
+:header-args:sparql: :url http://localhost:8081/experts/sparql
+:END:
+
+ucdrp:Signatures, are an updated signature that combine Concepts with a strength
+for a particular user.  In addition, every
+
+We need to define more complete user signatures for our calculation of
+nearness.  That means we need a
+
+#+call: prefixes.org:lob-ingest()
+
+#+RESULTS:
+: 2
+
+#+name: construct_signature
+#+BEGIN_SRC sparql :noweb yes :var limit="25" :format raw :wrap "SRC ttl :tangle sig.ttl" :var expert="person:5291e4d36b94d14caae13c84f7bc5662"
+       <<prefixes>>
+  CONSTRUCT {
+  ?e vivo:signature ?e_sig;
+				ucdrp:casId ?casId;
+        vcard:hasEmail ?email;
+        .
+  ?e_sig a ucdrp:Signature;
+            ucdrp:dimension ?e_dim;
+            .
+  ?e_dim
+    ucdrp:concept ?concept;
+    ucdrp:value ?cnt ;
+  .
+
+  }
+  WHERE {
+  {
+   select (?expert as ?e) ?concept ( count(*) as ?cnt)
+      WHERE {
+            ?authorship a vivo:Authorship;
+                        vivo:relates ?expert;
+                        vivo:relates ?work;
+                        .
+
+            ?work vivo:hasSubjectArea ?leaf_concept.
+
+            ?leaf_concept skos:inScheme FoR:;
+                   skos:broader* ?concept;
+                          .
+            ?expert a ucdrp:person;
+        .
+            filter(isiri(?expert))
+        } GROUP BY ?e ?concept limit ?limit
+  }
+    ?e ucdrp:casId ?casId.
+    bind(uri(concat(str(?e),"#signature")) as ?e_sig)
+    bind(uri(concat(str(?e_sig),replace(str(?concept),str(FoR:),"-FoR"))) as ?e_dim)
+  }
+#+END_SRC
+
+#+call: construct_signature(expert="person:cad7d70207f8734a5651922548230be3")
+
+#+RESULTS:
+#+BEGIN_SRC ttl :tangle sig.ttl
+@prefix experts_oap: <http://experts.ucdavis.edu/oap/> .
+@prefix FoR:   <http://experts.ucdavis.edu/concept/FoR/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix free:  <http://experts.ucdavis.edu/concept/free> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+@prefix work:  <http://experts.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix experts_iam: <http://experts.ucdavis.edu/iam/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+
+<http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR0805>
+        ucdrp:concept  FoR:0805 ;
+        ucdrp:value    2 .
+
+<http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR0906>
+        ucdrp:concept  FoR:0906 ;
+         ucdrp:value    2 .
+
+<http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR08>
+        ucdrp:concept  FoR:08 ;
+        ucdrp:value    2 .
+
+<http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature>
+        a                ucdrp:Signature ;
+        ucdrp:dimension  <http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR0805> , <http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR1005> , <http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR09> , <http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR0906> , <http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR08> , <http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR10> , <http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR> .
+
+<http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR10>
+        ucdrp:concept  FoR:10 ;
+        ucdrp:value    2 .
+
+person:cad7d70207f8734a5651922548230be3
+        ucdrp:casId     "ghaffar" ;
+        vivo:signature  <http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature> .
+
+<http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR09>
+        ucdrp:concept  FoR:09 ;
+        ucdrp:value    2 .
+
+<http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR1005>
+        ucdrp:concept  FoR:1005 ;
+        ucdrp:value    2 .
+
+<http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR>
+        ucdrp:concept  FoR: ;
+        ucdrp:value    6 .
+#+END_SRC
+
+So, now we can write an update function that adds a signature to all existing
+persons in our setup.  The query below is appropriate for an update query to
+only the harvest (or private?) database.  The mess of graphs in this instance
+makes me wonder about making the experts database updateable, which would
+really simplify this.
+
+We also need to add the total length of the signature as well, so we can
+normalize to 1.
+
+#+name: update_signature
+#+BEGIN_SRC sparql :noweb yes :var limit="25" :format raw :wrap SRC "ttl :tangle signature.ttl"
+  <<prefixes>>
+  DELETE { GRAPH experts: { ?s ?p ?o. } } WHERE { graph experts: {
+   VALUES ?type { ucdrp:Signature ucdrp:SignatureDimension}
+   ?s a ?type;
+     ?p ?o.
+  }};
+
+  INSERT { GRAPH experts: {
+  #CONSTRUCT {
+  ?e ucdrp:signature ?e_sig;
+        ucdrp:casId ?casId;
+        vcard:hasEmail ?email;
+        .
+  ?e_sig a ucdrp:Signature;
+            ucdrp:dimension ?e_dim;
+            .
+  ?e_dim a ucdrp:SignatureDimension;
+    ucdrp:concept ?concept;
+    ucdrp:value ?cnt ;
+  .
+
+  }}
+  WHERE {
+  {
+   select (?expert as ?e) ?concept ( count(*) as ?cnt)
+      WHERE {
+          graph experts_oap: {
+            ?authorship a vivo:Authorship;
+                        vivo:relates ?expert;
+                        vivo:relates ?work;
+                        .
+
+           ?work vivo:hasSubjectArea ?leaf_concept.
+            ?expert a ucdrp:person;
+        .
+            filter(isiri(?expert))
+        }
+        graph experts: {
+            ?leaf_concept skos:inScheme FoR:;
+                   skos:broader* ?concept;
+                          .
+        }
+      } GROUP BY ?expert ?concept
+    }
+    graph experts_iam: {
+      ?e ucdrp:casId ?casId.
+    }
+    filter(?concept != FoR:)
+    bind(uri(concat(str(?e),"#signature")) as ?e_sig)
+    bind(uri(concat(str(?e_sig),replace(str(?concept),str(FoR:),"-FoR"))) as ?e_dim)
+  };
+
+  DELETE { graph experts: {?s ucdrp:length ?len } } WHERE {graph experts: { ?s ucdrp:length ?len. } };
+
+  INSERT { graph experts: {
+    ?s ucdrp:length ?len .
+  }} WHERE {
+  select ?s (afn:sqrt(sum(?v*?v)) as ?len)
+  WHERE { graph experts: {
+      ?s a ucdrp:Signature;
+         ucdrp:dimension [ ucdrp:concept ?concept;
+        ucdrp:value ?v ];
+
+         } } group by ?s
+  }
+
+
+#+END_SRC
+
+
+Now that we have this, we can actually create our first example function, in
+this case. The dot product of any two individuals is a rating of how close they
+match.
+
+#+name: dot
+#+BEGIN_SRC sparql :noweb yes :format raw :var limit="3"  :var expert="person:no_one" :wrap SRC ttl :url http://localhost:8081/harvest/sparql
+<<prefixes>>
+construct {
+?shared a ucdrp:sharedInterest;
+ ucdrp:person ?a,?b;
+ ucdrp:value ?dot;
+ ucdrp:numberInterests ?cnt;
+.
+} WHERE {
+{
+select ?a ?b (sum((?a_v/?a_len)*(?b_v/?b_len)) as ?dot) (count(*) as ?cnt)
+where {
+  bind(?expert as ?a)
+  bind(?compare as ?b)
+  graph experts: {
+  ?a ucdrp:signature [
+    ucdrp:length ?a_len;
+    ucdrp:dimension [ ucdrp:concept ?concept; ucdrp:value ?a_v] ].
+
+ ?b ucdrp:signature [
+    ucdrp:length ?b_len;
+    ucdrp:dimension [ ucdrp:concept ?concept; ucdrp:value ?b_v]].
+  filter(?a != ?b)
+  }} group by ?a ?b order by desc(?dot) limit ?limit
+}
+  bind(uri(concat(str(?a),"#shared-",replace(str(?b),str(person:),''))) as ?shared)
+}
+#+END_SRC
+
+
+#+call: dot(expert="person:5291e4d36b94d14caae13c84f7bc5662",compare="person:5da5ca50ecd070e4df73146deb14a727")
+#+call: dot(expert="person:5291e4d36b94d14caae13c84f7bc5662")
+
+#+RESULTS:
+#+BEGIN_SRC ttl
+@prefix experts_oap: <http://experts.ucdavis.edu/oap/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix FoR:   <http://experts.ucdavis.edu/concept/FoR/> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix free:  <http://experts.ucdavis.edu/concept/free> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+@prefix work:  <http://experts.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix afn:   <http://jena.apache.org/ARQ/function#> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix experts_iam: <http://experts.ucdavis.edu/iam/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+
+<http://experts.ucdavis.edu/person/5291e4d36b94d14caae13c84f7bc5662#shared-5da5ca50ecd070e4df73146deb14a727>
+        a                      ucdrp:sharedInterest ;
+        ucdrp:numberInterests  9 ;
+        ucdrp:person           person:5da5ca50ecd070e4df73146deb14a727 , person:5291e4d36b94d14caae13c84f7bc5662 ;
+        ucdrp:value            0.8588257848367014e0 .
+
+<http://experts.ucdavis.edu/person/5291e4d36b94d14caae13c84f7bc5662#shared-ccabc124666a1ec4a0fe3822225907e6>
+        a                      ucdrp:sharedInterest ;
+        ucdrp:numberInterests  7 ;
+        ucdrp:person           person:ccabc124666a1ec4a0fe3822225907e6 , person:5291e4d36b94d14caae13c84f7bc5662 ;
+        ucdrp:value            0.872691667086064e0 .
+
+<http://experts.ucdavis.edu/person/5291e4d36b94d14caae13c84f7bc5662#shared-1b59b4daa533afdad6b6b17c998e2b8a>
+        a                      ucdrp:sharedInterest ;
+        ucdrp:numberInterests  14 ;
+        ucdrp:person           person:1b59b4daa533afdad6b6b17c998e2b8a , person:5291e4d36b94d14caae13c84f7bc5662 ;
+        ucdrp:value            0.8806503310525067e0 .
+#+END_SRC
+
+
+#+name: update_sharedInterests
+#+BEGIN_SRC sparql :noweb yes :format raw :var limit="3"  :var expert="person:no_one" :wrap SRC ttl :url http://localhost:8081/harvest/sparql
+<<prefixes>>
+#insert { graph experts: {
+construct {
+?shared a ucdrp:SharedInterest;
+ ucdrp:person ?a,?b;
+ ucdrp:value ?dot;
+ ucdrp:numberInterests ?cnt;
+.
+} } WHERE {
+{
+select ?a ?b (sum((?a_v/?a_len)*(?b_v/?b_len)) as ?dot) (count(*) as ?cnt)
+where {
+  graph experts: {
+  ?a ucdrp:signature [
+    ucdrp:length ?a_len;
+    ucdrp:dimension [ ucdrp:concept ?concept; ucdrp:value ?a_v] ].
+
+ ?b ucdrp:signature [
+    ucdrp:length ?b_len;
+    ucdrp:dimension [ ucdrp:concept ?concept; ucdrp:value ?b_v]].
+  filter(str(?a) < str(?b))
+  }} group by ?a ?b limit 10
+}
+  bind(uri(concat(str(?a),"#shared-",replace(str(?b),str(person:),''))) as ?shared)
+}
+#+END_SRC
+
+
+And now we can get a histogram of sharededness
+
+#+BEGIN_SRC sparql :noweb yes
+<<prefixes>>
+select ?v (count(*) as ?cnt) where {
+  ?s a ucdrp:SharedInterest;
+     ucdrp:value ?val.
+  bind(xsd:integer(?val*100) as ?v)
+} group by ?v order by ?v
+#+END_SRC
