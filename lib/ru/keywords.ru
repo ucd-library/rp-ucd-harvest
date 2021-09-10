@@ -6,7 +6,6 @@ PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
@@ -16,7 +15,7 @@ PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 
 INSERT {
-  GRAPH experts_oap: {
+  GRAPH experts: {
     ?experts_work_id vivo:hasfreetextKeyword ?keyword
   }
 }

@@ -1,7 +1,6 @@
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
@@ -24,7 +23,7 @@ INSERT {
   GRAPH harvest_oap: {
     ?user oap:user_supplied_concepts ?user_supplied_concepts;
     }
-	GRAPH experts_oap: {
+	GRAPH experts: {
     ?person_id a ucdrp:person, foaf:Person;
        rdfs:label ?name ;
        vivo:overview ?overview;

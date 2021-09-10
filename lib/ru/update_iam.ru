@@ -6,8 +6,7 @@
 
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX person: <http://experts.ucdavis.edu/person/>
-PREFIX experts_iam: <http://experts.ucdavis.edu/iam/>
-PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
+PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX harvest_iam: <http://iam.ucdavis.edu/>
 PREFIX iam: <http://iam.ucdavis.edu/schema#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
@@ -18,9 +17,9 @@ PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 #First Delete all existing records, (Should this be in oap as well?)
-#DELETE { graph experts_iam: {?user ?p ?o }}
+#DELETE { graph experts: {?user ?p ?o }}
 #WHERE {
-#  graph experts_iam: {?user ?p ?o .}
+#  graph experts: {?user ?p ?o .}
 #  graph harvest_iam: {
 #    ?s iam:email ?email;
 #       iam:userID ?kerb;
@@ -33,10 +32,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 #};
 
 INSERT {
-	graph experts_oap: {
-		?user a ucdrp:person;
-			}
-	graph experts_iam: {
+	graph experts: {
   ?user a ?emp_type, ucdrp:person;
           rdfs:label ?label;
           ucdrp:casId ?kerb;

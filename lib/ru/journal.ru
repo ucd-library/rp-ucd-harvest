@@ -3,7 +3,6 @@
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
@@ -20,7 +19,7 @@ PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX work: <http://experts.ucdavis.edu/work/>
 
 INSERT {
-  GRAPH experts_oap: {
+  GRAPH experts: {
     ?journalURI a bibo:Journal, ucdrp:venue;
     rdfs:label ?journalTitle ;
     bibo:issn ?issn ;

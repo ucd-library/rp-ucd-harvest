@@ -1,8 +1,6 @@
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
-PREFIX experts_pub: <http://experts.ucdavis.edu/pub/>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
@@ -24,21 +22,21 @@ PREFIX authorship: <http://experts.ucdavis.edu/authorship/>
 # Leave in previous insertionTimes, since it's a good indication we didn't clean
 # our db.
 #DELETE {
-#  GRAPH experts_oap: {
+#  GRAPH experts: {
 #    ?experts_work_id ucdrp:insertionDateTime ?t.
 #  }
 #} WHERE {
-#  GRAPH arvest_oap: {
+#  GRAPH harvest_oap: {
 #    ?work oap:experts_work_id ?experts_work_id
 #  }
-#  GRAPH experts_oap: {
+#  GRAPH experts: {
 #    ?experts_work_id ucdrp:insertionDateTime ?t.
 #  }
 #}
 
 # First, Insert citation BIBO stuff
 INSERT {
-  GRAPH experts_oap: {
+  GRAPH experts: {
     ?experts_work_id a ?bibo_type, ucdrp:work ;
     rdfs:label ?title ;
     bibo:status ?vivoStatus;
@@ -81,7 +79,7 @@ WHERE { GRAPH harvest_oap: {
 
 # Now insert optional bibo entries
 INSERT {
-  GRAPH experts_oap: {
+  GRAPH experts: {
     ?experts_work_id ?bibo_predicate ?field_text.
   }
 }
@@ -110,7 +108,7 @@ WHERE {
   }};
 
 # Insert any pagenumber
-INSERT { GRAPH experts_oap: {
+INSERT { GRAPH experts: {
   ?experts_work_id ucdrp:pagination_source ?page_source;
                    ucdrp:priority ?priority;
                    bibo:pageStart ?begin;
@@ -149,7 +147,7 @@ WHERE {
 
 # Insert the Work Date in VIVO format.
 INSERT {
-  GRAPH experts_oap: {
+  GRAPH experts: {
     ?experts_work_id vivo:dateTimeValue ?work_date.
 
     ?work_date a vivo:DateTimeValue ;
@@ -191,7 +189,7 @@ WHERE {
 # If it appeared in a journal, identify that relationship
 # the JournalURI calculation needs match the journal creation step
 INSERT {
-  GRAPH experts_oap: {
+  GRAPH experts: {
     ?experts_work_id vivo:hasPublicationVenue ?journalURI .
     ?journalURI vivo:publicationVenueFor ?experts_work_id .
   }

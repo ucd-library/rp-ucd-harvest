@@ -6,8 +6,7 @@
 
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX person: <http://experts.ucdavis.edu/person/>
-PREFIX experts_iam: <http://experts.ucdavis.edu/iam/>
-PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
+PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX harvest_iam: <http://iam.ucdavis.edu/>
 PREFIX iam: <http://iam.ucdavis.edu/schema#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
@@ -18,9 +17,9 @@ PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 #First Delete all existing records, (Should this be in oap as well?)
-DELETE { graph experts_iam: {?s ?p ?o }}
+DELETE { graph experts: {?s ?p ?o }}
 WHERE {
-  graph experts_iam: {?s ?p ?o .
+  graph experts: {?s ?p ?o .
     filter(regex(?s,concat("^",str(?user))))
   }
   graph harvest_iam: {
@@ -32,7 +31,7 @@ WHERE {
 
 # Add the user's best name, and their type
 INSERT {
-	graph experts_iam: {
+	graph experts: {
   ?user a ?emp_type, ucdrp:person;
           rdfs:label ?label;
           ucdrp:casId ?kerb;
@@ -88,7 +87,7 @@ INSERT {
 
 # Now add their roles seperately.  Currently ODR implies the same name for all listings
 INSERT {
-	graph experts_iam: {
+	graph experts: {
   ?user obo:ARG_2000028 ?vcard.
   ?vcard a vcard:Individual;
             ucdrp:identifier ?vid;
