@@ -41,9 +41,8 @@ INSERT {
   GRAPH experts_oap: {
     ?experts_work_id a ?bibo_type, ucdrp:work ;
     rdfs:label ?title ;
-    bibo:pageStart ?beginPage ;
-    bibo:pageEnd ?endPage ;
     bibo:status ?vivoStatus;
+    ucdrp:best_source ?source;
 		ucdrp:lastModifiedDateTime ?lastModifiedDateTime ;
 		ucdrp:insertionDateTime ?insertionDateTime;
     .
@@ -57,7 +56,9 @@ WHERE { GRAPH harvest_oap: {
     ("journal-article" bibo:AcademicArticle)
   }
 
-  ?work oap:best_native_record ?native;
+  ?work
+         oap:best_record/oap:source-name ?source;
+         oap:best_native_record ?native;
 			   oap:type ?oap_type ;
          oap:experts_work_id ?experts_work_id;
          oap:work_number ?pub_id;
@@ -106,7 +107,45 @@ WHERE {
       }
 
       ?native oap:field [ oap:name ?field_name ; oap:text ?field_text ].
-}};
+  }};
+
+# Insert any pagenumber
+INSERT { GRAPH experts_oap: {
+  ?experts_work_id ucdrp:pagination_source ?page_source;
+                   ucdrp:priority ?priority;
+                   bibo:pageStart ?begin;
+                   bibo:pageEnd ?end;
+                   .
+} }
+WHERE {
+  { select ?work (min(?mpriority) as ?mp) WHERE {
+    VALUES (?msource ?mpriority) {
+      ("verified-manual" 1) ("epmc" 2) ("pubmed" 3)  ("scopus" 4)("wos" 5) ("wos-lite" 6)
+      ("crossref" 7)  ("dimensions" 8) ("arxiv" 9)("orcid" 10) ("dblp" 11)  ("cinii-english" 12)
+      ("repec" 13)  ("figshare" 14)  ("cinii-japanese" 15) ("manual" 16)  ("dspace" 17) }
+    GRAPH harvest_oap: {
+      ?work oap:category "publication" ;
+      oap:records/oap:record [ oap:source-name  ?msource;
+                               oap:native/oap:field/oap:pagination [] ].
+    }} group by ?work
+  }
+  {
+    VALUES (?page_source ?priority) {
+      ("verified-manual" 1) ("epmc" 2) ("pubmed" 3)  ("scopus" 4)("wos" 5) ("wos-lite" 6)
+      ("crossref" 7)  ("dimensions" 8) ("arxiv" 9)("orcid" 10) ("dblp" 11)  ("cinii-english" 12)
+      ("repec" 13)  ("figshare" 14)  ("cinii-japanese" 15) ("manual" 16)  ("dspace" 17) }
+
+    GRAPH harvest_oap: {
+      ?work oap:category "publication" ;
+      oap:experts_work_id ?experts_work_id;
+      oap:records/oap:record ?record .
+      ?record oap:source-name  ?page_source;
+              oap:native/oap:field/oap:pagination [oap:begin-page ?begin; oap:end-page ?end ].
+    }
+  }
+  filter(?priority=?mp)
+};
+
 
 # Insert the Work Date in VIVO format.
 INSERT {
