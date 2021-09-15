@@ -145,6 +145,34 @@ function main.cmd () {
     esac
 }
 
+function log_assoc() {
+  local opts;
+  if ! opts=$($GETOPT -o v --long verbose -n 'cdl log_assoc' -- "$@"); then
+    echo "Bad Command Options." >&2 ; exit 1 ; fi
+
+    eval set -- "$opts"
+
+    local log_verbose=0
+
+    while true; do
+	    case $1 in
+	      -v | --verbose) let log_verbose=$log_verbose+1;  shift;;
+	      -- ) shift; break;;
+      esac
+    done
+
+    declare -n v=$1
+    v[exe]="cdl_elements"
+    v[timestamp]="$(date --iso-8601=seconds)"
+
+    if (( ${G[verbose]} >= $log_verbose )) ; then
+      for key in "${!v[@]}"; do
+        printf '%s\0%s\0' "$key" "${v[$key]}"
+      done |
+        jq -Rsc ' split("\u0000") | . as $a | reduce range(0  ; length/2) as $i  ({}; . + {($a[  2*$i]): ($a[2*$i + 1]|fromjson? // .)})'
+    fi
+}
+
 function log() {
   local opts;
   if ! opts=$(${G[util_getopt]} -o nv --long verbose -n 'harvest log' -- "$@"); then
@@ -219,6 +247,10 @@ function db() {
   local auth=${G[fuseki_auth]}
   local dbs=()
 
+  declare -a logit(
+    [cmd]="db $1"
+    );
+
   cmd=$1
   shift;
 
@@ -244,7 +276,7 @@ function db() {
         dbs+=($(http --auth=${auth} POST ${G[fuseki_admin]}/harvestdb | tr -d '\r'))
       else
         while [[ -n "$1" ]]; do
-          dbs+=($(http --auth=${auth} POST ${G[fuseki_admin]} /harvestdb?name="$1" | tr -d '\r'))
+          dbs+=($(http --auth=${auth} POST ${G[fuseki_admin]}/harvestdb?name="$1" | tr -d '\r'))
           shift
         done
       fi
@@ -252,7 +284,8 @@ function db() {
     *) err "Invalid command $cmd"
        ;;
   esac
-  echo "${dbs[@]}"
+  logit[dbs]="$dbs"
+  log_assoc -v logit
 }
 
 
@@ -294,9 +327,7 @@ function login() {
 	local v_s
   v_s=$(for i in $(seq ${G[verbose]} ); do echo -n " -v"; done)
 
-	log -v -n "cdl-elements."
 	cdl-elements ${v_s} login --auth=${CMD[cdl_auth]}
-	log -v -n "ucdid."
 	ucdid ${v_s} login --auth=${CMD[ucdid_auth]}
 }
 
@@ -466,8 +497,7 @@ function export () {
 
 	local graphdirs=(
 		experts.ucdavis.edu
-		experts.ucdavis.edu%2Fiam
-		experts.ucdavis.edu%2Foap
+		experts.ucdavis.edu%2Ffis
 	)
 
 	local get=http://fuseki:3030/experts/get

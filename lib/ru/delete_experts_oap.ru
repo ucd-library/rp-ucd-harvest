@@ -4,7 +4,7 @@
 #  directory search, I think we'll take that to mean to not to include any PPS
 #  data as well.
 
-PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
+PREFIX experts: <http://experts.ucdavis.edu/>
 DELETE {} WHERE {
-  graph ?experts_oap: { ?s ?p ?o . }
+  graph ?experts: { ?s ?p ?o . }
 }

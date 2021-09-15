@@ -1,6 +1,6 @@
 # coding: utf-8
 PREFIX dcterms: <http://purl.org/dc/terms/>
-PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
+PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR/>
 PREFIX free: <http://experts.ucdavis.edu/concept/free/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
@@ -11,7 +11,7 @@ PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
 
 # Add in the Concept Scheme
-INSERT { GRAPH experts_oap: {
+INSERT { GRAPH experts: {
   FoR: a skos:ConceptScheme;
       dcterms:title "2008 ANZSRC Fields of Research (FoR) classification"@en;
       dcterms:source <https://www.arc.gov.au/grants/grant-application/classification-codes-rfcd-seo-and-anzsic-codes>;
@@ -37,7 +37,7 @@ FoR:21,FoR:22;
 }} WHERE {};
 
 # Now add in all terms
-INSERT { GRAPH experts_oap: {
+INSERT { GRAPH experts: {
     ?conceptURI a skos:Concept, ucdrp:concept.
     ?conceptURI rdfs:label ?keyword .
 }}
@@ -48,7 +48,7 @@ WHERE { GRAPH harvest_oap: {
 }};
 
 # Now add the terms to the works.
-INSERT { GRAPH experts_oap: {
+INSERT { GRAPH experts: {
     ?experts_work_id vivo:hasSubjectArea ?conceptURI .
     ?conceptURI vivo:subjectAreaOf ?experts_work_id .
 }}
@@ -56,7 +56,7 @@ WHERE { GRAPH ?harvest_graph {
   ?work oap:experts_work_id ?experts_work_id;
                oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?keyword ; oap:scheme 'for' ] .
 }
-  GRAPH experts_oap: {
+  GRAPH experts: {
     ?conceptURI rdfs:label ?keyword
   }
 }

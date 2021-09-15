@@ -1,8 +1,6 @@
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
-PREFIX experts_pub: <http://experts.ucdavis.edu/pub/>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
@@ -24,26 +22,25 @@ PREFIX authorship: <http://experts.ucdavis.edu/authorship/>
 # Leave in previous insertionTimes, since it's a good indication we didn't clean
 # our db.
 #DELETE {
-#  GRAPH experts_oap: {
+#  GRAPH experts: {
 #    ?experts_work_id ucdrp:insertionDateTime ?t.
 #  }
 #} WHERE {
 #  GRAPH harvest_oap: {
 #    ?work oap:experts_work_id ?experts_work_id
 #  }
-#  GRAPH experts_oap: {
+#  GRAPH experts: {
 #    ?experts_work_id ucdrp:insertionDateTime ?t.
 #  }
 #}
 
 # First, Insert citation BIBO stuff
 INSERT {
-  GRAPH experts_oap: {
+  GRAPH experts: {
     ?experts_work_id a ?bibo_type, ucdrp:work ;
     rdfs:label ?title ;
-    bibo:pageStart ?beginPage ;
-    bibo:pageEnd ?endPage ;
     bibo:status ?vivoStatus;
+    ucdrp:best_source ?source;
 		ucdrp:lastModifiedDateTime ?lastModifiedDateTime ;
 		ucdrp:insertionDateTime ?insertionDateTime;
     .
@@ -57,7 +54,9 @@ WHERE { GRAPH harvest_oap: {
     ("journal-article" bibo:AcademicArticle)
   }
 
-  ?work oap:best_native_record ?native;
+  ?work
+         oap:best_record/oap:source-name ?source;
+         oap:best_native_record ?native;
 			   oap:type ?oap_type ;
          oap:experts_work_id ?experts_work_id;
          oap:work_number ?pub_id;
@@ -80,7 +79,7 @@ WHERE { GRAPH harvest_oap: {
 
 # Now insert optional bibo entries
 INSERT {
-  GRAPH experts_oap: {
+  GRAPH experts: {
     ?experts_work_id ?bibo_predicate ?field_text.
   }
 }
@@ -106,11 +105,49 @@ WHERE {
       }
 
       ?native oap:field [ oap:name ?field_name ; oap:text ?field_text ].
-}};
+  }};
+
+# Insert any pagenumber
+INSERT { GRAPH experts: {
+  ?experts_work_id ucdrp:pagination_source ?page_source;
+                   ucdrp:priority ?priority;
+                   bibo:pageStart ?begin;
+                   bibo:pageEnd ?end;
+                   .
+} }
+WHERE {
+  { select ?work (min(?mpriority) as ?mp) WHERE {
+    VALUES (?msource ?mpriority) {
+      ("verified-manual" 1) ("epmc" 2) ("pubmed" 3)  ("scopus" 4)("wos" 5) ("wos-lite" 6)
+      ("crossref" 7)  ("dimensions" 8) ("arxiv" 9)("orcid" 10) ("dblp" 11)  ("cinii-english" 12)
+      ("repec" 13)  ("figshare" 14)  ("cinii-japanese" 15) ("manual" 16)  ("dspace" 17) }
+    GRAPH harvest_oap: {
+      ?work oap:category "publication" ;
+      oap:records/oap:record [ oap:source-name  ?msource;
+                               oap:native/oap:field/oap:pagination [] ].
+    }} group by ?work
+  }
+  {
+    VALUES (?page_source ?priority) {
+      ("verified-manual" 1) ("epmc" 2) ("pubmed" 3)  ("scopus" 4)("wos" 5) ("wos-lite" 6)
+      ("crossref" 7)  ("dimensions" 8) ("arxiv" 9)("orcid" 10) ("dblp" 11)  ("cinii-english" 12)
+      ("repec" 13)  ("figshare" 14)  ("cinii-japanese" 15) ("manual" 16)  ("dspace" 17) }
+
+    GRAPH harvest_oap: {
+      ?work oap:category "publication" ;
+      oap:experts_work_id ?experts_work_id;
+      oap:records/oap:record ?record .
+      ?record oap:source-name  ?page_source;
+              oap:native/oap:field/oap:pagination [oap:begin-page ?begin; oap:end-page ?end ].
+    }
+  }
+  filter(?priority=?mp)
+};
+
 
 # Insert the Work Date in VIVO format.
 INSERT {
-  GRAPH experts_oap: {
+  GRAPH experts: {
     ?experts_work_id vivo:dateTimeValue ?work_date.
 
     ?work_date a vivo:DateTimeValue ;
@@ -152,7 +189,7 @@ WHERE {
 # If it appeared in a journal, identify that relationship
 # the JournalURI calculation needs match the journal creation step
 INSERT {
-  GRAPH experts_oap: {
+  GRAPH experts: {
     ?experts_work_id vivo:hasPublicationVenue ?journalURI .
     ?journalURI vivo:publicationVenueFor ?experts_work_id .
   }

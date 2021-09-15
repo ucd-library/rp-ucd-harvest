@@ -4,8 +4,6 @@
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
-PREFIX experts_pub: <http://experts.ucdavis.edu/pub/>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
@@ -24,7 +22,7 @@ PREFIX work: <http://experts.ucdavis.edu/work/>
 PREFIX authorship: <http://experts.ucdavis.edu/authorship/>
 
 INSERT {
-  GRAPH experts_oap: {
+  GRAPH experts: {
     ?authorship a vivo:Authorship,ucdrp:authorship ;
     vivo:rank ?authorRank ;
     vivo:relates ?personURI ;
@@ -90,7 +88,7 @@ WHERE { GRAPH harvest_oap: {
 # For these, we don't know exaclty what author is being assigned to this relationship,
 #
 INSERT {
-  GRAPH experts_oap: {
+  GRAPH experts: {
     ?authorship a vivo:Authorship,ucdrp:authorship ;
     vivo:relates ?personURI ;
     vivo:relates ?experts_work_id ;

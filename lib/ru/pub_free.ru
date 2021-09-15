@@ -1,5 +1,5 @@
 PREFIX dcterms: <http://purl.org/dc/terms/>
-PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
+PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR/>
 PREFIX free: <http://experts.ucdavis.edu/concept/free/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
@@ -12,7 +12,7 @@ PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 # Add in the ConceptScheme;
-INSERT { GRAPH experts_oap: {
+INSERT { GRAPH experts: {
   free: a skos:ConceptScheme;
       dcterms:title "Free Text Terms"@en;
       dcterms:creator "UC Davis Library" ;
@@ -22,7 +22,7 @@ INSERT { GRAPH experts_oap: {
     .
 }} WHERE{};
 
-INSERT { GRAPH experts_oap: {
+INSERT { GRAPH experts: {
   ?keyword a skos:Concept, ucdrp:concept ;
     skos:prefLabel ?term;
     rdfs:label ?term;
@@ -45,7 +45,7 @@ WHERE { GRAPH harvest_oap: {
 
 # Now connect the terms to the works
 
-INSERT { GRAPH experts_oap: {
+INSERT { GRAPH experts: {
   ?experts_work_id vivo:hasSubjectArea ?keyword.
   ?keyword vivo:subjectAreaOf ?experts_work_id.
 }}
