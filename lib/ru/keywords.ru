@@ -1,5 +1,4 @@
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
-PREFIX oapx: <http://experts.ucdavis.edu/oap/vocab#>
 PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
