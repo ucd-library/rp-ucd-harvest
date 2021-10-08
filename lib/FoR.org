@@ -965,38 +965,37 @@ FoR:    skos:narrower  FoR:13 , FoR:01 , FoR:10 , FoR:14 , FoR:08 , FoR:11 , FoR
 
 #+name: FoR_terms_update
 #+BEGIN_SRC sparql :noweb eval :var _scheme="FoR:" :var pub_graph="experts_oap:" :var _conceptx="FoR:1301" :format raw :wrap SRC ttl
-    <<prefixes>>
-    INSERT {
-      graph experts: {
+  <<prefixes>>
+  INSERT {
+    graph experts: {
       ?concept a ?type;
-            skos:broader ?broader;
-            skos:inScheme ?scheme;
-            skos:prefLabel ?label;
-skos:graph ?pub_graph;
-            .
+             skos:broader ?broader;
+        skos:inScheme ?scheme;
+        skos:prefLabel ?label;
+        .
 
       ?broader skos:narrower ?concept.
     } }
-    WHERE {
-      bind(?_scheme as ?scheme)
-      {
-        graph ?pub_graph {
-          ?work vivo:hasSubjectArea ?_concept.
-        }
-        graph ?v {
-          ?_concept skos:inScheme FoR:;
-               skos:broader* ?concept;
-               .
-        }
-        graph ?v {
-          ?concept a ?type;
-                skos:broader ?broader;
-                skos:inScheme ?scheme;
-                skos:prefLabel ?label;
-                .
-        }
+  WHERE {
+    bind(FoR: as ?scheme)
+    {
+      graph experts_oap: {
+        ?work vivo:hasSubjectArea ?_concept.
+      }
+      graph ?v {
+        ?_concept skos:inScheme ?scheme;
+                  skos:broader* ?concept;
+          .
+      }
+      graph ?v {
+        ?concept a ?type;
+                 skos:broader ?broader;
+          skos:inScheme ?scheme;
+          skos:prefLabel ?label;
+          .
       }
     }
+  }
 #+END_SRC
 
 

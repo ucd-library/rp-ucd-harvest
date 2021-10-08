@@ -147,7 +147,7 @@ function main.cmd () {
 
 function log_assoc() {
   local opts;
-  if ! opts=$($GETOPT -o v --long verbose -n 'cdl log_assoc' -- "$@"); then
+  if ! opts=$(${G[util_getopt]} -o v --long verbose -n 'harvest log_assoc' -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -162,7 +162,7 @@ function log_assoc() {
     done
 
     declare -n v=$1
-    v[exe]="cdl_elements"
+    v[exe]="harvest"
     v[timestamp]="$(date --iso-8601=seconds)"
 
     if (( ${G[verbose]} >= $log_verbose )) ; then
@@ -247,7 +247,7 @@ function db() {
   local auth=${G[fuseki_auth]}
   local dbs=()
 
-  declare -a logit(
+  declare -A logit=(
     [cmd]="db $1"
     );
 
@@ -265,7 +265,9 @@ function db() {
       while [[ -n "$1" ]]; do
         dbs+=($(http --auth=${auth} DELETE ${G[fuseki_admin]}/harvestdb?name="$1" | tr -d '\r'))
         if [[ -d ${G[harvest_base]}/"$1" ]]; then
-          log -v "rm -rf ${G[harvest_base]}/$1"
+          logit[cmd]+=" rm"
+          logit[dir]="${G[harvest_base]}/$1"
+          log_assoc -v logit
           rm -rf "${G[harvest_base]}/$1"
         fi
         shift
@@ -284,8 +286,7 @@ function db() {
     *) err "Invalid command $cmd"
        ;;
   esac
-  logit[dbs]="$dbs"
-  log_assoc -v logit
+  echo $dbs
 }
 
 
@@ -385,6 +386,7 @@ function user () {
   if ! opts=$(${G[util_getopt]} -o is:rnm: --long init,no-init,search:,remove,no-remove,last-modified -n 'harvest load' -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
+  local begin=$SECONDS
   eval set -- "$opts"
 
   declare -A CMD=(
@@ -393,6 +395,9 @@ function user () {
     [remove]=1
     [modified]=''
     );
+
+  declare -A logit=(
+    [cmd]="user");
 
   while true; do
 	  case $1 in
@@ -419,12 +424,12 @@ function user () {
   if ${CMD[fetch]} ; then
     # Now fetch all the data w/ CDL
     local cache=${G[harvest_base]}/${G[harvest_db]}
-	  log -v -v "cache: $cache"
+	  #log -v -v "cache: $cache"
     mkdir $cache;
   fi
     # call UCDID w/ query
     local profiles_ttl=$cache/profiles.ttl
-    log -v -v "ucdid fetch --format=ttl --search=\"${CMD[search]}\" profiles > $profiles_ttl"
+    #log -v -v "ucdid fetch --format=ttl --search=\"${CMD[search]}\" profiles > $profiles_ttl"
     ucdid fetch --format=ttl --search="${CMD[search]}" profiles > $profiles_ttl
     load --graph=http://iam.ucdavis.edu/ $profiles_ttl
 
@@ -443,11 +448,15 @@ function user () {
   update experts
   update journal publications authorships
   update pub_FoR pub_free keywords expert_concepts;
+  update grants
 
 	if [[ -n ${CMD[remove]} ]]; then
-		log -v "db rm ${G[harvest_db]};"
+    logit[db]="db rm ${G[harvest_db]};"
 		db rm ${G[harvest_db]}
 	fi;
+  logit[duration]=$(($SECONDS-$begin))
+  log_assoc -v logit
+
 }
 
 : <<='cut'
@@ -482,6 +491,10 @@ function export () {
     [directory]=''
     );
 
+  declare -A logit=(
+    [cmd]="export"
+  );
+
   while true; do
 	  case $1 in
 	    -d | --directory) CMD[directory]=$2;  shift 2;;
@@ -506,7 +519,8 @@ function export () {
 		local d=${CMD[directory]}/$dir;
 		[[ -d $d ]] || mkdir $d;
 		local g=$(printf 'http://%b/' ${dir//%/\\x})
-		log -v "curl \"${get}?graph=$g\" | gzip > $d/graph.ttl"
+    logit[export]="curl \"${get}?graph=$g\" | gzip > $d/graph.ttl"
+    log_assoc -v logit
     curl -s "${get}?graph=$g" | gzip > $d/graph.ttl.gz
 	done
 
@@ -541,6 +555,10 @@ Run update queries on the fuseki harvestdb endpoint.  I
 function update () {
   local file;
 	local begin;
+  declare -A logit=(
+    [cmd]="update"
+    );
+
   if [[ -n ${G[harvest_db]} ]]; then
     local auth=${G[fuseki_auth]}
     local update=${G[fuseki_host]}/${G[harvest_db]}/update
@@ -552,17 +570,21 @@ function update () {
         file=${G[harvest_home]}/ru/$file;
         [[ -f $file ]] || file=${file}.ru
       fi
+      logit[file]=$file
       if [[ -f $file ]]; then
-				log -v -v "curl -s --location --request POST --user \"${auth}\" -H Content-Type:application/sparql-update --data-binary \"@${file}\" ${update}"
+				#log -v -v "curl -s --location --request POST --user \"${auth}\" -H Content-Type:application/sparql-update --data-binary \"@${file}\" ${update}"
 				begin=$SECONDS
         curl -s --location --request POST --user "${auth}" -H Content-Type:application/sparql-update --data-binary "@${file}" ${update}
-				log -v "update $file time=$(($SECONDS-$begin))"
+        logit[duration]=$(($SECONDS-$begin))
       else
-        log -v "update $file not found"
+        logit[info]="$file not found"
       fi
+      log_assoc -v logit
     done
   else
-    err 1 "No harvest-db specified, via --db= or via HARVEST_DB env. variable."
+    logit[err]="No harvest-db specified, via --db= or via HARVEST_DB env. variable."
+    log_assoc logit
+    err 1
   fi
 }
 
@@ -619,6 +641,8 @@ function load () {
 	local count;
 	local begin;
 
+  declare -A logit=([cmd]="load");
+
   if [[ -n ${G[harvest_db]} ]]; then
     local auth=${G[fuseki_auth]}
     local load=${G[fuseki_host]}/${G[harvest_db]}/data
@@ -631,18 +655,27 @@ function load () {
         fn=$file
       fi
 			begin=$SECONDS
-      log -v -v "curl -s --location --request POST --user ${auth} -H \"Content-Type:multipart/form-data\" -F \"file=@${file};filename=${fn}\" \"${load}?graph=${CMD[graph]}\""
+      #log -v -v "curl -s --location --request POST --user ${auth} -H \"Content-Type:multipart/form-data\" -F \"file=@${file};filename=${fn}\" \"${load}?graph=${CMD[graph]}\""
       count=$(curl -s --location --request POST --user ${auth} -H "Content-Type:multipart/form-data" -F "file=@${file};filename=${fn}" "${load}?graph=${CMD[graph]}" | jq .count)
-			log -v "load $fn graph=${CMD[graph]} count=$count time=$(($SECONDS-$begin))"
+      logit[graph]=${CMD[graph]}
+      logit[fn]=$fn
+      logit[count]=$count
+      logit[duration]=$(($SECONDS-$begin))
+      logit[loader]="${load}"
+      log_assoc -v logit
     done
   fi
   # No can load both
   if [[ -n ${G[tdb]} && false ]]; then
     for file in "$@"; do
       [[ "$file" = '-' ]] && file=/dev/stdin
-      log -v -v "tdb2.tdbloader --loc=${G[tdb]} --graph=${G[graph]} $file"
+      #log -v -v "tdb2.tdbloader --loc=${G[tdb]} --graph=${G[graph]} $file"
       count=$(tdb2.tdbloader --loc=${G[tdb]} --graph=${G[graph]} $file)
-			log -v "tdb $fn graph=${CMD[graph]} => $count"
+      logit[fn]=$fn
+      logit[graph]=${CMD[graph]}
+      logit[count]=$count
+      logit[loader]="tdbloader"
+      log_assoc -v logit
     done
   fi
 }

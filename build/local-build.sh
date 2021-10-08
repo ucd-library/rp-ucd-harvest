@@ -8,5 +8,5 @@ tag=$(git tag --points-at HEAD)
 export DOCKER_BUILDKIT=1
 docker build \
   --build-arg BUILDKIT_INLINE_CACHE=1 \
-  -t ucdlib/${repo}:local-dev -t local-dev/${repo} -t local-dev/${repo}:${branch}\
+  -t local-dev/${repo} -t local-dev/${repo}:${branch}\
   $(git rev-parse --show-toplevel)

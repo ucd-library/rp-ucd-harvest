@@ -5,50 +5,126 @@
 :header-args:sparql: :url http://localhost:3030/experts_private/sparql :format text/csv
 :END:
 
-** Manual Updates to the rc database
+** Fuseki Vocabularies
 
-#+BEGIN_SRC bash
-dc pull
-dc down
-update .env for testing
-dc up -d
-
-# Just fetch the experts graph.
-experts_git=gitlab.dams.library.ucdavis.edu/experts/experts-data.git
-docker-compose exec fuseki fuseki-import-graphs \
---clone="https://quinn:${GITLAB_PUSH_TOKEN}@${experts_git} \
---single-branch --branch=experts-dev" --graph=experts.ucdavis.edu
-
-# Get users from other setup
-src=http://gold.experts.library.ucdavis.edu:3005/experts/query
-q='PREFIX : <http://experts.ucdavis.edu/schema#> select ?userId WHERE { [] a :person; :casId ?userId} order by ?userId'
-
-users=$(http --print=b --follow ${src} query=="$q" Accept:text/csv | tail -n+2 | tr -s '\n\r' ' ')
-
-dc exec harvest harvest -v login
-
-for id in $users; do dc exec harvest harvest -v user --search=userId=$id --init --remove; done
-
-# We have to make a special change for Kim, Sangtae
-db=$(dc exec harvest harvest db new)
-http --auth=admin:quinnisgreat http://localhost:8081/${db}/update Content-type:application/sparql-update <<<'
-PREFIX experts_iam: <http://experts.ucdavis.edu/iam/>
-PREFIX person: <http://experts.ucdavis.edu/person/>
-PREFIX vivo: <http://vivoweb.org/ontology/core#>
-delete { graph experts_iam: {person:1b9f745893ea8c821a3fc847e9775dbe a vivo:NonAcademic. } }
-insert { graph experts_iam: {person:1b9f745893ea8c821a3fc847e9775dbe a vivo:FacultyMember. } }
-WHERE {}'
-
-dc exec harvest harvest rm $db
-
-#+END_SRC
+   #+begin_src sparql :url http://localhost:8081/vocabularies/sparql
+  select ?g (count(*) as ?cnt) WHERE { graph ?g {?s ?p ?o. }} group by ?g
+#+end_src
 
 #+RESULTS:
-: Email bug reports to:  bug-dc@gnu.org .
+| g                                |  cnt |
+|----------------------------------+------|
+| http://experts.ucdavis.edu/ucop/ | 8983 |
+| http://experts.ucdavis.edu/FoR/  | 9953 |
+
+
+** Updating the private database
+
+   This can be done on a monthly basis.
+
+   #+begin_src bash
+     experts_git=gitlab.dams.library.ucdavis.edu/experts/experts-data.git
+     docker-compose exec fuseki fuseki-import-graphs \
+     --clone="https://quinn:${GITLAB_PUSH_TOKEN}@${experts_git} \
+     --single-branch --branch=main"
+
+#+end_src
+
+The private database mostly has the grants information currently.
+#+begin_src sparql :url http://localhost:8081/private/sparql
+  select ?g (count(*) as ?cnt) WHERE { graph ?g {?s ?p ?o. }} group by ?g
+#+end_src
+
+#+RESULTS:
+| g                               |     cnt |
+|---------------------------------+---------|
+| http://experts.ucdavis.edu/     |       6 |
+| http://experts.ucdavis.edu/fis/ | 1315810 |
+
+
+** Manual Updates to the rc database
+
+
+  #+begin_src bash
+  dc pull
+  dc down
+  update .env for testing
+  dc up -d
+  #+end_src
+
+
+  # Just fetch the experts graph.
+  experts_git=gitlab.dams.library.ucdavis.edu/experts/experts-data.git
+  docker-compose exec fuseki fuseki-import-graphs \
+  --clone="https://quinn:${GITLAB_PUSH_TOKEN}@${experts_git} \
+  --single-branch --branch=experts-dev" --graph=experts.ucdavis.edu
+
+*** New users
+
+  # Get users from other setup
+  src=http://gold.experts.library.ucdavis.edu:3005/experts/query
+  q='PREFIX : <http://experts.ucdavis.edu/schema#> select ?userId WHERE { [] a :person; :casId ?userId} order by ?userId'
+
+  users=$(http --print=b --follow ${src} query=="$q" Accept:text/csv | tail -n+2 | tr -s '\n\r' ' ')
+
+  dc exec harvest harvest -v login
+
+  for id in $users; do dc exec harvest harvest -v user --search=userId=$id --init --remove; done
+
+  # We have to make a special change for Kim, Sangtae
+  db=$(dc exec harvest harvest db new)
+  http --auth=admin:quinnisgreat http://localhost:8081/${db}/update Content-type:application/sparql-update <<<'
+  PREFIX experts_iam: <http://experts.ucdavis.edu/iam/>
+  PREFIX person: <http://experts.ucdavis.edu/person/>
+  PREFIX vivo: <http://vivoweb.org/ontology/core#>
+  delete { graph experts_iam: {person:1b9f745893ea8c821a3fc847e9775dbe a vivo:NonAcademic. } }
+  insert { graph experts_iam: {person:1b9f745893ea8c821a3fc847e9775dbe a vivo:FacultyMember. } }
+  WHERE {}'
+
+  dc exec harvest harvest rm $db
+
+
+  #+begin_src sparql :url http://localhost:8081/experts/sparql
+    select c?type (count(*) as ?cnt) WHERE { ?s a ?type} group by ?type order by ?type
+  #+end_src
+
+  #+RESULTS:
+  | type                                                        |  cnt |
+  |-------------------------------------------------------------+------|
+  | http://experts.ucdavis.edu/schema#Identifier                |   53 |
+  | http://experts.ucdavis.edu/schema#PrincipalInvestigatorRole |    5 |
+  | http://experts.ucdavis.edu/schema#authorship                | 7106 |
+  | http://experts.ucdavis.edu/schema#concept                   |  716 |
+  | http://experts.ucdavis.edu/schema#person                    |   20 |
+  | http://experts.ucdavis.edu/schema#venue                     |  496 |
+  | http://experts.ucdavis.edu/schema#work                      | 1441 |
+  | http://purl.org/ontology/bibo/AcademicArticle               | 1092 |
+  | http://purl.org/ontology/bibo/Book                          |    4 |
+  | http://purl.org/ontology/bibo/Chapter                       |   15 |
+  | http://purl.org/ontology/bibo/Journal                       |  496 |
+  | http://vivoweb.org/ontology/core#AdminRole                  |    2 |
+  | http://vivoweb.org/ontology/core#Authorship                 | 7106 |
+  | http://vivoweb.org/ontology/core#ConferencePaper            |  330 |
+  | http://vivoweb.org/ontology/core#DateTimeInterval           |  348 |
+  | http://vivoweb.org/ontology/core#DateTimeValue              | 2139 |
+  | http://vivoweb.org/ontology/core#FacultyMember              |   20 |
+  | http://vivoweb.org/ontology/core#FundingOrganization        |  137 |
+  | http://vivoweb.org/ontology/core#Grant                      |  348 |
+  | http://vivoweb.org/ontology/core#PrincipalInvestigatorRole  |    5 |
+  | http://www.w3.org/2004/02/skos/core#Concept                 | 2130 |
+  | http://www.w3.org/2004/02/skos/core#ConceptScheme           |    2 |
+  | http://www.w3.org/2006/vcard/ns#Email                       |   54 |
+  | http://www.w3.org/2006/vcard/ns#Individual                  | 5723 |
+  | http://www.w3.org/2006/vcard/ns#Name                        | 5690 |
+  | http://www.w3.org/2006/vcard/ns#Organization                |   53 |
+  | http://www.w3.org/2006/vcard/ns#Title                       |   53 |
+  | http://www.w3.org/2006/vcard/ns#URL                         |   12 |
+  | http://www.w3.org/2006/vcard/ns#Work                        |    2 |
+  | http://xmlns.com/foaf/0.1/Person                            |   20 |
 
 *** Exporting data
 
-One you have all the data installed, you may like to:
+Once you have all the data installed, you may like to:
 
 #+BEGIN_SRC bash
 dc exec harvest harvest export
@@ -70,7 +146,6 @@ gzip -d -f experts/experts.ucdavis.edu%2Ffis/graph.ttl.gz
 
 You time the extent with 2 or three users by doing:
 
-
 dc exec harvest harvest -v user --search=userId=quinn
 dc exec harvest harvest -v user --search=userId=jrmerz
 
@@ -90,16 +165,3 @@ ${finished}:%.out
 
 
 $> make -j 5 all 2
-
-*** 2021-08010 Grants / hack
-
-While are are waiting on the complete grants info. We can add the grants we do
-have with:
-
-#+BEGIN_SRC bash
-experts_git=gitlab.dams.library.ucdavis.edu/experts/experts-data.git
-docker-compose exec fuseki fuseki-import-graphs \
---clone="https://quinn:${GITLAB_PUSH_TOKEN}@${experts_git} \
---single-branch --branch=experts-dev" --graph=experts.ucdavis.edu%2Ffis
-
-#+END_SRC
