@@ -54,17 +54,20 @@ WHERE {
       BIND(URI(CONCAT(str(FoR:), REPLACE(?keyword," .*",""))) AS ?_concept)
     } }
   }
-  graph vocab: {
-    ?_concept skos:inScheme FoR:;
-              skos:broader* ?concept;
+  # IDK this needs to be a service, I can check the harvest graph names
+  SERVICE <http://fuseki:3030/vocabularies/sparql> {
+    graph ?FoR {
+      ?_concept skos:inScheme FoR:;
+                skos:broader* ?concept;
+                .
+	    ?concept a ?type;
+              rdfs:label ?label;
+              skos:broader ?broader;
+              skos:prefLabel ?prefLabel;
               .
-	  ?concept a ?type;
-            rdfs:label ?label;
-            skos:broader ?broader;
-            skos:prefLabel ?prefLabel;
-            .
+    }
   }
-};
+  };
 
 # Now add the terms to the works.
 INSERT { GRAPH experts: {

@@ -31,7 +31,8 @@ insert  { graph experts: {
          vivo:sponsorAwardId ?sponsorAwardId;
          vivo:totalAwardAmount ?totalAwardAmount;
          vivo:grandDirectCost ?grantDirectCosts;
-         vivo:grandIndirectCost ?grantIndirectCosts;
+         ucdrp:grandIndirectCost ?grantIndirectCosts;
+         ucdrp:grantType ?grant_type;
          ucdrp:caoCode ?caoCode;
          vivo:assignedBy ?funding_org;
          vivo:relates ?role,?inheres_in;
@@ -39,9 +40,10 @@ insert  { graph experts: {
          .
 
   ?role a ?role_type;
+        rdfs:label ?role_label;
         vivo:relatedBy ?grant;
         ucdrp:role_person_name ?role_person_name;
-        obo:R0_000052 ?inheres_in;
+        obo:RO_000052 ?inheres_in;
         .
 
   ?duration a ?duration_type;
@@ -77,11 +79,14 @@ WHERE {
       ?role ucdrp:role_person_name ?role_person_name;
             .
     }
+
     OPTIONAL {
-      ?role a ?role_type;
-            obo:R0_000052 ?inheres_in;
-            .
+      ?role rdfs:label ?role_label.
     }
+
+    OPTIONAL { ?role a ?role_type.}
+
+    OPTIONAL { ?role obo:RO_000052 ?inheres_in . }
 
     OPTIONAL {
       ?grant vivo:totalAwardAmount ?totalAwardAmount .
@@ -90,8 +95,13 @@ WHERE {
       ?grant vivo:grandDirectCost ?grantDirectCosts .
     }
     OPTIONAL {
-      ?grant vivo:grandIndirectCost ?grantIndirectCosts .
+      ?grant ucdrp:grandIndirectCost ?grantIndirectCosts .
     }
+    OPTIONAL {
+      ?grant ucdrp:grantType ?grant_type.
+    }
+
+
     OPTIONAL {
       ?grant ucdrp:caoCode ?caoCode .
     }
