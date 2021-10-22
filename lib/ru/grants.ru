@@ -35,15 +35,17 @@ insert  { graph experts: {
          ucdrp:grantType ?grant_type;
          ucdrp:caoCode ?caoCode;
          vivo:assignedBy ?funding_org;
-         vivo:relates ?role,?inheres_in;
+         vivo:relates ?role,?expert_id;
          vivo:dateTimeInterval ?duration;
          .
 
+  ?expert_id vivo:relatedBy ?grant.
+
+  ?expert_role obo:RO_000052 ?expert_id .
   ?role a ?role_type;
         rdfs:label ?role_label;
         vivo:relatedBy ?grant;
         ucdrp:role_person_name ?role_person_name;
-        obo:RO_000052 ?inheres_in;
         .
 
   ?duration a ?duration_type;
@@ -65,6 +67,8 @@ insert  { graph experts: {
                .
 } }
 WHERE {
+  values ?role_type_ok { vivo:LeaderRole vivo:ResearcherRole
+    vivo:CoPrincipalInvestigatorRole vivo:PrincipalInvestigatorRole }
   graph private: {
     ?grant a ?grant_type;
            rdfs:label ?title;
@@ -72,7 +76,8 @@ WHERE {
            vivo:sponsorAwardId ?sponsorAwardId;
            .
 
-    ?role vivo:relatedBy ?grant;
+    ?role a ?role_type_ok;
+          vivo:relatedBy ?grant;
           .
 
     OPTIONAL {
@@ -86,8 +91,6 @@ WHERE {
 
     OPTIONAL { ?role a ?role_type.}
 
-    OPTIONAL { ?role obo:RO_000052 ?inheres_in . }
-
     OPTIONAL {
       ?grant vivo:totalAwardAmount ?totalAwardAmount .
     }
@@ -100,7 +103,6 @@ WHERE {
     OPTIONAL {
       ?grant ucdrp:grantType ?grant_type.
     }
-
 
     OPTIONAL {
       ?grant ucdrp:caoCode ?caoCode .
@@ -132,7 +134,7 @@ WHERE {
       }
     }
   }
-  { SELECT *
+  { SELECT ?grant ?expert_role ?expert_id
     WHERE {
       graph ?private {
         ?grant a vivo:Grant;

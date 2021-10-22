@@ -25,10 +25,14 @@
    #+begin_src bash
      experts_git=gitlab.dams.library.ucdavis.edu/experts/experts-data.git
      docker-compose exec fuseki fuseki-import-graphs \
-     --clone="https://quinn:${GITLAB_PUSH_TOKEN}@${experts_git} \
-     --single-branch --branch=main"
+     --clone="https://quinn:${GITLAB_PUSH_TOKEN}@${experts_git} \ --single-branch
+     --branch=main"
+
+
 
 #+end_src
+
+#+RESULTS:
 
 The private database mostly has the grants information currently.
 #+begin_src sparql :url http://localhost:8081/private/sparql
@@ -46,7 +50,7 @@ The private database mostly has the grants information currently.
 
 
   #+begin_src bash
-  dc pull
+   dc pull
   dc down
   update .env for testing
   dc up -d
@@ -131,15 +135,20 @@ dc exec harvest harvest export
 #+END_SRC
 
 #+BEGIN_SRC bash
-branch=experts-dev
-cd ~/experts-data
-git checkout $branch
-p=rp-ucd-deployment_harvest_1:/var/lib/harvest/export
-docker cp $p/experts.ucdavis.edu%2Fiam/graph.ttl.gz  experts/experts.ucdavis.edu%2Fiam
-gzip -d -f experts/experts.ucdavis.edu%2Fiam/graph.ttl.gz
-docker cp $p/experts.ucdavis.edu%2Foap/graph.ttl.gz  experts/experts.ucdavis.edu%2Foap
-docker cp $p/experts.ucdavis.edu%2Ffis/graph.ttl.gz  experts/experts.ucdavis.edu%2Ffis
-gzip -d -f experts/experts.ucdavis.edu%2Ffis/graph.ttl.gz
+  branch=experts-dev
+  cd ~/experts-data
+  git checkout $branch
+  p=rp-ucd-deployment_harvest_1:/var/lib/harvest/export
+  mkdir -p experts/experts.ucdavis.edu
+  docker cp $p/experts.ucdavis.edu/graph.ttl.gz  experts/experts.ucdavis.edu
+  mkdir experts/experts.ucdavis.edu%2Fiam
+  docker cp $p/experts.ucdavis.edu%2Fiam/graph.ttl.gz  experts/experts.ucdavis.edu%2Fiam
+  gzip -d -f experts/experts.ucdavis.edu%2Fiam/graph.ttl.gz
+  mkdir experts/experts.ucdavis.edu%2Foap
+  docker cp $p/experts.ucdavis.edu%2Foap/graph.ttl.gz  experts/experts.ucdavis.edu%2Foap
+  mkdir experts/experts.ucdavis.edu%2Ffis
+  docker cp $p/experts.ucdavis.edu%2Ffis/graph.ttl.gz  experts/experts.ucdavis.edu%2Ffis
+  gzip -d -f experts/experts.ucdavis.edu%2Ffis/graph.ttl.gz
 #+END_SRC
 
 *** Mulitple Users
