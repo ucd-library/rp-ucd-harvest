@@ -67,7 +67,7 @@ insert  { graph experts: {
                .
 } }
 WHERE {
-  values ?role_type_ok { vivo:LeaderRole vivo:ResearcherRole
+  values ?role_type_ok { vivo:AdminRole vivo:LeaderRole vivo:ResearcherRole
     vivo:CoPrincipalInvestigatorRole vivo:PrincipalInvestigatorRole }
   graph private: {
     ?grant a ?grant_type;
