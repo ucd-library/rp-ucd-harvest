@@ -1,0 +1,54 @@
+PREFIX aeq: <http://experts.ucdavis.edu/queries/schema#>
+  PREFIX authorship: <http://experts.ucdavis.edu/authorship/>
+  PREFIX bibo: <http://purl.org/ontology/bibo/>
+  PREFIX experts: <http://experts.ucdavis.edu/>
+  PREFIX experts_iam: <http://experts.ucdavis.edu/iam/>
+  PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
+  PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+  PREFIX harvest_iam: <http://iam.ucdavis.edu/>
+  PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
+  PREFIX iam: <http://iam.ucdavis.edu/schema#>
+  PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
+  PREFIX obo: <http://purl.obolibrary.org/obo/>
+  PREFIX person: <http://experts.ucdavis.edu/person/>
+  PREFIX purl: <http://purl.org/ontology/bibo/>
+  PREFIX q: <http://experts.ucdavis.edu/queries/>
+  PREFIX query: <http://experts.ucdavis.edu/schema/queries/>
+  PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+  PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+  PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+  PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
+  PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+  PREFIX vivo: <http://vivoweb.org/ontology/core#>
+  PREFIX work: <http://experts.ucdavis.edu/work/>
+  PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+  q:type
+      a aeq:Bind ;
+      rdfs:label "A Class in the domain of rdf:type" ;
+      aeq:bind_to "?type" ;
+      aeq:bind_type xsd:uri ;
+      .
+
+
+  q:select_of_type
+      rdf:type  aeq:SelectQuery, aeq:Query;
+      rdfs:label "Select of Type" ;
+      rdfs:description """
+
+The select_of_type is just meant to give a few examples of objects that are of a
+specific type (default ucrdp:person) in the database.  Only the subject of the
+statement is returned.
+
+  """ ;
+      aeq:parameter [
+          aeq:bind q:type ;
+          aeq:required true ;
+          aeq:bind_default ucdrp:person ;
+          ] ;
+     aeq:query """
+    select ?s WHERE {
+      ?s a ?type.
+    } limit ?limit
+  """ ;
+      .

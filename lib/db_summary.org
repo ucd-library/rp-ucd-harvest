@@ -1,0 +1,222 @@
+* Database Summary Information
+:PROPERTIES:
+:header-args:sparql: :url http://localhost:8081/harvest/sparql :format text/csv
+:END:
+
+In org-mode, we use ~sparql-mode~, which has variable injection similar to how
+it's used in the JENA, where variables are overwritten directly over their
+variable name counterparts.
+
+For some queries this works really well, but there are some gotchas.  This
+simple query for counting graphs is a good example.
+
+#+name: lob-ingest
+#+BEGIN_SRC elisp
+(org-babel-lob-ingest "db_summary.org");
+#+END_SRC
+
+#+call: prefixes.org:lob-ingest()
+
+#+RESULTS:
+: 2
+
+*** Graph Count
+
+#+name: graph_count_example
+#+BEGIN_SRC sparql
+select ?graph  (count(*) as ?cnt) WHERE {
+{
+  graph ?graph { ?s ?p ?o. }
+} UNION {
+  bind ("default" as ?graph)
+  {?s ?p ?o.}
+}
+} group by ?graph
+
+#+END_SRC
+
+#+RESULTS: graph_count_example
+| graph                           |    cnt |
+|---------------------------------+--------|
+| http://experts.ucdavis.edu/oap/ | 410868 |
+| http://vivoweb.org/             |      3 |
+| http://experts.ucdavis.edu/fis/ |  20064 |
+| http://experts.ucdavis.edu/iam/ |   3856 |
+| http://experts.ucdavis.edu/     |   8511 |
+| default                         | 442884 |
+
+#+call: graph_count_example(graph="<http://experts.ucdavis.edu/oap/>")
+
+The problem with the above, is that when you overwrite a variable that's an IRI,
+and is in the select part of the statement, then you get an error.  The method
+to use is to create *another* variable, and only use that to bind to the
+variable in the statement you want to use.  The example below shows that
+setup, where ~_graph_~ is shadowing the variables.  Another helpful part of
+this, is that if your query is big, the shadow variables can be used to limit
+the query when parameters aren't passed in.
+
+#+name: graph_count
+#+BEGIN_SRC sparql :noweb yes :var _graph_="<http://none>"
+<<prefixes>>
+select ?graph (count(*) as ?cnt) WHERE {
+{
+  bind($_graph_ as ?graph)
+  graph ?graph { ?s $p ?o. }
+} UNION {
+  bind ("default" as ?graph)
+  {?s ?p ?o.}
+}
+} group by ?graph
+
+#+END_SRC
+
+#+RESULTS: graph_count
+| graph   |    cnt |
+|---------+--------|
+| default | 442884 |
+
+So now, you can limit your query to a single graph.
+
+#+call: graph_count(_graph_="<http://experts.ucdavis.edu/iam/>")
+
+#+RESULTS:
+| graph                           |    cnt |
+|---------------------------------+--------|
+| http://experts.ucdavis.edu/iam/ |   3856 |
+| default                         | 442884 |
+
+
+If you are clever,you can also break out of the box that the default values
+defined.
+
+#+call: graph_count(_graph_="?g")
+
+#+RESULTS:
+| graph                           |    cnt |
+|---------------------------------+--------|
+| http://experts.ucdavis.edu/oap/ | 410868 |
+| http://vivoweb.org/             |      3 |
+| http://experts.ucdavis.edu/fis/ |  20064 |
+| http://experts.ucdavis.edu/iam/ |   3856 |
+| http://experts.ucdavis.edu/     |   8511 |
+| default                         | 442884 |
+
+You are stll able to update the varibles we haven't thought about.  They may not
+always work, but often will.
+
+#+call: graph_count(_graph_="?g",p="rdf:type")
+
+#+RESULTS:
+| graph                               |    cnt |
+|-------------------------------------+--------|
+| http://experts.ucdavis.edu/oap/     | 291603 |
+| http://experts.ucdavis.edu/private/ | 348140 |
+| http://experts.ucdavis.edu/iam/     |   3666 |
+| http://experts.ucdavis.edu/         |    139 |
+| http://experts.ucdavis.edu/vocab/   | 471456 |
+
+
+*** Type Counts
+
+We can do somthing similar for type counts
+
+#+name: type_count
+#+BEGIN_SRC sparql :noweb yes :var _graph_="<http://none>"
+<<prefixes>>
+select ?graph ?type (count(*) as ?cnt) WHERE {
+{
+  bind($_graph_ as ?graph)
+  graph ?graph { ?s a ?type. }
+} UNION {
+  bind ("default" as ?graph)
+  {?s a ?type.}
+}
+} group by ?graph ?type order by ?graph ?type
+
+#+END_SRC
+
+#+call: type_count()
+
+#+RESULTS:
+| graph   | type                                               | cnt |
+|---------+----------------------------------------------------+-----|
+| default | http://experts.ucdavis.edu/schema#authorship       | 166 |
+| default | http://experts.ucdavis.edu/schema#concept          |  23 |
+| default | http://experts.ucdavis.edu/schema#person           |   1 |
+| default | http://experts.ucdavis.edu/schema#venue            |  21 |
+| default | http://experts.ucdavis.edu/schema#work             |  27 |
+| default | http://purl.org/ontology/bibo/AcademicArticle      |  15 |
+| default | http://purl.org/ontology/bibo/Journal              |  21 |
+| default | http://vivoweb.org/ontology/core#Authorship        | 166 |
+| default | http://vivoweb.org/ontology/core#ConferencePaper   |  12 |
+| default | http://vivoweb.org/ontology/core#DateTimePrecision |   2 |
+| default | http://vivoweb.org/ontology/core#DateTimeValue     |  27 |
+| default | http://vivoweb.org/ontology/core#NonAcademic       |   1 |
+| default | http://www.w3.org/2004/02/skos/core#Concept        |  23 |
+| default | http://www.w3.org/2004/02/skos/core#ConceptScheme  |   2 |
+| default | http://www.w3.org/2006/vcard/ns#Email              |   3 |
+| default | http://www.w3.org/2006/vcard/ns#Individual         |   3 |
+| default | http://www.w3.org/2006/vcard/ns#Name               | 142 |
+| default | http://www.w3.org/2006/vcard/ns#Organization       |   2 |
+| default | http://www.w3.org/2006/vcard/ns#Title              |   2 |
+| default | http://www.w3.org/2006/vcard/ns#Work               |   3 |
+| default | http://xmlns.com/foaf/0.1/Person                   |   1 |
+
+
+
+** db_summary.ttl
+
+#+BEGIN_SRC ttl :noweb yes :tangle db_summary.ttl
+  <<prefixes>>
+
+  q:uri
+      a aeq:Bind ;
+      rdfs:label "Generic URI" ;
+      aeq:bind_to "?uri" ;
+      aeq:bind_type xsd:uri ;
+      .
+
+  q:uri_null_opt
+      a aeq:Parameter ;
+      aeq:bind q:uri ;
+      aeq:bind_default aeq:null ;
+      aeq:bind_required false ;
+      .
+
+  q:describe
+      rdf:type  aeq:ConstructQuery, aeq:Query;
+      rdfs:label "Describe" ;
+      rdfs:description """
+
+    The describe command simply call the describe function bound to the ?uri
+    parameter, (default ucdrp:null).
+
+  """ ;
+      aeq:parameter [
+          aeq:bind q:uri ;
+          aeq:required false ;
+          aeq:bind_default aeq:null ;
+          ] ;
+     aeq:query """
+    <<describe_query_only>>
+  """ ;
+      .
+
+  q:describe_hash
+      rdf:type  aeq:ConstructQuery, aeq:Query;
+      rdfs:label "Described Hashed" ;
+      rdfs:description """
+
+  The describe_hash query returns all objects associated with a ?uri and any
+  objects with the name ?uri#any_name.  In Aggie Experts, we use this method to
+  keep track of what might otherwise be blank nodes in the system.  This is a
+  quick way to see a more complete record of a complex item.
+
+  """ ;
+      aeq:parameter q:uri_null_opt ;
+      aeq:query """
+    <<describe_hash_query_only>>
+  """ ;
+      .
+
+#+END_SRC

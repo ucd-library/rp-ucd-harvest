@@ -1,0 +1,859 @@
+* Signature Calculations
+:PROPERTIES:
+:header-args:sparql: :url http://localhost:8081/experts/sparql
+:END:
+
+ucdrp:Signatures, are an updated signature that combine Concepts with a strength
+for a particular user.  In addition, every
+
+We need to define more complete user signatures for our calculation of
+nearness.  That means we need a
+
+#+call: prefixes.org:lob-ingest()
+
+#+RESULTS:
+: 2
+
+#+name: construct_signature
+#+BEGIN_SRC sparql :noweb yes :var limit="25" :format raw :wrap "SRC ttl :tangle sig.ttl" :var expert="person:5291e4d36b94d14caae13c84f7bc5662"
+       <<prefixes>>
+  CONSTRUCT {
+  ?e vivo:signature ?e_sig;
+				ucdrp:casId ?casId;
+        vcard:hasEmail ?email;
+        .
+  ?e_sig a ucdrp:Signature;
+            ucdrp:dimension ?e_dim;
+            .
+  ?e_dim
+    ucdrp:concept ?concept;
+    ucdrp:value ?cnt ;
+  .
+
+  }
+  WHERE {
+  {
+   select (?expert as ?e) ?concept ( count(*) as ?cnt)
+      WHERE {
+            ?authorship a vivo:Authorship;
+                        vivo:relates ?expert;
+                        vivo:relates ?work;
+                        .
+
+            ?work vivo:hasSubjectArea ?leaf_concept.
+
+            ?leaf_concept skos:inScheme FoR:;
+                   skos:broader* ?concept;
+                          .
+            ?expert a ucdrp:person;
+        .
+            filter(isiri(?expert))
+        } GROUP BY ?e ?concept limit ?limit
+  }
+    ?e ucdrp:casId ?casId.
+    bind(uri(concat(str(?e),"#signature")) as ?e_sig)
+    bind(uri(concat(str(?e_sig),replace(str(?concept),str(FoR:),"-FoR"))) as ?e_dim)
+  }
+#+END_SRC
+
+#+call: construct_signature(expert="person:cad7d70207f8734a5651922548230be3")
+
+#+RESULTS:
+#+BEGIN_SRC ttl :tangle sig.ttl
+@prefix experts_oap: <http://experts.ucdavis.edu/oap/> .
+@prefix FoR:   <http://experts.ucdavis.edu/concept/FoR/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix free:  <http://experts.ucdavis.edu/concept/free> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+@prefix work:  <http://experts.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix experts_iam: <http://experts.ucdavis.edu/iam/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+
+<http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR0805>
+        ucdrp:concept  FoR:0805 ;
+        ucdrp:value    2 .
+
+<http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR0906>
+        ucdrp:concept  FoR:0906 ;
+         ucdrp:value    2 .
+
+<http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR08>
+        ucdrp:concept  FoR:08 ;
+        ucdrp:value    2 .
+
+<http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature>
+        a                ucdrp:Signature ;
+        ucdrp:dimension  <http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR0805> , <http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR1005> , <http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR09> , <http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR0906> , <http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR08> , <http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR10> , <http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR> .
+
+<http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR10>
+        ucdrp:concept  FoR:10 ;
+        ucdrp:value    2 .
+
+person:cad7d70207f8734a5651922548230be3
+        ucdrp:casId     "ghaffar" ;
+        vivo:signature  <http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature> .
+
+<http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR09>
+        ucdrp:concept  FoR:09 ;
+        ucdrp:value    2 .
+
+<http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR1005>
+        ucdrp:concept  FoR:1005 ;
+        ucdrp:value    2 .
+
+<http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3#signature-FoR>
+        ucdrp:concept  FoR: ;
+        ucdrp:value    6 .
+#+END_SRC
+
+So, now we can write an update function that adds a signature to all existing
+persons in our setup.  The query below is appropriate for an update query to
+only the harvest (or private?) database.  The mess of graphs in this instance
+makes me wonder about making the experts database updateable, which would
+really simplify this.
+
+We also need to add the total length of the signature as well, so we can
+normalize to 1.
+
+#+name: update_signature
+#+BEGIN_SRC sparql :noweb yes :var limit="25" :format raw :wrap SRC "ttl :tangle signature.ttl"
+  <<prefixes>>
+  DELETE { GRAPH experts: { ?s ?p ?o. } } WHERE { graph experts: {
+   VALUES ?type { ucdrp:Signature ucdrp:SignatureDimension}
+   ?s a ?type;
+     ?p ?o.
+  }};
+
+  INSERT { GRAPH experts: {
+  #CONSTRUCT {
+  ?e ucdrp:signature ?e_sig;
+        ucdrp:casId ?casId;
+        vcard:hasEmail ?email;
+        .
+  ?e_sig a ucdrp:Signature;
+            ucdrp:dimension ?e_dim;
+            .
+  ?e_dim a ucdrp:SignatureDimension;
+    ucdrp:concept ?concept;
+    ucdrp:value ?cnt ;
+  .
+
+  }}
+  WHERE {
+  {
+   select (?expert as ?e) ?concept ( count(*) as ?cnt)
+      WHERE {
+          graph experts_oap: {
+            ?authorship a vivo:Authorship;
+                        vivo:relates ?expert;
+                        vivo:relates ?work;
+                        .
+
+           ?work vivo:hasSubjectArea ?leaf_concept.
+            ?expert a ucdrp:person;
+        .
+            filter(isiri(?expert))
+        }
+        graph experts: {
+            ?leaf_concept skos:inScheme FoR:;
+                   skos:broader* ?concept;
+                          .
+        }
+      } GROUP BY ?expert ?concept
+    }
+    graph experts_iam: {
+      ?e ucdrp:casId ?casId.
+    }
+    filter(?concept != FoR:)
+    bind(uri(concat(str(?e),"#signature")) as ?e_sig)
+    bind(uri(concat(str(?e_sig),replace(str(?concept),str(FoR:),"-FoR"))) as ?e_dim)
+  };
+
+  DELETE { graph experts: {?s ucdrp:length ?len } } WHERE {graph experts: { ?s ucdrp:length ?len. } };
+
+  INSERT { graph experts: {
+    ?s ucdrp:length ?len .
+  }} WHERE {
+  select ?s (afn:sqrt(sum(?v*?v)) as ?len)
+  WHERE { graph experts: {
+      ?s a ucdrp:Signature;
+         ucdrp:dimension [ ucdrp:concept ?concept;
+        ucdrp:value ?v ];
+
+         } } group by ?s
+  }
+
+
+#+END_SRC
+
+
+Now that we have this, we can actually create our first example function, in
+this case. The dot product of any two individuals is a rating of how close they
+match.
+
+#+name: dot
+#+BEGIN_SRC sparql :noweb yes :format raw :var limit="3"  :var expert="person:no_one" :wrap SRC ttl :url http://localhost:8081/harvest/sparql
+<<prefixes>>
+construct {
+?shared a ucdrp:sharedInterest;
+ ucdrp:person ?a,?b;
+ ucdrp:value ?dot;
+ ucdrp:numberInterests ?cnt;
+.
+} WHERE {
+{
+select ?a ?b (sum((?a_v/?a_len)*(?b_v/?b_len)) as ?dot) (count(*) as ?cnt)
+where {
+  bind(?expert as ?a)
+  bind(?compare as ?b)
+  graph experts: {
+  ?a ucdrp:signature [
+    ucdrp:length ?a_len;
+    ucdrp:dimension [ ucdrp:concept ?concept; ucdrp:value ?a_v] ].
+
+ ?b ucdrp:signature [
+    ucdrp:length ?b_len;
+    ucdrp:dimension [ ucdrp:concept ?concept; ucdrp:value ?b_v]].
+  filter(?a != ?b)
+  }} group by ?a ?b order by desc(?dot) limit ?limit
+}
+  bind(uri(concat(str(?a),"#shared-",replace(str(?b),str(person:),''))) as ?shared)
+}
+#+END_SRC
+
+
+#+call: dot(expert="person:5291e4d36b94d14caae13c84f7bc5662",compare="person:5da5ca50ecd070e4df73146deb14a727")
+#+call: dot(expert="person:5291e4d36b94d14caae13c84f7bc5662")
+
+#+RESULTS:
+#+BEGIN_SRC ttl
+@prefix experts_oap: <http://experts.ucdavis.edu/oap/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix FoR:   <http://experts.ucdavis.edu/concept/FoR/> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix free:  <http://experts.ucdavis.edu/concept/free> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+@prefix work:  <http://experts.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix afn:   <http://jena.apache.org/ARQ/function#> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix experts_iam: <http://experts.ucdavis.edu/iam/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+
+<http://experts.ucdavis.edu/person/5291e4d36b94d14caae13c84f7bc5662#shared-5da5ca50ecd070e4df73146deb14a727>
+        a                      ucdrp:sharedInterest ;
+        ucdrp:numberInterests  9 ;
+        ucdrp:person           person:5da5ca50ecd070e4df73146deb14a727 , person:5291e4d36b94d14caae13c84f7bc5662 ;
+        ucdrp:value            0.8588257848367014e0 .
+
+<http://experts.ucdavis.edu/person/5291e4d36b94d14caae13c84f7bc5662#shared-ccabc124666a1ec4a0fe3822225907e6>
+        a                      ucdrp:sharedInterest ;
+        ucdrp:numberInterests  7 ;
+        ucdrp:person           person:ccabc124666a1ec4a0fe3822225907e6 , person:5291e4d36b94d14caae13c84f7bc5662 ;
+        ucdrp:value            0.872691667086064e0 .
+
+<http://experts.ucdavis.edu/person/5291e4d36b94d14caae13c84f7bc5662#shared-1b59b4daa533afdad6b6b17c998e2b8a>
+        a                      ucdrp:sharedInterest ;
+        ucdrp:numberInterests  14 ;
+        ucdrp:person           person:1b59b4daa533afdad6b6b17c998e2b8a , person:5291e4d36b94d14caae13c84f7bc5662 ;
+        ucdrp:value            0.8806503310525067e0 .
+#+END_SRC
+
+
+#+name: update_sharedInterests
+#+BEGIN_SRC sparql :noweb yes :format raw :var limit="3"  :var expert="person:no_one" :wrap SRC ttl :url http://localhost:8081/harvest/sparql
+<<prefixes>>
+#insert { graph experts: {
+construct {
+?shared a ucdrp:SharedInterest;
+ ucdrp:person ?a,?b;
+ ucdrp:value ?dot;
+ ucdrp:numberInterests ?cnt;
+.
+} } WHERE {
+{
+select ?a ?b (sum((?a_v/?a_len)*(?b_v/?b_len)) as ?dot) (count(*) as ?cnt)
+where {
+  graph experts: {
+  ?a ucdrp:signature [
+    ucdrp:length ?a_len;
+    ucdrp:dimension [ ucdrp:concept ?concept; ucdrp:value ?a_v] ].
+
+ ?b ucdrp:signature [
+    ucdrp:length ?b_len;
+    ucdrp:dimension [ ucdrp:concept ?concept; ucdrp:value ?b_v]].
+  filter(str(?a) < str(?b))
+  }} group by ?a ?b limit 10
+}
+  bind(uri(concat(str(?a),"#shared-",replace(str(?b),str(person:),''))) as ?shared)
+}
+#+END_SRC
+
+And now we can get a histogram of sharededness which looks at how close
+researchers are to each other.  This is over all experts.
+
+#+BEGIN_SRC sparql :noweb yes :filex ~/Downloads/sharededness.csv
+<<prefixes>>
+select ?v (count(*) as ?cnt) where {
+  ?s a ucdrp:SharedInterest;
+     ucdrp:value ?val.
+  bind(xsd:integer(?val*100) as ?v)
+} group by ?v order by ?v
+#+END_SRC
+
+If instead, we were intersted in how many sympatico matches we'd have for
+different cutoffs, we could
+
+
+#+BEGIN_SRC sparql :noweb yes
+<<prefixes>>
+select ?cutoff ?sympatico (count(*) as ?cnt)
+WHERE {
+{
+select ?person ?cutoff (sum(?v) as ?sympatico)
+where {
+  values ?cutoff { 0 0.80 0.90 0.95 }
+  ?person a ucdrp:person.
+OPTIONAL {
+#  values ?person { person:39e25cbdd1368fb0cb03ede36c075bd4 person:f9ef1e530c617cd598171497b4a49e82}
+  ?int a ucdrp:SharedInterest;
+       ucdrp:person ?person;
+       ucdrp:value ?val;
+       .
+  filter(?val >= ?cutoff)
+}
+  bind(if(?val,xsd:integer(1),0) as ?v)
+} group by ?person ?cutoff
+}
+} group by ?cutoff ?sympatico order by ?cutoff desc(?sympatico) limit 100
+#+END_SRC
+
+#+RESULTS:
+| cutoff | sympatico | cnt |
+|--------+-----------+-----|
+|      0 |       186 |  16 |
+|      0 |       185 |   9 |
+|      0 |       184 |  11 |
+|      0 |       183 |   5 |
+|      0 |       182 |  16 |
+|      0 |       181 |   7 |
+|      0 |       180 |   6 |
+|      0 |       179 |   8 |
+|      0 |       178 |  12 |
+|      0 |       177 |   2 |
+|      0 |       176 |   4 |
+|      0 |       175 |   6 |
+|      0 |       174 |  12 |
+|      0 |       173 |  13 |
+|      0 |       172 |  10 |
+|      0 |       171 |   2 |
+|      0 |       170 |   2 |
+|      0 |       168 |   7 |
+|      0 |       167 |   6 |
+|      0 |       166 |   2 |
+|      0 |       164 |   9 |
+|      0 |       163 |   1 |
+|      0 |       149 |   1 |
+|      0 |       142 |   2 |
+|      0 |       133 |   1 |
+|      0 |       129 |   1 |
+|      0 |       124 |   1 |
+|      0 |       119 |   1 |
+|      0 |       116 |   3 |
+|      0 |       111 |   1 |
+|      0 |       100 |   2 |
+|      0 |        90 |   1 |
+|      0 |        87 |   2 |
+|      0 |        86 |   1 |
+|      0 |        75 |   4 |
+|      0 |           | 113 |
+|   0.80 |        41 |   1 |
+|   0.80 |        40 |   2 |
+|   0.80 |        37 |   2 |
+|   0.80 |        36 |   1 |
+|   0.80 |        33 |   1 |
+|   0.80 |        32 |   2 |
+|   0.80 |        31 |   3 |
+|   0.80 |        30 |   2 |
+|   0.80 |        29 |   3 |
+|   0.80 |        28 |   1 |
+|   0.80 |        27 |   3 |
+|   0.80 |        26 |   3 |
+|   0.80 |        25 |   3 |
+|   0.80 |        24 |   1 |
+|   0.80 |        22 |   4 |
+|   0.80 |        21 |   2 |
+|   0.80 |        20 |   4 |
+|   0.80 |        19 |   4 |
+|   0.80 |        18 |   3 |
+|   0.80 |        17 |   3 |
+|   0.80 |        16 |   4 |
+|   0.80 |        15 |   3 |
+|   0.80 |        14 |   5 |
+|   0.80 |        13 |   3 |
+|   0.80 |        12 |   6 |
+|   0.80 |        11 |   3 |
+|   0.80 |        10 |   4 |
+|   0.80 |         9 |   2 |
+|   0.80 |         8 |   4 |
+|   0.80 |         7 |   6 |
+|   0.80 |         6 |   7 |
+|   0.80 |         5 |   7 |
+|   0.80 |         4 |  19 |
+|   0.80 |         3 |  13 |
+|   0.80 |         2 |  13 |
+|   0.80 |         1 |  24 |
+|   0.80 |           | 129 |
+|   0.90 |        15 |   2 |
+|   0.90 |        14 |   1 |
+|   0.90 |        12 |   3 |
+|   0.90 |        11 |   1 |
+|   0.90 |        10 |   4 |
+|   0.90 |         9 |   3 |
+|   0.90 |         8 |   9 |
+|   0.90 |         7 |   6 |
+|   0.90 |         6 |   6 |
+|   0.90 |         5 |  13 |
+|   0.90 |         4 |  10 |
+|   0.90 |         3 |  11 |
+|   0.90 |         2 |  18 |
+|   0.90 |         1 |  38 |
+|   0.90 |           | 175 |
+|   0.95 |         4 |   7 |
+|   0.95 |         3 |   8 |
+|   0.95 |         2 |  25 |
+|   0.95 |         1 |  38 |
+|   0.95 |           | 222 |
+
+we could also look at the extremes, the most and least similar people.
+
+From there, we could see the average closest relationship between two people
+
+#+BEGIN_SRC sparql :noweb yes :fileX ~/Downloads/closest_hist.csv
+<<prefixes>>
+#select ?bucket (count(*) as ?number)
+#WHERE {
+#{
+  select ?person (max(?val) as ?closest)
+where {
+  ?int a ucdrp:SharedInterest;
+       ucdrp:person ?person;
+       ucdrp:value ?val;
+       .
+  } group by ?person order by ?closest
+#}
+#bind(xsd:integer(?closest*100)/100 as ?bucket)
+#} group by ?bucket order by ?bucket
+#+END_SRC
+
+#+RESULTS:
+| person                                                             |              closest |
+|--------------------------------------------------------------------+----------------------|
+| http://experts.ucdavis.edu/person/ea018835f6ff2d49fd45452f206d61d3 | 0.3504724322603808e0 |
+| http://experts.ucdavis.edu/person/6914ce3aa7aeb1cc84a0d2c2c9e61405 | 0.5730368910103818e0 |
+| http://experts.ucdavis.edu/person/1057f58292d2965dfc0b7eb712e9f0e5 | 0.6805435743275587e0 |
+| http://experts.ucdavis.edu/person/27e110c11bce41980c004533253cdc78 |  0.683838738298328e0 |
+| http://experts.ucdavis.edu/person/68cbca124a10b904f18f635f3a8a9ef3 | 0.6856824931732858e0 |
+| http://experts.ucdavis.edu/person/19696b88e517886c40f83d26d6e73c17 | 0.6948630863682657e0 |
+| http://experts.ucdavis.edu/person/52c48d91323beb43f52025dde4f8ee99 | 0.7087953967999551e0 |
+| http://experts.ucdavis.edu/person/5c5fcc87be840571c36931a1d0f43b0e | 0.7216603293824096e0 |
+| http://experts.ucdavis.edu/person/fad962346a8cda452107eb4ba94333a4 | 0.7459192315961749e0 |
+| http://experts.ucdavis.edu/person/cdb6352b48e62e0691efe552e3e4cecb | 0.7476577077062062e0 |
+| http://experts.ucdavis.edu/person/56228daf2c87a90c8474040513cbd67e | 0.7666661653785384e0 |
+| http://experts.ucdavis.edu/person/5d676628e56b33c125c3e2f04656afdd | 0.7777777777777779e0 |
+| http://experts.ucdavis.edu/person/577b493513cb20c03137f8fab2192c80 | 0.7802743146408705e0 |
+| http://experts.ucdavis.edu/person/fc013619c4fe6970e4ae15b0e64bdff3 | 0.7856742013183862e0 |
+| http://experts.ucdavis.edu/person/6aa7bedbee1dbfd74ffba5d4d781efbf | 0.7937253933193771e0 |
+| http://experts.ucdavis.edu/person/87956e38d9541621f3f3fe491a1e3da3 |  0.795698930626452e0 |
+| http://experts.ucdavis.edu/person/1f39ced0c847b6daf87e978a6d80a87f | 0.8034686318339217e0 |
+| http://experts.ucdavis.edu/person/f9ef1e530c617cd598171497b4a49e82 | 0.8034686318339217e0 |
+| http://experts.ucdavis.edu/person/2018e102d952a54d169bce79abd7ae8c | 0.8065984018919137e0 |
+| http://experts.ucdavis.edu/person/a5712075e1c211f6c0386385842de5f2 |  0.808223859120487e0 |
+| http://experts.ucdavis.edu/person/44c099ff522cd529ade21a9c7aa54ebf | 0.8082903768654762e0 |
+| http://experts.ucdavis.edu/person/9e684b3c3e621157fd375a7a5615afb4 | 0.8100209045151209e0 |
+| http://experts.ucdavis.edu/person/7eb0bde35bbad84c25e7d96d6eb7f96f | 0.8137398879542698e0 |
+| http://experts.ucdavis.edu/person/fefa394f3b294c000d9c536b69ea1de9 | 0.8137398879542698e0 |
+| http://experts.ucdavis.edu/person/76e405e2c9190a17fa24058ef3e86999 |  0.816496580927726e0 |
+| http://experts.ucdavis.edu/person/3ecdb8764ec41106ef66af929761249e | 0.8236638639293516e0 |
+| http://experts.ucdavis.edu/person/b516ec8d5984b8f4a345af6d7f57280a | 0.8350049111119214e0 |
+| http://experts.ucdavis.edu/person/699054ff6f6a1a527c9b07636f29726e | 0.8362798891214399e0 |
+| http://experts.ucdavis.edu/person/071238a1ed92d49b79745bd41dffc495 | 0.8388961761371927e0 |
+| http://experts.ucdavis.edu/person/055c06c33312e7be843140b250351b21 | 0.8397083283330853e0 |
+| http://experts.ucdavis.edu/person/7aaa116101a804667d4e2674c27f9dfa | 0.8397579879878218e0 |
+| http://experts.ucdavis.edu/person/7b09ef2fe6f5d54dc337b577a4756022 | 0.8427883190922232e0 |
+| http://experts.ucdavis.edu/person/301cd84172f5e7ac0275d5c4ac28512d |  0.845788179013378e0 |
+| http://experts.ucdavis.edu/person/5c0c72606160c3ae66b766df0491c2e5 |  0.845788179013378e0 |
+| http://experts.ucdavis.edu/person/dee7bdcebe1dff89495a548c5c07e485 | 0.8481968639768683e0 |
+| http://experts.ucdavis.edu/person/4d282819c10579fceab1e779abfed654 | 0.8539188578040071e0 |
+| http://experts.ucdavis.edu/person/1d318258dac189b4c7e5258cb4d5043d | 0.8574929257125441e0 |
+| http://experts.ucdavis.edu/person/8214126d5e926a68fcaa5a873ed59c38 | 0.8574929257125441e0 |
+| http://experts.ucdavis.edu/person/9774c63b5678977d9826a49b34815081 | 0.8598232394968823e0 |
+| http://experts.ucdavis.edu/person/d1f847daba83e7a98f4ad76d87405457 | 0.8607954914568539e0 |
+| http://experts.ucdavis.edu/person/03aa7cc9b1fa96c22cf5fe0f54ef9b6d | 0.8705715001320139e0 |
+| http://experts.ucdavis.edu/person/1cf1e29f46b2ea363012c747a8177754 | 0.8721693877315618e0 |
+| http://experts.ucdavis.edu/person/fd3a69de107e41f2a044c48e9e36a9bb | 0.8721693877315618e0 |
+| http://experts.ucdavis.edu/person/51585e03fa4dd1b5f5fc8372f4af2b39 | 0.8732424069267537e0 |
+| http://experts.ucdavis.edu/person/5291e4d36b94d14caae13c84f7bc5662 | 0.8806503310525067e0 |
+| http://experts.ucdavis.edu/person/af1800a37c4bc7c7736c7edd281caf19 | 0.8819620983110006e0 |
+| http://experts.ucdavis.edu/person/49b9503889eff2d401e695ebbea5cf33 | 0.8828025938639381e0 |
+| http://experts.ucdavis.edu/person/ad0fc2a83c6ce16f2f46bd7bdaf3a30f |  0.883747937814559e0 |
+| http://experts.ucdavis.edu/person/c16a4ff65bafbe8631a5f01cc127b2d7 | 0.8848138865830585e0 |
+| http://experts.ucdavis.edu/person/9bd6421babda6581df2822f064e233e9 | 0.8854219305410873e0 |
+| http://experts.ucdavis.edu/person/d4791cb83d35c7b14d42d7b8820f5537 | 0.8859287414521606e0 |
+| http://experts.ucdavis.edu/person/028a4a2ee80bbf862bb68110ce828945 | 0.8913982270588384e0 |
+| http://experts.ucdavis.edu/person/bbde9879767ddbba2a37ab513feb2eb3 | 0.8913982270588384e0 |
+| http://experts.ucdavis.edu/person/2d88738f89f69c4458f4d2683374d1cc | 0.8933007524203597e0 |
+| http://experts.ucdavis.edu/person/5470f9552e0d98a2d8c8b3345a680316 | 0.8933007524203597e0 |
+| http://experts.ucdavis.edu/person/1b59b4daa533afdad6b6b17c998e2b8a | 0.8934204103033953e0 |
+| http://experts.ucdavis.edu/person/d1b5ec6f80bdd99d4eac9cd6a06f00a5 | 0.8934204103033953e0 |
+| http://experts.ucdavis.edu/person/e64a78083080ba80f94ca1040ab4dbd9 |  0.895909654814056e0 |
+| http://experts.ucdavis.edu/person/c1243189cf2a6642681efe491a626db4 | 0.8963007745032923e0 |
+| http://experts.ucdavis.edu/person/2d3444fcc8dceb245961bab5421e2ca3 | 0.8999432060705109e0 |
+| http://experts.ucdavis.edu/person/38a7aebf7a70484cfe537f13d86e02f8 | 0.8999999999999999e0 |
+| http://experts.ucdavis.edu/person/89a1040b3138c28a893ecc9865721efa | 0.8999999999999999e0 |
+| http://experts.ucdavis.edu/person/85e478f7f126f709e4dd260b0a238945 | 0.9076826875135581e0 |
+| http://experts.ucdavis.edu/person/af4b845f5e36533188b4a633a0774191 | 0.9076826875135581e0 |
+| http://experts.ucdavis.edu/person/18cae25193d97ded00459c08542b57d7 | 0.9093682708373603e0 |
+| http://experts.ucdavis.edu/person/a59fea4d2561676525f8c9b1cad5c2b2 | 0.9093682708373603e0 |
+| http://experts.ucdavis.edu/person/a885fcd3e9ed6c86d94e6b390f0a483c | 0.9110537003768225e0 |
+| http://experts.ucdavis.edu/person/b2203777f0f037eb66848262ae5a66a6 | 0.9110537003768225e0 |
+| http://experts.ucdavis.edu/person/477161f0a79b9df1cc830f65cffa5cf5 | 0.9120130877269043e0 |
+| http://experts.ucdavis.edu/person/9e13a6eaf5513cfdadb4e0dd467338e7 |  0.913472385193629e0 |
+| http://experts.ucdavis.edu/person/27b8180b42572673ba50262913a52500 | 0.9138675629117188e0 |
+| http://experts.ucdavis.edu/person/096d4f5e5344e6bf0142decd51371959 | 0.9152324218488179e0 |
+| http://experts.ucdavis.edu/person/380cd849e01e00e3f31a02784a856c4c | 0.9152324218488179e0 |
+| http://experts.ucdavis.edu/person/6855842b83f6fc2ca4d0a5169bf24aa3 | 0.9204498190490048e0 |
+| http://experts.ucdavis.edu/person/85d0f61362c7ffef167b058f10100ac0 | 0.9204498190490048e0 |
+| http://experts.ucdavis.edu/person/3db673fecd69e7968280e157c2fd260a | 0.9218749999999998e0 |
+| http://experts.ucdavis.edu/person/4ea6f06702c6d32d700bf9f75cb1f323 | 0.9220207664071467e0 |
+| http://experts.ucdavis.edu/person/6a8710eeaa07224f9d7a862b0db1b14f | 0.9220207664071467e0 |
+| http://experts.ucdavis.edu/person/27334a74c3ac5234071135f07b0306f7 | 0.9240947168437338e0 |
+| http://experts.ucdavis.edu/person/1ed70ea0b143c57f274221286d7a4d02 | 0.9251995253706999e0 |
+| http://experts.ucdavis.edu/person/0557f7b916eccb249eb75f44b9f7d763 | 0.9264871299757484e0 |
+| http://experts.ucdavis.edu/person/1f3604112472f3385058ed324bc4aa83 | 0.9267780101164964e0 |
+| http://experts.ucdavis.edu/person/9e5a325fc08c25308b2145fe9b394efb | 0.9267780101164964e0 |
+| http://experts.ucdavis.edu/person/5b15a7d5e96cf0f89d475ba730e77c4b | 0.9284719715434875e0 |
+| http://experts.ucdavis.edu/person/49dd960ee14c0607201a11432d5eb136 | 0.9316709626635382e0 |
+| http://experts.ucdavis.edu/person/c63a5854fd0affa2425acc7170cd693f | 0.9317945518713097e0 |
+| http://experts.ucdavis.edu/person/f10c7892b852f42dfb10c585eb586b24 | 0.9330567963069136e0 |
+| http://experts.ucdavis.edu/person/0a37ff5fbdf3c06656fbe6b27339429c |  0.933154929958528e0 |
+| http://experts.ucdavis.edu/person/210fafe3ee707ce0077d417bc0d88bf6 |  0.934002356542392e0 |
+| http://experts.ucdavis.edu/person/469ba9bd76be87a65cab9eb58b9ca602 |  0.934002356542392e0 |
+| http://experts.ucdavis.edu/person/3e2da829bd2197b19088a9a3f9d063ed | 0.9364953561508005e0 |
+| http://experts.ucdavis.edu/person/dd288d80605b0d07ed28b673e94a904c | 0.9364953561508005e0 |
+| http://experts.ucdavis.edu/person/ce5225d01c39d2567bc229501d9e610d | 0.9388818572755447e0 |
+| http://experts.ucdavis.edu/person/daf63c1a0c0d57c9c505f0fbcfad7493 | 0.9390943489997553e0 |
+| http://experts.ucdavis.edu/person/e00b685dc2b18687e5872a00359c0f72 | 0.9401931856848946e0 |
+| http://experts.ucdavis.edu/person/127206dde059ed01a34d67d189b63c98 | 0.9406280677626396e0 |
+| http://experts.ucdavis.edu/person/80859170931602f25e77adc820678863 | 0.9431192581059591e0 |
+| http://experts.ucdavis.edu/person/5ab5692938e621b0a106c85df932a5e7 | 0.9441437434485702e0 |
+| http://experts.ucdavis.edu/person/ead30d7f353a847af9769b09a8fcd4ed | 0.9444084959949428e0 |
+| http://experts.ucdavis.edu/person/0c1f166b878ffbaeabbbaa6dc8c88322 |  0.944911182523068e0 |
+| http://experts.ucdavis.edu/person/1361fe4686eb0fa9cb151a989f69cb1d | 0.9457770310501286e0 |
+| http://experts.ucdavis.edu/person/73f32842c030021621b4b7bdd60ef155 | 0.9457770310501286e0 |
+| http://experts.ucdavis.edu/person/dd40e93b4dedaefec85ac5efa03eae7e | 0.9461214334951618e0 |
+| http://experts.ucdavis.edu/person/ef5c9035911d1544e66fff5b880c54e0 |  0.946625211358826e0 |
+| http://experts.ucdavis.edu/person/90f20b686b4cb74f91358fce7896fdca | 0.9467186757228131e0 |
+| http://experts.ucdavis.edu/person/740737b132e32a9224f6292d5e951860 | 0.9474384399556887e0 |
+| http://experts.ucdavis.edu/person/046fe30666e5cb12c7a524849f132ab3 | 0.9480027015800632e0 |
+| http://experts.ucdavis.edu/person/169117b2a7b135c388feec5df7768b92 | 0.9480027015800632e0 |
+| http://experts.ucdavis.edu/person/d7ee17df7b470b361394aeed7dd992bd | 0.9486447213013278e0 |
+| http://experts.ucdavis.edu/person/5bab67160c82299a11ef817060a3759d | 0.9503859418713717e0 |
+| http://experts.ucdavis.edu/person/911e0c5bad092a14e7ae5d73f29da2ee | 0.9503859418713717e0 |
+| http://experts.ucdavis.edu/person/1eb047582c0911f57b58da747c3cb913 |  0.953038185095852e0 |
+| http://experts.ucdavis.edu/person/ecad51abc34f20c00ef277eef28cda4f |  0.953038185095852e0 |
+| http://experts.ucdavis.edu/person/50ea0e4a64f6e3fea836fc19efa02e9d | 0.9540451575635337e0 |
+| http://experts.ucdavis.edu/person/27c67616113a7dd2bbf0ffc1834c9223 | 0.9561828874675149e0 |
+| http://experts.ucdavis.edu/person/8a373dea2d1c2795ba2d9c6119153cc1 | 0.9561828874675149e0 |
+| http://experts.ucdavis.edu/person/6340958485c032cfaa81efb66533eaf4 | 0.9572176507570277e0 |
+| http://experts.ucdavis.edu/person/8ccd5d9bf3e8a5bc387b83c92440fe4e | 0.9572176507570277e0 |
+| http://experts.ucdavis.edu/person/a56ebbd0d44bb5d0a228b7a868a5e578 |  0.957217776523839e0 |
+| http://experts.ucdavis.edu/person/60f958322a2bb4857379795de6c9ad57 | 0.9583525739282878e0 |
+| http://experts.ucdavis.edu/person/2aa45065ba1890b8f9beb47de7179c55 | 0.9583946028816909e0 |
+| http://experts.ucdavis.edu/person/4cb7395f61f2d4a0565220e7eb5c5f8f | 0.9583946028816909e0 |
+| http://experts.ucdavis.edu/person/3d7e3134291467f695c18e60582e7a58 | 0.9590588960807268e0 |
+| http://experts.ucdavis.edu/person/827346ae7747ee664cb918aaaeafd532 | 0.9603658323130412e0 |
+| http://experts.ucdavis.edu/person/34e75e2a1f1c859dd7febd5e22be4221 | 0.9607689228305228e0 |
+| http://experts.ucdavis.edu/person/36e4b2f6bf216fab49012ad60e4f7616 |  0.960781402405569e0 |
+| http://experts.ucdavis.edu/person/90ea3d47304b3a8cf3c3dae21f0867fb |  0.960781402405569e0 |
+| http://experts.ucdavis.edu/person/cdc092e3df3daf2d849331c50d8bbada |  0.961448876118878e0 |
+| http://experts.ucdavis.edu/person/7ee3984e2959ed4776f9e9f938f8ec5f | 0.9615384615384615e0 |
+| http://experts.ucdavis.edu/person/da02ba333aa72b745d072e82d11f7e51 | 0.9615384615384615e0 |
+| http://experts.ucdavis.edu/person/e8ec77e5bf2f1b40da0e66cf8d8931e7 | 0.9617837169807417e0 |
+| http://experts.ucdavis.edu/person/9ad9b1347feb8e770b50cc390e19165b | 0.9627411732468684e0 |
+| http://experts.ucdavis.edu/person/b24a0e84833d4430b80d72359b135842 | 0.9632748351700468e0 |
+| http://experts.ucdavis.edu/person/16479f9eebac1707aac34e82290dad8a | 0.9639784173890793e0 |
+| http://experts.ucdavis.edu/person/905bcc79df1b26a4a80ad921701a4b9d | 0.9639784173890793e0 |
+| http://experts.ucdavis.edu/person/9dd3f5c998ffa335b49f18987cb7a99e | 0.9645521098035947e0 |
+| http://experts.ucdavis.edu/person/559481c1f7bf827e54613c81caf3940c | 0.9648176117853371e0 |
+| http://experts.ucdavis.edu/person/d26edf15ffb437ba3f94528197eeded4 | 0.9648176117853371e0 |
+| http://experts.ucdavis.edu/person/d45cef04dd2fe2b425a43ebad358a23c | 0.9677348458281528e0 |
+| http://experts.ucdavis.edu/person/4dabbfde29b422729d5574338bb02178 | 0.9680018998039577e0 |
+| http://experts.ucdavis.edu/person/7c519681e0503b668f863b4ce73c1864 | 0.9703426284926402e0 |
+| http://experts.ucdavis.edu/person/ccabc124666a1ec4a0fe3822225907e6 | 0.9703426284926402e0 |
+| http://experts.ucdavis.edu/person/3c1633cff10a7cb46fd43a74165ca933 | 0.9714742904728221e0 |
+| http://experts.ucdavis.edu/person/fa348efcd3bb1a1fc6ba5c2c912cf402 | 0.9714742904728221e0 |
+| http://experts.ucdavis.edu/person/825ce359f69a5b6b72412590d4913a79 | 0.9715335916348617e0 |
+| http://experts.ucdavis.edu/person/9377f2ff5b017313d949a62018a0755d | 0.9715335916348617e0 |
+| http://experts.ucdavis.edu/person/4512cbf1e44c4fa4227739965aae1f4e | 0.9722231056549181e0 |
+| http://experts.ucdavis.edu/person/4a89f6af99e3c9de5496102f989f9850 | 0.9722231056549181e0 |
+| http://experts.ucdavis.edu/person/1e405b38e5d81f704ab499c02763c8b6 | 0.9730594633513473e0 |
+| http://experts.ucdavis.edu/person/24cd49031329b92b50d7c268617c7b9f | 0.9730594633513473e0 |
+| http://experts.ucdavis.edu/person/a95b429d7a93263081a83b9bf7c9f7e3 | 0.9731169106223212e0 |
+| http://experts.ucdavis.edu/person/1610913a99a867a42fc00af385b0a3d2 | 0.9735956706106146e0 |
+| http://experts.ucdavis.edu/person/f506888748547f473879d6263cd77001 | 0.9735956706106146e0 |
+| http://experts.ucdavis.edu/person/3bd185ce1f2396bf37768eb69c265420 | 0.9767244073231165e0 |
+| http://experts.ucdavis.edu/person/b1b5170581b68aca38292cd13ef40664 | 0.9767244073231165e0 |
+| http://experts.ucdavis.edu/person/03d481b0407c9f14beb561b595bb41f7 |  0.977133739674645e0 |
+| http://experts.ucdavis.edu/person/734379e382de4feb0dce07cb1061ef48 |  0.977133739674645e0 |
+| http://experts.ucdavis.edu/person/050a525d0188c7e74505ef4a6710dd63 | 0.9773555548504419e0 |
+| http://experts.ucdavis.edu/person/d296f18e52d7563b19e72b1038e2bb47 | 0.9773555548504419e0 |
+| http://experts.ucdavis.edu/person/02642cd532198111312c62cabf6b4bd9 |  0.978571700076328e0 |
+| http://experts.ucdavis.edu/person/39e25cbdd1368fb0cb03ede36c075bd4 |  0.978571700076328e0 |
+| http://experts.ucdavis.edu/person/22bb5e513f85d4671d05e38b0205b36f | 0.9809503219118949e0 |
+| http://experts.ucdavis.edu/person/7f336b23fccd6042a5cf5a5bdaffd40f | 0.9813026710848654e0 |
+| http://experts.ucdavis.edu/person/92fd44f6f5704793df83313ba59be99d | 0.9813026710848654e0 |
+| http://experts.ucdavis.edu/person/28c2b5759b153233b08675653a0b8e48 | 0.9822725883129408e0 |
+| http://experts.ucdavis.edu/person/cad7d70207f8734a5651922548230be3 | 0.9822725883129408e0 |
+| http://experts.ucdavis.edu/person/1b9ec00d3206ace84d1986d772a58059 | 0.9867804309789516e0 |
+| http://experts.ucdavis.edu/person/5da5ca50ecd070e4df73146deb14a727 | 0.9884795246047994e0 |
+| http://experts.ucdavis.edu/person/6d2d25cac6ce5b576c4509e535e4d3d4 | 0.9884795246047994e0 |
+| http://experts.ucdavis.edu/person/48c4b99727972be6eb7ae2558e94b36b | 0.9898392364829913e0 |
+| http://experts.ucdavis.edu/person/88020f834fade9e08f0c6fcccbddaacc | 0.9898392364829913e0 |
+| http://experts.ucdavis.edu/person/9180b4da3f0c7e80975fad685f7f134e | 0.9901825583472275e0 |
+| http://experts.ucdavis.edu/person/3025438b1638c4700dd719a936278728 | 0.9915418054906279e0 |
+| http://experts.ucdavis.edu/person/c7b4120f362fe0e25f8ca420b6a0af2f | 0.9915418054906279e0 |
+| http://experts.ucdavis.edu/person/96e42df09cf2518db27ec6f55e65b905 | 0.9942989203695165e0 |
+| http://experts.ucdavis.edu/person/e83c734e586df8c4934d8d8f460f29ac | 0.9942989203695165e0 |
+| http://experts.ucdavis.edu/person/95ae3d14e6fcfee091c50f86233e4fd1 | 0.9947351304767251e0 |
+| http://experts.ucdavis.edu/person/a7b222d61e641194b99f3c2ec224c0e7 | 0.9947351304767251e0 |
+| http://experts.ucdavis.edu/person/1bc4cb18be3511de46a7aadba4a0d71c | 0.9999999999999998e0 |
+| http://experts.ucdavis.edu/person/78a588eb633d453bf786dec331345d8f | 0.9999999999999998e0 |
+| http://experts.ucdavis.edu/person/9661212223d76db3e2e039d42b0c7dab | 0.9999999999999998e0 |
+| http://experts.ucdavis.edu/person/ada6d7fd8c6a3f473c8e8ca2753ddbba | 0.9999999999999998e0 |
+| http://experts.ucdavis.edu/person/1c5e8d002cad28f10832dbee40c6ba8b | 1.0000000000000002e0 |
+| http://experts.ucdavis.edu/person/30dabaf3f4920fe1fd8c483b3612a39e | 1.0000000000000002e0 |
+| http://experts.ucdavis.edu/person/5008b353e4ca0c2778f1c6c5ece56be2 | 1.0000000000000002e0 |
+| http://experts.ucdavis.edu/person/5f32665da5abc99a675befd7c703fe7a | 1.0000000000000002e0 |
+| http://experts.ucdavis.edu/person/af8839468218bc38c0861aa5f1a031a4 | 1.0000000000000002e0 |
+
+This seems to indicate that a cutoff of about 80% with get matches for most
+people.  However, we'll have some people w/ over 40 matches in that category.
+
+Last out / first in
+
+#+BEGIN_SRC sparql :noweb yes :file 80.csv :formatx raw :wrapx SRC ttl
+  <<prefixes>>
+  select ?p1 ?p2 ?cLabel ?vd1  (xsd:integer(100*(?v1/?l1)*(?v2/?l2)) as ?share) ?vd2
+  where {
+    values (?per1 ?val) {
+      (person:87956e38d9541621f3f3fe491a1e3da3 0.795698930626452e0 )
+      (person:1f39ced0c847b6daf87e978a6d80a87f 0.8034686318339217e0 )
+    }
+    { select distinct ?per1 ?concept ?cLabel WHERE {
+      ?int a ucdrp:SharedInterest;
+           ucdrp:person ?per1;
+           .
+      ?per1 ucdrp:signature/ucdrp:dimension [ ucdrp:concept ?concept ];
+                                                            .
+      ?concept rdfs:label ?cLabel.
+    }
+    }
+
+    ?int a ucdrp:SharedInterest;
+         ucdrp:person ?per1;
+         ucdrp:person ?per2;
+         ucdrp:value ?val;
+         .
+
+    ?per1 rdfs:label ?p1;
+          ucdrp:signature ?sig1;
+          .
+    OPTIONAL {
+      ?sig1 ucdrp:length ?l1;
+            ucdrp:dimension [ ucdrp:concept ?concept; ucdrp:value ?v1 ];
+                                                                  .
+      bind(xsd:integer(100*(?v1/?l1)*(?v1/?l1)) as ?vd1)
+      filter(?vd1 > 0)
+    }
+
+    ?per2 ucdrp:signature ?sig2;
+          rdfs:label ?p2;
+          .
+    ?sig2 ucdrp:length ?l2;
+          .
+    OPTIONAL {
+      ?sig2 ucdrp:length ?l2;
+            ucdrp:dimension [ ucdrp:concept ?concept; ucdrp:value ?v2 ];
+                                                                  .
+      bind(xsd:integer(100*(?v2/?l2)*(?v2/?l2)) as ?vd2)
+      filter(?vd2 > 0)
+    }
+    filter(?p1 != ?p2)
+    filter(?vd1 || ?vd2)
+  } order by ?int ?cLabel limit 100
+#+END_SRC
+
+#+RESULTS:
+| p1             | p2                | cLabel                                               | vd1 | share | vd2 |
+|----------------+-------------------+------------------------------------------------------+-----+-------+-----|
+| Andre Daccache | Quinn Hart        | 04 Earth Sciences                                    |   1 |     5 |  17 |
+| Andre Daccache | Quinn Hart        | 0406 Physical Geography and Environmental Geoscience |   1 |     2 |   5 |
+| Andre Daccache | Quinn Hart        | 05 Environmental Sciences                            |   1 |       |     |
+| Andre Daccache | Quinn Hart        | 07 Agricultural and Veterinary Sciences              |  42 |    27 |  17 |
+| Andre Daccache | Quinn Hart        | 0701 Agriculture, Land and Farm Management           |   1 |       |     |
+| Andre Daccache | Quinn Hart        | 0703 Crop and Pasture Production                     |   2 |       |     |
+| Andre Daccache | Quinn Hart        | 0799 Other Agricultural and Veterinary Sciences      |   2 |       |     |
+| Andre Daccache | Quinn Hart        | 09 Engineering                                       |  34 |    37 |  41 |
+| Andre Daccache | Quinn Hart        | 0905 Civil Engineering                               |   5 |     3 |   2 |
+| Andre Daccache | Quinn Hart        | 0907 Environmental Engineering                       |   1 |     1 |   2 |
+| Andre Daccache | Quinn Hart        | 0915 Interdisciplinary Engineering                   |   1 |       |     |
+| Andre Daccache | Quinn Hart        | 12 Built Environment and Design                      |   1 |       |     |
+| Leonor Saiz    | Ilias Tagkopoulos | 02 Physical Sciences                                 |   1 |       |     |
+| Leonor Saiz    | Ilias Tagkopoulos | 0204 Condensed Matter Physics                        |   1 |       |     |
+| Leonor Saiz    | Ilias Tagkopoulos | 06 Biological Sciences                               |  46 |    52 |  59 |
+| Leonor Saiz    | Ilias Tagkopoulos | 0601 Biochemistry and Cell Biology                   |  29 |    16 |   9 |
+| Leonor Saiz    | Ilias Tagkopoulos | 0605 Microbiology                                    |   1 |       |     |
+| Leonor Saiz    | Ilias Tagkopoulos | 09 Engineering                                       |   7 |     5 |   3 |
+| Leonor Saiz    | Ilias Tagkopoulos | 0906 Electrical and Electronic Engineering           |   1 |       |     |
+| Leonor Saiz    | Ilias Tagkopoulos | 0912 Materials Engineering                           |   1 |       |     |
+| Leonor Saiz    | Ilias Tagkopoulos | 10 Technology                                        |   1 |       |     |
+| Leonor Saiz    | Ilias Tagkopoulos | 1007 Nanotechnology                                  |   1 |       |     |
+| Leonor Saiz    | Ilias Tagkopoulos | 11 Medical and Health Sciences                       |   1 |     3 |   7 |
+| Leonor Saiz    | Ilias Tagkopoulos | 1108 Medical Microbiology                            |   1 |       |     |
+
+
+
+
+For
+
+
+
+** Research Landscape
+
+#+BEGIN_SRC sparql :noweb yes :file expert-vectors.ttl
+<<prefixes>>
+construct {
+  ?id
+    ucdrp:link ?link;
+    rdfs:label ?label;
+    ucdrp:vector ?vec;
+    .
+}
+#describe ?expert
+WHERE {
+  ?expert ucdrp:casId ?cas;
+          rdfs:label ?label;
+       .
+  bind(uri(replace(str(?expert),'http://experts','https://cas-demo.experts')) as ?link)
+  bind(uri(concat('urn:',?cas)) as ?id)
+  {
+	select ?expert (group_concat(?x;separator=",") as ?vec) WHERE {
+	select ?expert ?x
+WHERE {
+  ?expert a ucdrp:person;
+          vivo:signature ?sig;
+          .
+
+  ?concept a skos:Concept;
+     skos:inScheme FoR:;
+     .
+  optional {
+    ?expert vivo:signature [
+                             a ucdrp:Signature;
+                             ucdrp:length ?len;
+                             ucdrp:dimension [
+                                                ucdrp:concept ?concept ;
+                                                ucdrp:value ?val ] ]
+    .
+  }
+  bind(coalesce(xsd:integer(1000*?val/?len),0) as ?x)
+} order by ?expert ?concept
+    } group by ?expert order by ?expert
+  }
+} order by ?cas
+#+END_SRC
+
+
+Now, we need to do the same thing for our Subjects, so we can graph those as
+well.
+
+#+BEGIN_SRC sparql :noweb yes :file theme-vectors.ttl
+<<prefixes>>
+construct {
+  ?town
+    ucdrp:link ?link;
+    rdfs:label ?label;
+    ucdrp:major ?major;
+    ucdrp:size ?sz;
+    ucdrp:cat ?cat;
+    ucdrp:vector ?vec;
+    .
+}
+#describe ?town
+WHERE {
+  ?town skos:prefLabel ?label;
+
+  bind(uri(replace(str(?town),'http://experts','https://cas-demo.experts')) as ?link)
+  bind(replace(str(?town),str(FoR:),'') as ?code)
+  bind(replace(?code,'.','x','i') as ?sz)
+  bind(replace(?code,'^(..).*','$1') as ?major)
+  bind(concat(?major,substr(?sz,3)) as ?cat)
+  filter(?sz='xxxxxx')
+  {
+	select ?town (group_concat(?x;separator=",") as ?vec) WHERE {
+{	select ?town ?x
+WHERE {
+  ?town a skos:Concept;
+          skos:inScheme FoR:;
+          .
+
+   ?concept a skos:Concept;
+          skos:inScheme FoR:;
+
+   optional {
+	     ?town skos:broader* ?concept;
+                           .
+                           bind(577 as ?val)
+          }
+
+          bind(coalesce(?val,0) as ?x)
+} order by ?town ?concept
+      }
+    }  group by ?town order by ?town
+  }
+}
+#+END_SRC

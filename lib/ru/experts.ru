@@ -1,12 +1,10 @@
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
-PREFIX oapx: <http://experts.ucdavis.edu/oap/vocab#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX person: <http://experts.ucdavis.edu/person/>
@@ -19,13 +17,12 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR/>
 PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
 
-# First, Insert citation BIBO stuff
 INSERT {
   # Remember we have concepts
   GRAPH harvest_oap: {
     ?user oap:user_supplied_concepts ?user_supplied_concepts;
     }
-	GRAPH experts_oap: {
+	GRAPH experts: {
     ?person_id a ucdrp:person, foaf:Person;
        rdfs:label ?name ;
        vivo:overview ?overview;
@@ -50,9 +47,9 @@ INSERT {
     ?vcard a vcard:Individual;
            ucdrp:identifier "oap-1";
            vivo:rank 20 ;
-    vcard:hasName ?vcard_name;
-#    vcard:hasTitle ?vcard_title;
-    vcard:hasEmail ?vcard_email;
+           vcard:hasName ?vcard_name;
+           vcard:hasEmail ?vcard_email;
+           vcard:hasURL ?vcard_web;
     .
 
     ?vcard_name a vcard:Name;
@@ -63,15 +60,12 @@ INSERT {
                   vcard:email ?email;
                   .
 
-
-#    ?vcard_title a vcard:Title;
-#                 vcard:title ?position;
-#                 vcard:hasOrganizationalUnit ?vcard_org_unit
-#                 .
-
-#    ?vcard_org_unit a vcard:Organization;
-#                    vcard:title ?dept;
-#                    .
+    ?vcard_web a vcard:URL;
+               vcard:url ?web_url;
+               vivo:rank ?web_rank;
+               rdfs:label ?web_label;
+               ucdrp:urlType ?web_type;
+    .
 
     # Research Areas
     ?person_id vivo:hasResearchArea ?concept.
@@ -89,14 +83,13 @@ WHERE { GRAPH harvest_oap: {
 
 
   bind(concat(?fn," ",?ln) as ?name)
-  bind(uri(concat(str(?person_id),"#vcard")) as ?vcard)
-  bind(uri(concat(str(?person_id),"#vcard-name")) as ?vcard_name)
+  bind(uri(concat(str(?person_id),"#vcard-oap-1")) as ?vcard)
+  bind(uri(concat(str(?vcard),"-name")) as ?vcard_name)
 
   ?assoc oap:user-id ?oapolicy_id.
   bind(uri(concat(str(?person_id),"#oapolicyId")) as ?identifier_oapolicy_id)
 
   OPTIONAL {
-#    values ?assoc_scheme { "researcherid" "orcid" "scopus-author-id" "figshare-for-institutions-user-account-id" }
     values ?assoc_scheme { "researcherid" "orcid" "scopus-author-id" "figshare-for-institutions-user-account-id" }
     ?assoc oap:user-identifier-association [ oap:field-value  ?assoc_value ; oap:scheme ?assoc_scheme ].
   }
@@ -122,14 +115,30 @@ WHERE { GRAPH harvest_oap: {
                                                                   ]
                                               ]
                         ].
-      }
+    }
+    OPTIONAL {
+      ?native oap:field [ oap:name "personal-websites";
+                          oap:web-addresses/oap:web-address [ list:index(?pos ?elem) ]
+                        ].
+
+      ?elem oap:label ?web_label;
+            oap:privacy "public";
+            oap:type ?web_type_text;
+            oap:url ?web_url;
+      .
+
+      bind(?pos as ?web_rank)
+      bind(uri(concat(str(ucdrp:),"URLType_",?web_type_text)) as ?web_type)
+    }
+
     OPTIONAL {
       ?native oap:field [ oap:name "overview";
                           oap:text/oap:field-value ?overview;
                         ].
       }
   }
-  bind(uri(concat(str(?person_id),"#",md5(?email))) as ?vcard_email)
+  bind(uri(concat(str(?vcard),"-email-",md5(?email))) as ?vcard_email)
+  bind(uri(concat(str(?vcard),"-web-",str(?pos))) as ?vcard_web)
 
   OPTIONAL {
     values (?scheme ?vocab) { ("for" FoR:) }

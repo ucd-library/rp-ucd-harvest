@@ -3,14 +3,12 @@
 # However, we do only update these where the oap_harvest incidates we should
 # do this, which will not always be true.
 
-PREFIX experts_iam: <http://experts.ucdavis.edu/iam/>
-PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
-PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
+PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
 
-INSERT { graph experts_oap: {
+INSERT { graph experts: {
   ?expert vivo:hasResearchArea ?concept.
   ?concept vivo:researchAreaOf ?expert.
 }} WHERE {

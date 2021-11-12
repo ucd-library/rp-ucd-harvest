@@ -1,0 +1,121 @@
+#+name: author
+#+BEGIN_SRC sparql :format raw :wrap SRC ttl :noweb yes :var type="ucdrp:person" limit="5"
+<<prefixes>>
+describe ?s WHERE {
+  select ?s WHERE {
+    ?s a ?type.
+  } limit ?limit
+}
+#+END_SRC
+
+#+call: author(limit="1") :format raw
+
+#+RESULTS:
+#+BEGIN_SRC ttl
+@prefix experts_oap: <http://experts.ucdavis.edu/oap/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix bind:  <http://experts.ucdavis.edu/schema/bind/> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+@prefix work:  <http://experts.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix experts_iam: <http://experts.ucdavis.edu/iam/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+
+person:f9ef1e530c617cd598171497b4a49e82
+        a                     foaf:Person , ucdrp:person , vivo:NonAcademic ;
+        rdfs:label            "Quinn Hart" ;
+        ucdrp:casId           "quinn" ;
+        obo:ARG_2000028       <http://experts.ucdavis.edu/person/f9ef1e530c617cd598171497b4a49e82#vcard> , <http://experts.ucdavis.edu/person/f9ef1e530c617cd598171497b4a49e82#pps-1> , <http://experts.ucdavis.edu/person/f9ef1e530c617cd598171497b4a49e82#odr-1> ;
+        vivo:hasResearchArea  <http://experts.ucdavis.edu/concept/FoR/080106> , <http://experts.ucdavis.edu/concept/FoR/080306> , <http://experts.ucdavis.edu/concept/FoR/080604> , <http://experts.ucdavis.edu/concept/FoR/080505> , <http://experts.ucdavis.edu/concept/FoR/08> , <http://experts.ucdavis.edu/concept/FoR/080302> , <http://experts.ucdavis.edu/concept/FoR/080404> , <http://experts.ucdavis.edu/concept/FoR/0804> , <http://experts.ucdavis.edu/concept/FoR/0806> ;
+        vivo:overview         "I am currently the digital applications manager for the UC Davis library.  At the Library, I develop research and educational applications for use at the library and to our researchers and the public.\n\nI've been at UC Davis since 1992.  Before coming to the library in 2016, I worked as a programmer under various projects in the Dept. of Land, Air, and Water Resources." ;
+        vivo:relatedBy        authorship:2713713 , authorship:1765064 , authorship:2713718 , authorship:1452167-3 , authorship:639836-5 , authorship:2713714-2 , authorship:1442407 , authorship:2713714 , authorship:1875203 , authorship:639836 , authorship:2327636-4 , authorship:2364120 , authorship:1452140-3 , authorship:2713715 , authorship:1765066 , authorship:1765064-1 , authorship:2713720-1 , authorship:2713719 , authorship:1452140 , authorship:1442407-2 , authorship:2439616 , authorship:1765066-2 , authorship:1452167 , authorship:2713712-4 , authorship:2713711 , authorship:1452104-1 , authorship:2713715-3 , authorship:2713717-9 , authorship:1442289-1 , authorship:1434606 , authorship:2449942-1 , authorship:2713718-1 , authorship:1442413-2 , authorship:2713716-2 , authorship:1442400-3 , authorship:2713719-1 , authorship:1445886-4 , authorship:1442400 , authorship:2439616-1 , authorship:2449942 , authorship:2713720 , authorship:2713716 , authorship:2327636 , authorship:2713717 , authorship:1445886 , authorship:2713713-2 , authorship:2713711-2 , authorship:1452104 , authorship:2713712 , authorship:1442413 , authorship:1442289 , authorship:1434606-5 .
+#+END_SRC
+
+#+name: author_authorship
+#+BEGIN_SRC sparql  :noweb yes :var limit="5"
+<<prefixes>>
+#describe ?s WHERE {
+#select ?s WHERE {
+select ?a
+WHERE {
+  ?a a ucdrp:authorship;
+     vivo:relates ?s;
+  .
+  {select ?s WHERE {
+    ?s a ucdrp:person.
+  } limit ?limit}
+}
+#+END_SRC
+
+#+RESULTS: author_authorship
+| a                                               |
+|-------------------------------------------------|
+| http://experts.ucdavis.edu/authorship/2713713-2 |
+| http://experts.ucdavis.edu/authorship/1442400-3 |
+| http://experts.ucdavis.edu/authorship/1452104-1 |
+| http://experts.ucdavis.edu/authorship/2713716-2 |
+| http://experts.ucdavis.edu/authorship/1452167-3 |
+| http://experts.ucdavis.edu/authorship/1434606-5 |
+| http://experts.ucdavis.edu/authorship/2439616-1 |
+| http://experts.ucdavis.edu/authorship/1765064-1 |
+| http://experts.ucdavis.edu/authorship/2713718-1 |
+| http://experts.ucdavis.edu/authorship/2713714-2 |
+| http://experts.ucdavis.edu/authorship/1452140-3 |
+| http://experts.ucdavis.edu/authorship/2713717-9 |
+| http://experts.ucdavis.edu/authorship/2713712-4 |
+| http://experts.ucdavis.edu/authorship/1445886-4 |
+| http://experts.ucdavis.edu/authorship/2713715-3 |
+| http://experts.ucdavis.edu/authorship/2327636-4 |
+| http://experts.ucdavis.edu/authorship/2449942-1 |
+| http://experts.ucdavis.edu/authorship/1765066-2 |
+| http://experts.ucdavis.edu/authorship/2713711-2 |
+| http://experts.ucdavis.edu/authorship/1442413-2 |
+| http://experts.ucdavis.edu/authorship/1442289-1 |
+| http://experts.ucdavis.edu/authorship/1442407-2 |
+| http://experts.ucdavis.edu/authorship/639836-5  |
+| http://experts.ucdavis.edu/authorship/2713720-1 |
+| http://experts.ucdavis.edu/authorship/2713719-1 |
+| http://experts.ucdavis.edu/authorship/2713713   |
+| http://experts.ucdavis.edu/authorship/1442400   |
+| http://experts.ucdavis.edu/authorship/1452104   |
+| http://experts.ucdavis.edu/authorship/2713716   |
+| http://experts.ucdavis.edu/authorship/1452167   |
+| http://experts.ucdavis.edu/authorship/1434606   |
+| http://experts.ucdavis.edu/authorship/2364120   |
+| http://experts.ucdavis.edu/authorship/2439616   |
+| http://experts.ucdavis.edu/authorship/1765064   |
+| http://experts.ucdavis.edu/authorship/2713718   |
+| http://experts.ucdavis.edu/authorship/2713714   |
+| http://experts.ucdavis.edu/authorship/1452140   |
+| http://experts.ucdavis.edu/authorship/2713717   |
+| http://experts.ucdavis.edu/authorship/2713712   |
+| http://experts.ucdavis.edu/authorship/1445886   |
+| http://experts.ucdavis.edu/authorship/1875203   |
+| http://experts.ucdavis.edu/authorship/2713715   |
+| http://experts.ucdavis.edu/authorship/2327636   |
+| http://experts.ucdavis.edu/authorship/2449942   |
+| http://experts.ucdavis.edu/authorship/1765066   |
+| http://experts.ucdavis.edu/authorship/2713711   |
+| http://experts.ucdavis.edu/authorship/1442413   |
+| http://experts.ucdavis.edu/authorship/1442289   |
+| http://experts.ucdavis.edu/authorship/1442407   |
+| http://experts.ucdavis.edu/authorship/639836    |
+| http://experts.ucdavis.edu/authorship/2713720   |
+| http://experts.ucdavis.edu/authorship/2713719   |

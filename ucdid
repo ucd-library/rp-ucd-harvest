@@ -190,9 +190,9 @@ function main.cmd () {
     esac
 }
 
-function log() {
+function log_assoc() {
   local opts;
-  if ! opts=$(${G[shell_getopt]} -o v --long verbose -n 'ucdid log' -- "$@"); then
+  if ! opts=$(${G[shell_getopt]} -o v --long verbose -n 'cdl log_assoc' -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
 
     eval set -- "$opts"
@@ -203,11 +203,19 @@ function log() {
 	    case $1 in
 	      -v | --verbose) let log_verbose=$log_verbose+1;  shift;;
 	      -- ) shift; break;;
-	      *) shift; break;
       esac
     done
 
-  (( ${G[verbose]} >= $log_verbose )) && (echo $@)
+    declare -n v=$1
+    v[exe]="ucdid"
+    v[timestamp]="$(date --iso-8601=seconds)"
+
+    if (( ${G[verbose]} >= $log_verbose )) ; then
+      for key in "${!v[@]}"; do
+        printf '%s\0%s\0' "$key" "${v[$key]}"
+      done |
+        jq -Rsc ' split("\u0000") | . as $a | reduce range(0  ; length/2) as $i  ({}; . + {($a[  2*$i]): ($a[2*$i + 1]|fromjson? // .)})'
+    fi
 }
 
 function err() {
@@ -258,6 +266,10 @@ function login() {
 
     eval set -- "$opts"
 
+    declare -A logit=(
+      [cmd]="login"
+    );
+
     local auth=${G[auth]}
     local key=
 
@@ -272,9 +284,10 @@ function login() {
     key=${auth#*:}
 
     local http="${G[util_http]} --check-status --session=${G[http_session]} --auth=${auth} --print=h"
-    log -v -v "${http} ${G[endpoint]}/orginfo/sis/colleges key==${key}"
+    logit[url]="${G[endpoint]}/orginfo/sis/colleges"
     res=$($http ${G[endpoint]}/orginfo/sis/colleges key==${key} | head -n 1)
-    log -v login: $res
+    logit[res]=${res}
+    log_assoc -v logit
 }
 
 
@@ -329,6 +342,7 @@ function fetch() {
   # declare -A items=(
   #   [profiles]='User profile information'
   #   [odr.departments]='Department list from the online directory.'
+  #   [pps.departments]='Payroll services (PPS) departments.'
   #   [pps.divisions]='Payroll services (PPS) divisions.'
   #   [pps.titles]='Payroll services (PPS) titles.'
   #   [sis.colleges]='Student Information System (SIS) colleges.'
@@ -338,6 +352,7 @@ function fetch() {
   declare -A url=(
     [profiles]="${G[endpoint]}/people/profile/search"
     [odr.departments]="${G[endpoint]}/orginfo/odr/depts"
+    [pps.departments]="${G[endpoint]}/orginfo/pps/depts"
     [pps.divisions]="${G[endpoint]}/orginfo/pps/divisions"
     [pps.titles]="${G[endpoint]}/orginfo/pps/titles"
     [sis.colleges]="${G[endpoint]}/orginfo/sis/colleges"
@@ -353,6 +368,11 @@ function fetch() {
     [ttl]='text/turtle'
     [json]='application/json'
   );
+
+  declare -A logit=(
+    [cmd]="fetch"
+  );
+
 
   if ! opts=$(${G[shell_getopt]} -o A:bnhs:vo: --long output:,format:,context:,envelope,search: -n "ucdid fetch" -- "$@"); then
     echo "Bad Command Options." >&2 ; exit 1 ; fi
@@ -415,11 +435,11 @@ function fetch() {
       search=$(sed -e 's/\([^=]\)=\([^=]\)/\1==\2/g' <<<"$search")
       fetch+=" ${search}"
     fi
+    logit[url]="${fetch}"
     if [[ $envelope ]]; then
-      log -v "${fetch}"
-      op ${fetch}
+      ${fetch}
     else
-      log -v "${fetch}" ' | ' "${G[util_jq]} .responseData.results"
+      logit[jq]="${G[util_jq]} .responseData.results"
       ${fetch} | ${G[util_jq]} .responseData.results
     fi
   done |
@@ -428,11 +448,13 @@ function fetch() {
         cat -
         shift;;
       application/ld+json)
-        log -v ${G[util_jq]} "${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' ' | '${G[util_riot]}' --formatted=jsonld --syntax=jsonld'
+#        logit[jq]=${G[util_jq]}"${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' ' | '${G[util_riot]}' --formatted=jsonld --syntax=jsonld'
+        log_assoc -v logit
         ${G[util_jq]} "${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' | ${G[util_riot]} --formatted=jsonld --syntax=jsonld
         shift;;
       text/turtle)
-        log -v ${G[util_jq]} "${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' ' | '"${G[util_riot]} --formatted=ttl --syntax=jsonld"
+#        logit[jq]=${G[util_jq]}"${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' ' | '"${G[util_riot]} --formatted=ttl --syntax=jsonld"
+        log_assoc -v logit
         ${G[util_jq]} "${G[fetch_context]}"' + {"@graph":.}|del(.["@graph"][].ppsAssociationsResults[]?.iamId)' | ${G[util_riot]} --formatted=ttl --syntax=jsonld
         shift;;
       *)

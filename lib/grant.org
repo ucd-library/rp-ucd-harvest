@@ -1,0 +1,653 @@
+* Grants
+:PROPERTIES:
+:header-args:sparql: :url http://localhost:8081/experts/sparql
+:END:
+
+#+call: prefixes.org:lob-ingest()
+
+#+RESULTS:
+: 2
+
+
+#+name: describe_person_grants
+#+BEGIN_SRC sparql :notangle  :noweb yes :var limit="5" :format raw :wrap SRC ttl :var personx="person:no-person" :var person="person:f9ef1e530c617cd598171497b4a49e82"
+  <<prefixes>>
+  describe ?grant
+  WHERE {
+    ?grant a vivo:Grant;
+           vivo:relates ?role;
+           .
+    ?role vivo:relates ?researcher.
+
+    {select ?researcher WHERE {
+      bind(?person as ?researcher)
+      ?researcher a ucdrp:person.
+    } limit ?limit}
+  }
+#+END_SRC
+
+#+call: describe_person_grants(person="person:f9ef1e530c617cd598171497b4a49e82")
+
+** Full Experts Grant Import
+:PROPERTIES:
+:header-args:sparql: :url http://localhost:8081/harvest.4RtO/sparql
+:END:
+
+#+name: construct_expert_grants
+#+BEGIN_SRC sparql :notangle  :noweb yes :var limit="1" :format raw :wrap SRC ttl
+    <<prefixes>>
+    CONSTRUCT {
+      ?grant rdfs:label ?title;
+             a ?grant_type;
+             vivo:sponsorAwardId ?sponsorAwardId;
+             vivo:totalAwardAmount ?totalAwardAmount;
+             vivo:grandDirectCost ?grantDirectCosts;
+             vivo:grandIndirectCost ?grantIndirectCosts;
+             ucdrp:caoCode ?caoCode;
+             vivo:assignedBy ?funding_org;
+             vivo:relates ?expert_role, ?role;
+                          .
+
+      ?expert_role obo:RO_000052 ?expert;
+                       .
+
+      ?role a ?role_type;
+            vivo:relatedBy ?grant;
+            ucdrp:role_person_name ?role_person_name;
+            obo:R0_000052 ?admin_department;
+            .
+
+      ?duration a ?duration_type;
+                vivo:start ?start;
+                vivo:end ?end;
+                .
+
+      ?start a ?start_type;
+             vivo:dateTime           ?start_dateTime;
+             vivo:dateTimePrecision  ?start_dateTimePrecision.
+
+      ?end a ?end_type;
+           vivo:dateTime           ?end_dateTime;
+           vivo:dateTimePrecision  ?end_dateTimePrecision.
+
+      ?funding_org rdfs:label ?funder_label;
+                   a ?funder_type;
+                   vivo:assigns ?grant;
+                   .
+        }
+    WHERE {
+      graph private: {
+        ?grant a ?grant_type;
+               rdfs:label ?title;
+               vivo:relates ?role;
+               vivo:sponsorAwardId ?sponsorAwardId;
+               .
+
+        ?role a ?role_type;
+              vivo:relatedBy ?grant;
+              .
+        OPTIONAL {
+          ?role ucdrp:role_person_name ?role_person_name;
+          .
+          }
+        OPTIONAL {
+          ?role obo:R0_000052 ?admin_department;
+                .
+        }
+
+        OPTIONAL {
+          ?grant vivo:totalAwardAmount ?totalAwardAmount .
+        }
+        OPTIONAL {
+          ?grant vivo:grandDirectCost ?grantDirectCosts .
+        }
+        OPTIONAL {
+          ?grant vivo:grandIndirectCost ?grantIndirectCosts .
+        }
+        OPTIONAL {
+          ?grant ucdrp:caoCode ?caoCode .
+        }
+
+        OPTIONAL {
+          ?grant vivo:assignedBy ?funding_org.
+          ?funding_org rdfs:label ?funder_label;
+  #                     vivo:assigns ?grant;
+                       a ?funder_type;
+                       .
+        }
+        OPTIONAL {
+          ?grant vivo:dateTimeInterval ?duration;
+                 .
+          OPTIONAL {
+            ?duration vivo:start ?start.
+            ?start a  ?start_type;
+                   vivo:dateTime           ?start_dateTime;
+                   vivo:dateTimePrecision  ?start_dateTimePrecision.
+          }
+          OPTIONAL {
+            ?duration vivo:end ?end.
+            ?end a  ?end_type;
+                 vivo:dateTime ?end_dateTime;
+                 vivo:dateTimePrecision  ?end_dateTimePrecision;
+                 .
+          }
+        }
+      }
+      { SELECT *
+        WHERE {
+          graph private: {
+            ?grant a vivo:Grant;
+                   vivo:relates ?expert_role;
+                   .
+
+            ?expert_role obo:RO_000052 ?expert_id.
+          }
+
+          {
+            select ?expert_id WHERE {
+              graph experts: {
+                ?expert_id a ucdrp:person ;
+                .
+              }
+            } limit ?limit}
+        }
+      }
+    }
+#+END_SRC
+
+#+RESULTS: construct_expert_grants
+#+begin_SRC ttl
+@prefix private: <http://experts.ucdavis.edu/private/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix FoR:   <http://experts.ucdavis.edu/concept/FoR/> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix free:  <http://experts.ucdavis.edu/concept/free> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+@prefix work:  <http://experts.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix afn:   <http://jena.apache.org/ARQ/function#> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+#+end_SRC
+
+
+
+** Harvest Style Grants
+:PROPERTIES:
+:header-args:sparql: :url http://localhost:8081/harvest.JXic/sparql
+:END:
+
+#+name: select_harvest_grants
+#+BEGIN_SRC sparql  :noweb yes :var limit="5"
+     <<prefixes>>
+  select *
+  WHERE {
+    graph private: {
+      ?grant rdfs:label ?title;
+             vivo:relates ?roles;
+             .
+    }
+    { SELECT *
+      WHERE {
+        graph private: {
+          ?grant a vivo:Grant;
+                 vivo:relates ?expert_role;
+                 .
+
+          ?expert_role obo:RO_000052 ?expert_id.
+        }
+
+        {
+          select ?expert_id WHERE {
+            graph harvest_oap: {
+              ?user oap:experts_person_id ?expert_id ;
+              .
+            }
+          } limit ?limit}
+      }
+    }
+  }
+#+END_SRC
+
+#+name: construct_harvest_grants
+#+BEGIN_SRC sparql :notangle  :noweb yes :var limit="5" :format raw :wrap SRC ttl
+    <<prefixes>>
+    CONSTRUCT {
+      ?grant rdfs:label ?title;
+             a ?grant_type;
+             vivo:sponsorAwardId ?sponsorAwardId;
+             vivo:totalAwardAmount ?totalAwardAmount;
+             vivo:grandDirectCost ?grantDirectCosts;
+             vivo:grandIndirectCost ?grantIndirectCosts;
+             ucdrp:caoCode ?caoCode;
+             vivo:assignedBy ?funding_org;
+             vivo:relates ?expert_role, ?role;
+                          .
+
+      ?expert_role obo:RO_000052 ?expert;
+                       .
+
+      ?role a ?role_type;
+            vivo:relatedBy ?grant;
+            ucdrp:role_person_name ?role_person_name;
+            obo:R0_000052 ?admin_department;
+            .
+
+      ?duration a ?duration_type;
+                vivo:start ?start;
+                vivo:end ?end;
+                .
+
+      ?start a ?start_type;
+             vivo:dateTime           ?start_dateTime;
+             vivo:dateTimePrecision  ?start_dateTimePrecision.
+
+      ?end a ?end_type;
+           vivo:dateTime           ?end_dateTime;
+           vivo:dateTimePrecision  ?end_dateTimePrecision.
+
+      ?funding_org rdfs:label ?funder_label;
+                   a ?funder_type;
+                   vivo:assigns ?grant;
+                   .
+        }
+    WHERE {
+      graph private: {
+        ?grant a ?grant_type;
+               rdfs:label ?title;
+               vivo:relates ?role;
+               vivo:sponsorAwardId ?sponsorAwardId;
+               .
+
+        ?role a ?role_type;
+              vivo:relatedBy ?grant;
+              .
+        OPTIONAL {
+          ?role ucdrp:role_person_name ?role_person_name;
+          .
+          }
+        OPTIONAL {
+          ?role obo:R0_000052 ?admin_department;
+                .
+        }
+
+        OPTIONAL {
+          ?grant vivo:totalAwardAmount ?totalAwardAmount .
+        }
+        OPTIONAL {
+          ?grant vivo:grandDirectCost ?grantDirectCosts .
+        }
+        OPTIONAL {
+          ?grant vivo:grandIndirectCost ?grantIndirectCosts .
+        }
+        OPTIONAL {
+          ?grant ucdrp:caoCode ?caoCode .
+        }
+
+        OPTIONAL {
+          ?grant vivo:assignedBy ?funding_org.
+          ?funding_org rdfs:label ?funder_label;
+  #                     vivo:assigns ?grant;
+                       a ?funder_type;
+                       .
+        }
+        OPTIONAL {
+          ?grant vivo:dateTimeInterval ?duration;
+                 .
+          OPTIONAL {
+            ?duration vivo:start ?start.
+            ?start a  ?start_type;
+                   vivo:dateTime           ?start_dateTime;
+                   vivo:dateTimePrecision  ?start_dateTimePrecision.
+          }
+          OPTIONAL {
+            ?duration vivo:end ?end.
+            ?end a  ?end_type;
+                 vivo:dateTime ?end_dateTime;
+                 vivo:dateTimePrecision  ?end_dateTimePrecision;
+                 .
+          }
+        }
+      }
+      { SELECT *
+        WHERE {
+          graph private: {
+            ?grant a vivo:Grant;
+                   vivo:relates ?expert_role;
+                   .
+
+            ?expert_role obo:RO_000052 ?expert_id.
+          }
+
+          {
+            select ?expert_id WHERE {
+              graph harvest_oap: {
+                ?user oap:experts_person_id ?expert_id ;
+                .
+              }
+            } limit ?limit}
+        }
+      }
+    }
+#+END_SRC
+
+#+RESULTS: construct_harvest_grants
+#+begin_SRC ttl
+@prefix private: <http://experts.ucdavis.edu/private/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix FoR:   <http://experts.ucdavis.edu/concept/FoR/> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix free:  <http://experts.ucdavis.edu/concept/free> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+@prefix work:  <http://experts.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix afn:   <http://jena.apache.org/ARQ/function#> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+
+<http://experts.ucdavis.edu/admin_role/030250-13118>
+        a               vivo:AdminRole ;
+        vivo:relatedBy  <http://experts.ucdavis.edu/grant/13118> .
+
+<http://experts.ucdavis.edu/pi_role/e90ac85ef05ad62a2f0ae2ea4d330ea0-102424>
+        a                       ucdrp:PrincipalInvestigatorRole , vivo:PrincipalInvestigatorRole ;
+        ucdrp:role_person_name  "USTIN, SUSAN L" ;
+        vivo:relatedBy          <http://experts.ucdavis.edu/grant/102424> .
+
+<http://experts.ucdavis.edu/admin_role/024025-111109>
+        a               vivo:AdminRole ;
+        vivo:relatedBy  <http://experts.ucdavis.edu/grant/111109> .
+
+<http://experts.ucdavis.edu/pi_role/fa2b57131f3908b739eb08a0817a3f9b-6694>
+        a                       ucdrp:PrincipalInvestigatorRole , vivo:PrincipalInvestigatorRole ;
+        ucdrp:role_person_name  "X#077061, MICHAEL" ;
+        vivo:relatedBy          <http://experts.ucdavis.edu/grant/6694> .
+
+<http://experts.ucdavis.edu/grant/13118#duration>
+        vivo:end    <http://experts.ucdavis.edu/grant/13118#end> ;
+        vivo:start  <http://experts.ucdavis.edu/grant/13118#start> .
+
+<http://experts.ucdavis.edu/grant/111109>
+        a                      vivo:Grant ;
+        rdfs:label             "SIMETAW and Cal-SIMETAW Upgrade" ;
+        vivo:assignedBy        <http://experts.ucdavis.edu/funding_org/6550> ;
+        vivo:relates           <http://experts.ucdavis.edu/admin_role/024025-111109> , <http://experts.ucdavis.edu/pi_role/ef25d40bfaea6c15262fc706534ea59d-111109> , <http://experts.ucdavis.edu/grant/111109#rolef9ef1e530c617cd598171497b4a49e82-OTHR> ;
+        vivo:sponsorAwardId    "4600010450" ;
+        vivo:totalAwardAmount  181353 .
+
+<http://experts.ucdavis.edu/grant/111052>
+        a                      vivo:Grant ;
+        rdfs:label             "DWR-EVAPOTRANSPIRATION APPLICATIONS AND MAPPING" ;
+        vivo:assignedBy        <http://experts.ucdavis.edu/funding_org/6550> ;
+        vivo:relates           <http://experts.ucdavis.edu/admin_role/100010-111052> , <http://experts.ucdavis.edu/pi_role/f9ef1e530c617cd598171497b4a49e82-111052> ;
+        vivo:sponsorAwardId    "4600010650" ;
+        vivo:totalAwardAmount  75000 .
+
+<http://experts.ucdavis.edu/grant/108231#end>
+        a                       vivo:DateTimeValue ;
+        vivo:dateTime           "2015-03-31" ;
+        vivo:dateTimePrecision  vivo:yearMonthDayPrecision .
+
+<http://experts.ucdavis.edu/grant/101639#duration>
+        vivo:end    <http://experts.ucdavis.edu/grant/101639#end> ;
+        vivo:start  <http://experts.ucdavis.edu/grant/101639#start> .
+
+<http://experts.ucdavis.edu/grant/102424#duration>
+        vivo:end    <http://experts.ucdavis.edu/grant/102424#end> ;
+        vivo:start  <http://experts.ucdavis.edu/grant/102424#start> .
+
+<http://experts.ucdavis.edu/grant/6694#end>
+        a                       vivo:DateTimeValue ;
+        vivo:dateTime           "2008-09-30" ;
+        vivo:dateTimePrecision  vivo:yearMonthDayPrecision .
+
+<http://experts.ucdavis.edu/grant/101639#rolef9ef1e530c617cd598171497b4a49e82-OTHR>
+        a                       ucdrp:GrantOtherRole , vivo:ResearcherRole ;
+        ucdrp:role_person_name  "HART, QUINN J" ;
+        vivo:relatedBy          <http://experts.ucdavis.edu/grant/101639> .
+
+<http://experts.ucdavis.edu/grant/6694#duration>
+        vivo:end    <http://experts.ucdavis.edu/grant/6694#end> ;
+        vivo:start  <http://experts.ucdavis.edu/grant/6694#start> .
+
+<http://experts.ucdavis.edu/funding_org/0539>
+        a             vivo:FundingOrganization ;
+        rdfs:label    "CALIFORNIA DELTA STEWARDSHIP COUNCIL" ;
+        vivo:assigns  <http://experts.ucdavis.edu/grant/13118> .
+
+<http://experts.ucdavis.edu/grant/108231>
+        a                      vivo:Grant ;
+        rdfs:label             "DETECTION OF SUGAR CANE HARVEST BURNING USING SATELLITE IMAGING" ;
+        vivo:assignedBy        <http://experts.ucdavis.edu/funding_org/6533> ;
+        vivo:relates           <http://experts.ucdavis.edu/admin_role/100010-108231> , <http://experts.ucdavis.edu/pi_role/f9ef1e530c617cd598171497b4a49e82-108231> ;
+        vivo:sponsorAwardId    "12-409" ;
+        vivo:totalAwardAmount  58493 .
+
+<http://experts.ucdavis.edu/funding_org/6550>
+        a             vivo:FundingOrganization ;
+        rdfs:label    "CALIFORNIA DEPARTMENT OF WATER RESOURCES" ;
+        vivo:assigns  <http://experts.ucdavis.edu/grant/111052> , <http://experts.ucdavis.edu/grant/111109> .
+
+<http://experts.ucdavis.edu/grant/102424#end>
+        a                       vivo:DateTimeValue ;
+        vivo:dateTime           "2015-04-30" ;
+        vivo:dateTimePrecision  vivo:yearMonthDayPrecision .
+
+<http://experts.ucdavis.edu/grant/111109#end>
+        a                       vivo:DateTimeValue ;
+        vivo:dateTime           "2017-07-29" ;
+        vivo:dateTimePrecision  vivo:yearMonthDayPrecision .
+
+<http://experts.ucdavis.edu/grant/13118#rolef9ef1e530c617cd598171497b4a49e82-COPI>
+        a                       ucdrp:GrantCoPrincipalInvestigatorRole , vivo:CoPrincipalInvestigatorRole ;
+        ucdrp:role_person_name  "HART, QUINN J" ;
+        vivo:relatedBy          <http://experts.ucdavis.edu/grant/13118> .
+
+<http://experts.ucdavis.edu/grant/108231#duration>
+        vivo:end    <http://experts.ucdavis.edu/grant/108231#end> ;
+        vivo:start  <http://experts.ucdavis.edu/grant/108231#start> .
+
+<http://experts.ucdavis.edu/admin_role/030250-101639>
+        a               vivo:AdminRole ;
+        vivo:relatedBy  <http://experts.ucdavis.edu/grant/101639> .
+
+<http://experts.ucdavis.edu/admin_role/100010-102424>
+        a               vivo:AdminRole ;
+        vivo:relatedBy  <http://experts.ucdavis.edu/grant/102424> .
+
+<http://experts.ucdavis.edu/grant/111052#end>
+        a                       vivo:DateTimeValue ;
+        vivo:dateTime           "2016-06-15" ;
+        vivo:dateTimePrecision  vivo:yearMonthDayPrecision .
+
+<http://experts.ucdavis.edu/pi_role/f9ef1e530c617cd598171497b4a49e82-111052>
+        a                       ucdrp:PrincipalInvestigatorRole , vivo:PrincipalInvestigatorRole ;
+        ucdrp:role_person_name  "HART, QUINN J" ;
+        vivo:relatedBy          <http://experts.ucdavis.edu/grant/111052> .
+
+<http://experts.ucdavis.edu/admin_role/100010-111052>
+        a               vivo:AdminRole ;
+        vivo:relatedBy  <http://experts.ucdavis.edu/grant/111052> .
+
+<http://experts.ucdavis.edu/grant/6694#rolef9ef1e530c617cd598171497b4a49e82-COPI>
+        a                       ucdrp:GrantCoPrincipalInvestigatorRole , vivo:CoPrincipalInvestigatorRole ;
+        ucdrp:role_person_name  "HART, QUINN J" ;
+        vivo:relatedBy          <http://experts.ucdavis.edu/grant/6694> .
+
+<http://experts.ucdavis.edu/pi_role/ef25d40bfaea6c15262fc706534ea59d-111109>
+        a                       ucdrp:PrincipalInvestigatorRole , vivo:PrincipalInvestigatorRole ;
+        ucdrp:role_person_name  "SNYDER, RICHARD L" ;
+        vivo:relatedBy          <http://experts.ucdavis.edu/grant/111109> .
+
+<http://experts.ucdavis.edu/grant/101639>
+        a                      vivo:Grant ;
+        rdfs:label             "DEVELOPMENT OF A VICARIOUS CALIBRATION PROGRAM FOR THE NASA FACILITY E-MAS, MAS AND MASTER IMAGERS" ;
+        vivo:assignedBy        <http://experts.ucdavis.edu/funding_org/5106> ;
+        vivo:relates           <http://experts.ucdavis.edu/admin_role/030250-101639> , <http://experts.ucdavis.edu/pi_role/e90ac85ef05ad62a2f0ae2ea4d330ea0-101639> , <http://experts.ucdavis.edu/grant/101639#roleead59ff32ce4fa7ae12d9e5503ba66e4-OTHR> , <http://experts.ucdavis.edu/grant/101639#rolef9ef1e530c617cd598171497b4a49e82-OTHR> ;
+        vivo:sponsorAwardId    "NAS203144TO0308MDD" ;
+        vivo:totalAwardAmount  0 .
+
+<http://experts.ucdavis.edu/grant/13118#end>
+        a                       vivo:DateTimeValue ;
+        vivo:dateTime           "2012-06-30" ;
+        vivo:dateTimePrecision  vivo:yearMonthDayPrecision .
+
+<http://experts.ucdavis.edu/grant/101639#start>
+        a                       vivo:DateTimeValue ;
+        vivo:dateTime           "2011-01-01" ;
+        vivo:dateTimePrecision  vivo:yearMonthDayPrecision .
+
+<http://experts.ucdavis.edu/pi_role/e90ac85ef05ad62a2f0ae2ea4d330ea0-13118>
+        a                       ucdrp:PrincipalInvestigatorRole , vivo:PrincipalInvestigatorRole ;
+        ucdrp:role_person_name  "USTIN, SUSAN L" ;
+        vivo:relatedBy          <http://experts.ucdavis.edu/grant/13118> .
+
+<http://experts.ucdavis.edu/grant/111109#rolef9ef1e530c617cd598171497b4a49e82-OTHR>
+        a                       ucdrp:GrantOtherRole , vivo:ResearcherRole ;
+        ucdrp:role_person_name  "HART, QUINN J" ;
+        vivo:relatedBy          <http://experts.ucdavis.edu/grant/111109> .
+
+<http://experts.ucdavis.edu/grant/111109#start>
+        a                       vivo:DateTimeValue ;
+        vivo:dateTime           "2014-07-30" ;
+        vivo:dateTimePrecision  vivo:yearMonthDayPrecision .
+
+<http://experts.ucdavis.edu/grant/102424#roleead59ff32ce4fa7ae12d9e5503ba66e4-COPI>
+        a                       ucdrp:GrantCoPrincipalInvestigatorRole , vivo:CoPrincipalInvestigatorRole ;
+        ucdrp:role_person_name  "KOLTUNOV, ALEXANDER" ;
+        vivo:relatedBy          <http://experts.ucdavis.edu/grant/102424> .
+
+<http://experts.ucdavis.edu/grant/111109#duration>
+        vivo:end    <http://experts.ucdavis.edu/grant/111109#end> ;
+        vivo:start  <http://experts.ucdavis.edu/grant/111109#start> .
+
+<http://experts.ucdavis.edu/funding_org/5101>
+        a             vivo:FundingOrganization ;
+        rdfs:label    "NASA/MISCELLANEOUS CENTERS" ;
+        vivo:assigns  <http://experts.ucdavis.edu/grant/102424> .
+
+<http://experts.ucdavis.edu/funding_org/6533>
+        a             vivo:FundingOrganization ;
+        rdfs:label    "AIR RESOURCES BOARD" ;
+        vivo:assigns  <http://experts.ucdavis.edu/grant/108231> .
+
+<http://experts.ucdavis.edu/grant/6694>
+        a                    vivo:Grant ;
+        rdfs:label           "ITR:  ADAPTIVE QUERY PROCESSING ARCHITECTURE FOR STREAMING GEOSPATIAL IMAGE DATA" ;
+        vivo:assignedBy      <http://experts.ucdavis.edu/funding_org/5400> ;
+        vivo:relates         <http://experts.ucdavis.edu/pi_role/fa2b57131f3908b739eb08a0817a3f9b-6694> , <http://experts.ucdavis.edu/grant/6694#rolef9ef1e530c617cd598171497b4a49e82-COPI> ;
+        vivo:sponsorAwardId  "0326517" .
+
+<http://experts.ucdavis.edu/funding_org/5400>
+        a             vivo:FundingOrganization ;
+        rdfs:label    "NATIONAL SCIENCE FOUNDATION" ;
+        vivo:assigns  <http://experts.ucdavis.edu/grant/6694> .
+
+<http://experts.ucdavis.edu/grant/111052#start>
+        a                       vivo:DateTimeValue ;
+        vivo:dateTime           "2014-07-14" ;
+        vivo:dateTimePrecision  vivo:yearMonthDayPrecision .
+
+<http://experts.ucdavis.edu/pi_role/e90ac85ef05ad62a2f0ae2ea4d330ea0-101639>
+        a                       ucdrp:PrincipalInvestigatorRole , vivo:PrincipalInvestigatorRole ;
+        ucdrp:role_person_name  "USTIN, SUSAN L" ;
+        vivo:relatedBy          <http://experts.ucdavis.edu/grant/101639> .
+
+<http://experts.ucdavis.edu/grant/102424#start>
+        a                       vivo:DateTimeValue ;
+        vivo:dateTime           "2011-05-01" ;
+        vivo:dateTimePrecision  vivo:yearMonthDayPrecision .
+
+<http://experts.ucdavis.edu/funding_org/5106>
+        a             vivo:FundingOrganization ;
+        rdfs:label    "NASA AMES RESEARCH CENTER" ;
+        vivo:assigns  <http://experts.ucdavis.edu/grant/101639> .
+
+<http://experts.ucdavis.edu/grant/6694#start>
+        a                       vivo:DateTimeValue ;
+        vivo:dateTime           "2003-10-15" ;
+        vivo:dateTimePrecision  vivo:yearMonthDayPrecision .
+
+<http://experts.ucdavis.edu/grant/102424>
+        a                    vivo:Grant ;
+        rdfs:label           "NEAR REAL TIME SCIENCE PROCESSING ALGORITHM FOR LIVE FUEL MOISTURE CONTENT FOR THE MODIS DIRECT READOUT SYSTEM" ;
+        vivo:assignedBy      <http://experts.ucdavis.edu/funding_org/5101> ;
+        vivo:relates         <http://experts.ucdavis.edu/admin_role/100010-102424> , <http://experts.ucdavis.edu/pi_role/e90ac85ef05ad62a2f0ae2ea4d330ea0-102424> , <http://experts.ucdavis.edu/grant/102424#roleead59ff32ce4fa7ae12d9e5503ba66e4-COPI> , <http://experts.ucdavis.edu/grant/102424#rolef9ef1e530c617cd598171497b4a49e82-COPI> ;
+        vivo:sponsorAwardId  "NNX11AF93G" .
+
+<http://experts.ucdavis.edu/grant/108231#start>
+        a                       vivo:DateTimeValue ;
+        vivo:dateTime           "2013-04-01" ;
+        vivo:dateTimePrecision  vivo:yearMonthDayPrecision .
+
+<http://experts.ucdavis.edu/grant/13118>
+        a                      vivo:Grant ;
+        rdfs:label             "CERES/CSTARS FISCAL YEAR 2007/08 AND 2008/09 WORK PLAN" ;
+        vivo:assignedBy        <http://experts.ucdavis.edu/funding_org/0539> ;
+        vivo:relates           <http://experts.ucdavis.edu/admin_role/030250-13118> , <http://experts.ucdavis.edu/pi_role/e90ac85ef05ad62a2f0ae2ea4d330ea0-13118> , <http://experts.ucdavis.edu/grant/13118#rolef9ef1e530c617cd598171497b4a49e82-COPI> ;
+        vivo:sponsorAwardId    "0CA7A092" ;
+        vivo:totalAwardAmount  2071229 .
+
+<http://experts.ucdavis.edu/pi_role/f9ef1e530c617cd598171497b4a49e82-108231>
+        a                       ucdrp:PrincipalInvestigatorRole , vivo:PrincipalInvestigatorRole ;
+        ucdrp:role_person_name  "HART, QUINN J" ;
+        vivo:relatedBy          <http://experts.ucdavis.edu/grant/108231> .
+
+<http://experts.ucdavis.edu/grant/101639#end>
+        a                       vivo:DateTimeValue ;
+        vivo:dateTime           "2011-12-31" ;
+        vivo:dateTimePrecision  vivo:yearMonthDayPrecision .
+
+<http://experts.ucdavis.edu/grant/111052#duration>
+        vivo:end    <http://experts.ucdavis.edu/grant/111052#end> ;
+        vivo:start  <http://experts.ucdavis.edu/grant/111052#start> .
+
+<http://experts.ucdavis.edu/grant/102424#rolef9ef1e530c617cd598171497b4a49e82-COPI>
+        a                       ucdrp:GrantCoPrincipalInvestigatorRole , vivo:CoPrincipalInvestigatorRole ;
+        ucdrp:role_person_name  "HART, QUINN J" ;
+        vivo:relatedBy          <http://experts.ucdavis.edu/grant/102424> .
+
+<http://experts.ucdavis.edu/admin_role/100010-108231>
+        a               vivo:AdminRole ;
+        vivo:relatedBy  <http://experts.ucdavis.edu/grant/108231> .
+
+<http://experts.ucdavis.edu/grant/101639#roleead59ff32ce4fa7ae12d9e5503ba66e4-OTHR>
+        a                       ucdrp:GrantOtherRole , vivo:ResearcherRole ;
+        ucdrp:role_person_name  "KOLTUNOV, ALEXANDER" ;
+        vivo:relatedBy          <http://experts.ucdavis.edu/grant/101639> .
+
+<http://experts.ucdavis.edu/grant/13118#start>
+        a                       vivo:DateTimeValue ;
+        vivo:dateTime           "2008-02-01" ;
+        vivo:dateTimePrecision  vivo:yearMonthDayPrecision .
+#+end_SRC

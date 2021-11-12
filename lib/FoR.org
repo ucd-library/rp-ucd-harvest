@@ -1,0 +1,1041 @@
+* Vocabularies
+:PROPERTIES:
+:header-args:sparql: :url http://localhost:8081/harvest/sparql
+:END:
+
+These are functions that investigate the FoR vocabulary, and can be used update
+the FoR terms, (and their required broader terms), into the experts system.
+
+
+;(print cf);
+(print <<cf>>);
+
+#+name: deindex
+#+BEGIN_SRC emacs-lisp :noweb yes :var cf='bar'
+(print cf);
+#+END_SRC
+
+#+RESULTS: deindex :noweb yes
+: bar
+
+#+CALL: deindex(cf='foo')
+
+#+RESULTS:
+: foo
+
+
+#+call: prefixes.org:lob-ingest()
+
+#+RESULTS:
+: 2
+
+** TODO FoR terms in pubs
+
+Get all terms (and their broader terms) that exist in all the publications of a
+particular ~pub_graph~.  This can
+
+If you specify a ~_concept~, then it looks for the concept alone.
+
+- Specify a ~pub_graph~ to pick the graph you are using to get your pubs.  This
+  can be specified as ~harvest_iam:~ to use a list from the harvest graphs.
+
+
+#+name: FoR_terms_query
+#+BEGIN_SRC sparql :noweb eval :var _scheme="FoR:" :var pub_graph="experts_oap:" :var _conceptx="FoR:1301" :format raw :wrap SRC ttl
+    <<prefixes>>
+    CONSTRUCT {
+      ?concept a ?type;
+            skos:broader ?broader;
+            skos:inScheme ?scheme;
+            skos:prefLabel ?label;
+skos:graph ?pub_graph;
+            .
+
+      ?broader skos:narrower ?concept.
+    }
+    WHERE {
+      bind(?_scheme as ?scheme)
+      {
+        graph ?pub_graph {
+          ?work vivo:hasSubjectArea ?_concept.
+        }
+        graph ?v {
+          ?_concept skos:inScheme FoR:;
+               skos:broader* ?concept;
+               .
+        }
+        graph ?v {
+          ?concept a ?type;
+                skos:broader ?broader;
+                skos:inScheme ?scheme;
+                skos:prefLabel ?label;
+                .
+        }
+      }
+    }
+#+END_SRC
+
+#+RESULTS: FoR_terms_query
+#+BEGIN_SRC ttl
+@prefix experts_oap: <http://experts.ucdavis.edu/oap/> .
+@prefix FoR:   <http://experts.ucdavis.edu/concept/FoR/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix free:  <http://experts.ucdavis.edu/concept/free> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+@prefix work:  <http://experts.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix experts_iam: <http://experts.ucdavis.edu/iam/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+
+FoR:2101  a             skos:Concept ;
+        skos:broader    FoR:21 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Archaeology" .
+
+FoR:0701  a             skos:Concept ;
+        skos:broader    FoR:07 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:070101 ;
+        skos:prefLabel  "Agriculture, Land and Farm Management" .
+
+FoR:0202  a             skos:Concept ;
+        skos:broader    FoR:02 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Atomic, Molecular, Nuclear, Particle and Plasma Physics" .
+
+FoR:0102  a             skos:Concept ;
+        skos:broader    FoR:01 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Applied Mathematics" .
+
+FoR:1301  a             skos:Concept ;
+        skos:broader    FoR:13 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Education Systems" .
+
+FoR:0601  a             skos:Concept ;
+        skos:broader    FoR:06 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Biochemistry and Cell Biology" .
+
+FoR:1107  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Immunology" .
+
+FoR:1606  a             skos:Concept ;
+        skos:broader    FoR:16 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Political Science" .
+
+FoR:07  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:0701 , FoR:0703 , FoR:0706 , FoR:0702 , FoR:0707 , FoR:0704 , FoR:0705 , FoR:0799 ;
+        skos:prefLabel  "Agricultural and Veterinary Sciences" .
+
+FoR:0906  a             skos:Concept ;
+        skos:broader    FoR:09 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Electrical and Electronic Engineering" .
+
+FoR:1201  a             skos:Concept ;
+        skos:broader    FoR:12 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Architecture" .
+
+FoR:0501  a             skos:Concept ;
+        skos:broader    FoR:05 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Ecological Applications" .
+
+FoR:1007  a             skos:Concept ;
+        skos:broader    FoR:10 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Nanotechnology" .
+
+FoR:0806  a             skos:Concept ;
+        skos:broader    FoR:08 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Information Systems" .
+
+FoR:0307  a             skos:Concept ;
+        skos:broader    FoR:03 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Theoretical and Computational Chemistry" .
+
+FoR:1101  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Medical Biochemistry and Metabolomics" .
+
+FoR:01  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:0101 , FoR:0105 , FoR:0199 , FoR:0103 , FoR:0102 , FoR:0104 ;
+        skos:prefLabel  "Mathematical Sciences" .
+
+FoR:0401  a             skos:Concept ;
+        skos:broader    FoR:04 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Atmospheric Sciences" .
+
+FoR:0706  a             skos:Concept ;
+        skos:broader    FoR:07 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Horticultural Production" .
+
+FoR:1114  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Paediatrics and Reproductive Medicine" .
+
+FoR:0913  a             skos:Concept ;
+        skos:broader    FoR:09 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Mechanical Engineering" .
+
+FoR:14  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:1403 , FoR:1402 ;
+        skos:prefLabel  "Economics" .
+
+FoR:1001  a             skos:Concept ;
+        skos:broader    FoR:10 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Agricultural Biotechnology" .
+
+FoR:0301  a             skos:Concept ;
+        skos:broader    FoR:03 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Analytical Chemistry" .
+
+FoR:0606  a             skos:Concept ;
+        skos:broader    FoR:06 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Physiology" .
+
+FoR:0201  a             skos:Concept ;
+        skos:broader    FoR:02 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Astronomical and Space Sciences" .
+
+FoR:21  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:2101 ;
+        skos:prefLabel  "History and Archaeology" .
+
+FoR:0101  a             skos:Concept ;
+        skos:broader    FoR:01 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Pure Mathematics" .
+
+FoR:1605  a             skos:Concept ;
+        skos:broader    FoR:16 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Policy and Administration" .
+
+FoR:0905  a             skos:Concept ;
+        skos:broader    FoR:09 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Civil Engineering" .
+
+FoR:1106  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Human Movement and Sports Sciences" .
+
+FoR:06  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:0608 , FoR:0601 , FoR:0602 , FoR:0605 , FoR:0607 , FoR:0603 , FoR:0606 , FoR:0699 , FoR:0604 ;
+        skos:prefLabel  "Biological Sciences" .
+
+FoR:0406  a             skos:Concept ;
+        skos:broader    FoR:04 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Physical Geography and Environmental Geoscience" .
+
+FoR:19  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:1904 ;
+        skos:prefLabel  "Studies in Creative Arts and Writing" .
+
+FoR:0805  a             skos:Concept ;
+        skos:broader    FoR:08 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Distributed Computing" .
+
+FoR:1006  a             skos:Concept ;
+        skos:broader    FoR:10 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Computer Hardware" .
+
+FoR:0306  a             skos:Concept ;
+        skos:broader    FoR:03 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Physical Chemistry (incl. Structural)" .
+
+FoR:1904  a             skos:Concept ;
+        skos:broader    FoR:19 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Performing Arts and Creative Writing" .
+
+FoR:1113  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Opthalmology and Optometry" .
+
+FoR:0705  a             skos:Concept ;
+        skos:broader    FoR:07 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Forestry Sciences" .
+
+FoR:0912  a             skos:Concept ;
+        skos:broader    FoR:09 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Materials Engineering" .
+
+FoR:13  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:1302 , FoR:1301 ;
+        skos:prefLabel  "Education" .
+
+FoR:0206  a             skos:Concept ;
+        skos:broader    FoR:02 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Quantum Physics" .
+
+FoR:0605  a             skos:Concept ;
+        skos:broader    FoR:06 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Microbiology" .
+
+FoR:1205  a             skos:Concept ;
+        skos:broader    FoR:12 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Urban and Regional Planning" .
+
+FoR:1105  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Dentistry" .
+
+FoR:1604  a             skos:Concept ;
+        skos:broader    FoR:16 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Human Geography" .
+
+FoR:0904  a             skos:Concept ;
+        skos:broader    FoR:09 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Chemical Engineering" .
+
+FoR:05  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:0501 , FoR:0503 , FoR:0502 ;
+        skos:prefLabel  "Environmental Sciences" .
+
+FoR:0405  a             skos:Concept ;
+        skos:broader    FoR:04 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Oceanography" .
+
+FoR:18  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:1801 ;
+        skos:prefLabel  "Law and Legal Studies" .
+
+FoR:1504  a             skos:Concept ;
+        skos:broader    FoR:15 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Commercial Services" .
+
+FoR:0804  a             skos:Concept ;
+        skos:broader    FoR:08 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Data Format" .
+
+FoR:1005  a             skos:Concept ;
+        skos:broader    FoR:10 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Communications Technologies" .
+
+FoR:0305  a             skos:Concept ;
+        skos:broader    FoR:03 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Organic Chemistry" .
+
+FoR:0999  a             skos:Concept ;
+        skos:broader    FoR:09 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Other Engineering" .
+
+FoR:0911  a             skos:Concept ;
+        skos:broader    FoR:09 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Maritime Engineering" .
+
+FoR:0704  a             skos:Concept ;
+        skos:broader    FoR:07 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Fisheries Sciences" .
+
+FoR:1112  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Oncology and Carcinogenesis" .
+
+FoR:12  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:1203 , FoR:1201 , FoR:1205 , FoR:1202 ;
+        skos:prefLabel  "Built Environment and Design" .
+
+FoR:0205  a             skos:Concept ;
+        skos:broader    FoR:02 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Optical Physics" .
+
+FoR:0899  a             skos:Concept ;
+        skos:broader    FoR:08 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Other Information and Computing Sciences" .
+
+FoR:0604  a             skos:Concept ;
+        skos:broader    FoR:06 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Genetics" .
+
+FoR:0105  a             skos:Concept ;
+        skos:broader    FoR:01 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Mathematical Physics" .
+
+FoR:0799  a             skos:Concept ;
+        skos:broader    FoR:07 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Other Agricultural and Veterinary Sciences" .
+
+FoR:0909  a             skos:Concept ;
+        skos:broader    FoR:09 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Geomatic Engineering" .
+
+FoR:0699  a             skos:Concept ;
+        skos:broader    FoR:06 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Other Biological Sciences" .
+
+FoR:1603  a             skos:Concept ;
+        skos:broader    FoR:16 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Demography" .
+
+FoR:1104  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Complementary and Alternative Medicine" .
+
+FoR:070101  a           skos:Concept ;
+        skos:broader    FoR:0701 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Agricultural Land Management" .
+
+FoR:0903  a             skos:Concept ;
+        skos:broader    FoR:09 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Biomedical Engineering" .
+
+FoR:04  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:0402 , FoR:0405 , FoR:0406 , FoR:0403 , FoR:0404 , FoR:0401 ;
+        skos:prefLabel  "Earth Sciences" .
+
+FoR:0404  a             skos:Concept ;
+        skos:broader    FoR:04 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Geophysics" .
+
+FoR:1117  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Public Health and Health Services" .
+
+FoR:17  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:1702 , FoR:1701 ;
+        skos:prefLabel  "Psychology and Cognitive Sciences" .
+
+FoR:1503  a             skos:Concept ;
+        skos:broader    FoR:15 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Business and Management" .
+
+FoR:1004  a             skos:Concept ;
+        skos:broader    FoR:10 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Medical Biotechnology" .
+
+FoR:0803  a             skos:Concept ;
+        skos:broader    FoR:08 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Computer Software" .
+
+FoR:0304  a             skos:Concept ;
+        skos:broader    FoR:03 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Medicinal and Biomolecular Chemistry" .
+
+FoR:1199  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Other Medical and Health Sciences" .
+
+FoR:1403  a             skos:Concept ;
+        skos:broader    FoR:14 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Econometrics" .
+
+FoR:1111  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Nutrition and Dietetics" .
+
+FoR:0910  a             skos:Concept ;
+        skos:broader    FoR:09 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Manufacturing Engineering" .
+
+FoR:0703  a             skos:Concept ;
+        skos:broader    FoR:07 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Crop and Pasture Production" .
+
+FoR:11  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:1114 , FoR:1108 , FoR:1115 , FoR:1199 , FoR:1116 , FoR:1103 , FoR:1117 , FoR:1104 , FoR:1105 , FoR:1110 , FoR:1106 , FoR:1111 , FoR:1109 , FoR:1113 , FoR:1112 , FoR:1101 , FoR:1102 , FoR:1107 ;
+        skos:prefLabel  "Medical and Health Sciences" .
+
+FoR:0204  a             skos:Concept ;
+        skos:broader    FoR:02 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Condensed Matter Physics" .
+
+FoR:1099  a             skos:Concept ;
+        skos:broader    FoR:10 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Other Technology" .
+
+FoR:0399  a             skos:Concept ;
+        skos:broader    FoR:03 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Other Chemical Sciences" .
+
+FoR:0908  a             skos:Concept ;
+        skos:broader    FoR:09 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Food Sciences" .
+
+FoR:0603  a             skos:Concept ;
+        skos:broader    FoR:06 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Evolutionary Biology" .
+
+FoR:0104  a             skos:Concept ;
+        skos:broader    FoR:01 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Statistics" .
+
+FoR:1109  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Neurosciences" .
+
+FoR:0299  a             skos:Concept ;
+        skos:broader    FoR:02 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Other Physical Sciences" .
+
+FoR:09  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:0910 , FoR:0904 , FoR:0999 , FoR:0907 , FoR:0913 , FoR:0902 , FoR:0905 , FoR:0911 , FoR:0914 , FoR:0903 , FoR:0908 , FoR:0906 , FoR:0912 , FoR:0901 , FoR:0909 , FoR:0915 ;
+        skos:prefLabel  "Engineering" .
+
+FoR:1702  a             skos:Concept ;
+        skos:broader    FoR:17 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Cognitive Sciences" .
+
+FoR:1203  a             skos:Concept ;
+        skos:broader    FoR:12 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Design Practice and Management" .
+
+FoR:0503  a             skos:Concept ;
+        skos:broader    FoR:05 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Soil Sciences" .
+
+FoR:0199  a             skos:Concept ;
+        skos:broader    FoR:01 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Other Mathematical Sciences" .
+
+FoR:0902  a             skos:Concept ;
+        skos:broader    FoR:09 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Automotive Engineering" .
+
+FoR:1103  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Clinical Sciences" .
+
+FoR:03  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:0302 , FoR:0301 , FoR:0307 , FoR:0399 , FoR:0304 , FoR:0303 , FoR:0306 , FoR:0305 ;
+        skos:prefLabel  "Chemical Sciences" .
+
+FoR:0403  a             skos:Concept ;
+        skos:broader    FoR:04 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Geology" .
+
+FoR:1116  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Medical Physiology" .
+
+FoR:0915  a             skos:Concept ;
+        skos:broader    FoR:09 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Interdisciplinary Engineering" .
+
+FoR:16  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:1604 , FoR:1606 , FoR:1605 , FoR:1603 , FoR:1601 ;
+        skos:prefLabel  "Studies in Human Society" .
+
+FoR:1003  a             skos:Concept ;
+        skos:broader    FoR:10 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Industrial Biotechnology" .
+
+FoR:0802  a             skos:Concept ;
+        skos:broader    FoR:08 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Computation Theory and Mathematics" .
+
+FoR:0303  a             skos:Concept ;
+        skos:broader    FoR:03 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Macromolecular and Materials Chemistry" .
+
+FoR:0608  a             skos:Concept ;
+        skos:broader    FoR:06 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Zoology" .
+
+FoR:0702  a             skos:Concept ;
+        skos:broader    FoR:07 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Animal Production" .
+
+FoR:1110  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Nursing" .
+
+FoR:1402  a             skos:Concept ;
+        skos:broader    FoR:14 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Applied Economics" .
+
+FoR:0203  a             skos:Concept ;
+        skos:broader    FoR:02 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Classical Physics" .
+
+FoR:10  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:1099 , FoR:1004 , FoR:1005 , FoR:1001 , FoR:1006 , FoR:1002 , FoR:1007 , FoR:1003 ;
+        skos:prefLabel  "Technology" .
+
+FoR:1801  a             skos:Concept ;
+        skos:broader    FoR:18 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Law" .
+
+FoR:1302  a             skos:Concept ;
+        skos:broader    FoR:13 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Curriculum and Pedagogy" .
+
+FoR:0602  a             skos:Concept ;
+        skos:broader    FoR:06 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Ecology" .
+
+FoR:0103  a             skos:Concept ;
+        skos:broader    FoR:01 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Numerical and Computational Mathematics" .
+
+FoR:1108  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Medical Microbiology" .
+
+FoR:08  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:0804 , FoR:0899 , FoR:0807 , FoR:0801 , FoR:0805 , FoR:0803 , FoR:0802 , FoR:0806 ;
+        skos:prefLabel  "Information and Computing Sciences" .
+
+FoR:0907  a             skos:Concept ;
+        skos:broader    FoR:09 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Environmental Engineering" .
+
+FoR:1701  a             skos:Concept ;
+        skos:broader    FoR:17 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Psychology" .
+
+FoR:1202  a             skos:Concept ;
+        skos:broader    FoR:12 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Building" .
+
+FoR:0502  a             skos:Concept ;
+        skos:broader    FoR:05 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Environmental Science and Management" .
+
+FoR:1507  a             skos:Concept ;
+        skos:broader    FoR:15 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Transportation and Freight Services" .
+
+FoR:0807  a             skos:Concept ;
+        skos:broader    FoR:08 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Library and Information Studies" .
+
+FoR:1601  a             skos:Concept ;
+        skos:broader    FoR:16 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Anthropology" .
+
+FoR:1102  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Cardiorespiratory Medicine and Haematology" .
+
+FoR:0901  a             skos:Concept ;
+        skos:broader    FoR:09 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Aerospace Engineering" .
+
+FoR:02  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:0206 , FoR:0205 , FoR:0202 , FoR:0201 , FoR:0299 , FoR:0204 , FoR:0203 ;
+        skos:prefLabel  "Physical Sciences" .
+
+FoR:0402  a             skos:Concept ;
+        skos:broader    FoR:04 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Geochemistry" .
+
+FoR:0914  a             skos:Concept ;
+        skos:broader    FoR:09 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Resources Engineering and Extractive Metallurgy" .
+
+FoR:0707  a             skos:Concept ;
+        skos:broader    FoR:07 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Veterinary Sciences" .
+
+FoR:1115  a             skos:Concept ;
+        skos:broader    FoR:11 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Pharmacology and Pharmaceutical Sciences" .
+
+FoR:15  a               skos:Concept ;
+        skos:broader    FoR: ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:narrower   FoR:1503 , FoR:1504 , FoR:1507 ;
+        skos:prefLabel  "Commerce, Management, Tourism and Services" .
+
+FoR:1002  a             skos:Concept ;
+        skos:broader    FoR:10 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Environmental Biotechnology" .
+
+FoR:0801  a             skos:Concept ;
+        skos:broader    FoR:08 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Artificial Intelligence and Image Processing" .
+
+FoR:0302  a             skos:Concept ;
+        skos:broader    FoR:03 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Inorganic Chemistry" .
+
+FoR:0607  a             skos:Concept ;
+        skos:broader    FoR:06 ;
+        skos:graph      experts_oap: ;
+        skos:inScheme   FoR: ;
+        skos:prefLabel  "Plant Biology" .
+
+FoR:    skos:narrower  FoR:13 , FoR:01 , FoR:10 , FoR:14 , FoR:08 , FoR:11 , FoR:15 , FoR:06 , FoR:09 , FoR:18 , FoR:03 , FoR:21 , FoR:16 , FoR:19 , FoR:17 , FoR:02 , FoR:04 , FoR:07 , FoR:05 , FoR:12 .
+#+END_SRC
+
+
+#+name: FoR_terms_update
+#+BEGIN_SRC sparql :noweb eval :var _scheme="FoR:" :var pub_graph="experts_oap:" :var _conceptx="FoR:1301" :format raw :wrap SRC ttl
+  <<prefixes>>
+  INSERT {
+    graph experts: {
+      ?concept a ?type;
+             skos:broader ?broader;
+        skos:inScheme ?scheme;
+        skos:prefLabel ?label;
+        .
+
+      ?broader skos:narrower ?concept.
+    } }
+  WHERE {
+    bind(FoR: as ?scheme)
+    {
+      graph experts_oap: {
+        ?work vivo:hasSubjectArea ?_concept.
+      }
+      graph ?v {
+        ?_concept skos:inScheme ?scheme;
+                  skos:broader* ?concept;
+          .
+      }
+      graph ?v {
+        ?concept a ?type;
+                 skos:broader ?broader;
+          skos:inScheme ?scheme;
+          skos:prefLabel ?label;
+          .
+      }
+    }
+  }
+#+END_SRC
+
+
+* Construction File
+
+#+BEGIN_SRC ttl :noweb tangle :tangle FoR.ttl
+  <<prefixes>>
+
+  q:uri
+      a aeq:Bind ;
+      rdfs:label "Generic URI" ;
+      aeq:bind_to "?uri" ;
+      aeq:bind_type xsd:uri ;
+      .
+
+  q:uri_null_opt
+      a aeq:Parameter ;
+      aeq:bind q:uri ;
+      aeq:bind_default aeq:null ;
+      aeq:bind_required false ;
+      .
+
+  q:describe
+      rdf:type  aeq:ConstructQuery, aeq:Query;
+      rdfs:label "Describe" ;
+      rdfs:description """
+
+    The describe command simply call the describe function bound to the ?uri
+    parameter, (default ucdrp:null).
+
+  """ ;
+      aeq:parameter [
+          aeq:bind q:uri ;
+          aeq:required false ;
+          aeq:bind_default aeq:null ;
+          ] ;
+     aeq:query """
+    <<FoR_terms_query>>
+  """ ;
+      .
+
+
+#+END_SRC

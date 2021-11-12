@@ -1,0 +1,1524 @@
+* AEQ Standard Queries
+:PROPERTIES:
+:header-args:http: :host http://localhost:8081 :user admin:quinnisgreat
+:header-args:sparqlx: :url http://sparql.org/sparql :format text/csv
+:header-args:sparql: :url http://localhost:8081/experts/sparql :format text/csv
+:END:
+
+#+name: lob-ingest-file
+#+BEGIN_SRC emacs-lisp :var file="prefixes.org"
+(org-babel-lob-ingest file);
+#+END_SRC
+
+
+Prefixes are in their own file.  You can add them to [[https://orgmode.org/manual/Library-of-Babel.html][Library of Babel]] with:
+
+#+CALL: prefixes.org:lob-ingest()
+
+#+RESULTS:
+: 2
+
+** Describe
+
+#+CALL: lob-ingest-file(file="prefixes.org")
+
+#+RESULTS:
+: 2
+
+#+CALL: describe.org:lob-ingest()
+
+#+RESULTS:
+: 7
+
+#+call: describe_hash(uri="authorship:3266506-3")
+
+
+** Select
+
+#+call: basic_select.org:lob-ingest()
+
+#+RESULTS:
+: 3
+
+#+call: select_of_type(type="ucdrp:authorship",limit="1")
+
+#+RESULTS:
+| s                                               |
+|-------------------------------------------------|
+| http://experts.ucdavis.edu/authorship/1460430-1 |
+
+
+* TBD
+
+** Database Summary
+
+
+*** Authors
+
+#+name: authors
+#+BEGIN_SRC sparql :noweb yes :var _graph_="<http://none>"
+<<prefixes>>
+select ?author ?email ?casId WHERE {
+  bind($_casId_ as ?graph)
+  graph ?graph { ?s a ?type. }
+} UNION {
+  bind ("default" as ?graph)
+  {?s a ?type.}
+}
+} group by ?graph ?type order by ?graph ?type
+
+#+END_SRC
+
+** Construct Statements
+:PROPERTIES:
+:header-args:sparql: :url http://localhost:8081/experts/sparql :format raw :wrap SRC ttl
+:END:
+
+Construct statements can be a little more lenient in the varibles, and so you
+may not need to create shadow variables.
+
+*** Deep Select
+
+One thing that we are need to be able to do is to delete and update data that
+was created with lots of blank nodes.  The following example is my solution for
+deep selects.  This shows the contruction of such a query.  The key is to only
+match children that are blank nodes that also have no other non blank node
+parent other then your selection.
+
+#+name: deep_select
+#+BEGIN_SRC sparql :noweb yes :format raw :wrap SRC ttl :var expert="person:b78c058911b45047c56f3b5148381715"
+<<prefixes>>
+
+CONSTRUCT {
+   ?person ?prop ?val .
+   ?child ?child_p ?child_o .
+}
+WHERE { graph ?g {
+  bind(?expert as ?person)
+  ?person ?prop ?val ;
+          .
+  OPTIONAL {
+    ?person (a|!a)+ ?child.
+    ?child ?child_p ?child_o.
+    filter(isblank(?child))
+    FILTER NOT EXISTS {
+      ?parent (a|!a)+ ?child.
+      filter(isiri(?parent) && ?parent != ?person)
+    }
+  }
+}}
+#+END_SRC
+
+#+RESULTS: deep_select
+#+BEGIN_SRC ttl
+@prefix experts_oap: <http://experts.ucdavis.edu/oap/> .
+@prefix work:  <http://experts.library.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix bind:  <http://experts.ucdavis.edu/schema/bind/> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix experts_iam: <http://experts.ucdavis.edu/iam/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+
+person:b78c058911b45047c56f3b5148381715
+        a                vivo:NonAcademic , ucdrp:person ;
+        rdfs:label       "Justin Merz" ;
+        ucdrp:casId      "jrmerz" ;
+        obo:ARG_2000028  [ a                            vcard:Individual ;
+                           ucdrp:identifier             "pps-1" ;
+                           vivo:rank                    11 ;
+                           vcard:hasEmail               [ a            vcard:Work , vcard:Email ;
+                                                          vcard:email  "jrmerz@ucdavis.edu"
+                                                        ] ;
+                           vcard:hasName                [ a                 vcard:Name ;
+                                                          vcard:familyName  "Merz" ;
+                                                          vcard:givenName   "Justin"
+                                                        ] ;
+                           vcard:hasOrganizationalUnit  [ a            vcard:Organization ;
+                                                          vcard:title  "UCDLIBRARY"
+                                                        ] ;
+                           vcard:hasTitle               [ a            vcard:Title ;
+                                                          vcard:title  "APPLICATIONS PROGR 3"
+                                                        ]
+                         ] ;
+        obo:ARG_2000028  [ a                            vcard:Individual ;
+                           ucdrp:identifier             "odr-1" ;
+                           vivo:rank                    1 ;
+                           vcard:hasEmail               [ a            vcard:Work , vcard:Email ;
+                                                          vcard:email  "jrmerz@ucdavis.edu"
+                                                        ] ;
+                           vcard:hasName                [ a                 vcard:Name ;
+                                                          vcard:familyName  "Merz" ;
+                                                          vcard:givenName   "Justin"
+                                                        ] ;
+                           vcard:hasOrganizationalUnit  [ a            vcard:Organization ;
+                                                          vcard:title  "Library"
+                                                        ] ;
+                           vcard:hasTitle               [ a            vcard:Title ;
+                                                          vcard:title  "Research Engineer"
+                                                        ]
+                         ] .
+#+END_SRC
+
+#+CALL: deep_select(expert="person:b78c058911b45047c56f3b5148381715")
+
+#+RESULTS:
+#+BEGIN_SRC ttl
+@prefix experts_oap: <http://experts.ucdavis.edu/oap/> .
+@prefix work:  <http://experts.library.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix bind:  <http://experts.ucdavis.edu/schema/bind/> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix experts_iam: <http://experts.ucdavis.edu/iam/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+
+person:b78c058911b45047c56f3b5148381715
+        a                vivo:NonAcademic , ucdrp:person ;
+        rdfs:label       "Justin Merz" ;
+        ucdrp:casId      "jrmerz" ;
+        ucdrp:graph      experts_iam: , experts_oap: ;
+        obo:ARG_2000028  [ a                            vcard:Individual ;
+                           ucdrp:identifier             "pps-1" ;
+                           vivo:rank                    11 ;
+                           vcard:hasEmail               [ a            vcard:Work , vcard:Email ;
+                                                          vcard:email  "jrmerz@ucdavis.edu"
+                                                        ] ;
+                           vcard:hasName                [ a                 vcard:Name ;
+                                                          vcard:familyName  "Merz" ;
+                                                          vcard:givenName   "Justin"
+                                                        ] ;
+                           vcard:hasOrganizationalUnit  [ a            vcard:Organization ;
+                                                          vcard:title  "UCDLIBRARY"
+                                                        ] ;
+                           vcard:hasTitle               [ a            vcard:Title ;
+                                                          vcard:title  "APPLICATIONS PROGR 3"
+                                                        ]
+                         ] ;
+        obo:ARG_2000028  [ a                            vcard:Individual ;
+                           ucdrp:identifier             "odr-1" ;
+                           vivo:rank                    1 ;
+                           vcard:hasEmail               [ a            vcard:Work , vcard:Email ;
+                                                          vcard:email  "jrmerz@ucdavis.edu"
+                                                        ] ;
+                           vcard:hasName                [ a                 vcard:Name ;
+                                                          vcard:familyName  "Merz" ;
+                                                          vcard:givenName   "Justin"
+                                                        ] ;
+                           vcard:hasOrganizationalUnit  [ a            vcard:Organization ;
+                                                          vcard:title  "Library"
+                                                        ] ;
+                           vcard:hasTitle               [ a            vcard:Title ;
+                                                          vcard:title  "Research Engineer"
+                                                        ]
+                         ] .
+#+END_SRC
+
+It's instructive to compare this to the native describe output.
+
+#+call: describe(uri="person:b78c058911b45047c56f3b5148381715")
+
+#+RESULTS:
+#+BEGIN_SRC ttl
+@prefix experts_oap: <http://experts.ucdavis.edu/oap/> .
+@prefix work:  <http://experts.library.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix bind:  <http://experts.ucdavis.edu/schema/bind/> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix experts_iam: <http://experts.ucdavis.edu/iam/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+
+person:b78c058911b45047c56f3b5148381715
+        a                vivo:NonAcademic , ucdrp:person ;
+        rdfs:label       "Justin Merz" ;
+        ucdrp:casId      "jrmerz" ;
+        obo:ARG_2000028  [ a                            vcard:Individual ;
+                           ucdrp:identifier             "pps-1" ;
+                           vivo:rank                    11 ;
+                           vcard:hasEmail               [ a            vcard:Work , vcard:Email ;
+                                                          vcard:email  "jrmerz@ucdavis.edu"
+                                                        ] ;
+                           vcard:hasName                [ a                 vcard:Name ;
+                                                          vcard:familyName  "Merz" ;
+                                                          vcard:givenName   "Justin"
+                                                        ] ;
+                           vcard:hasOrganizationalUnit  [ a            vcard:Organization ;
+                                                          vcard:title  "UCDLIBRARY"
+                                                        ] ;
+                           vcard:hasTitle               [ a            vcard:Title ;
+                                                          vcard:title  "APPLICATIONS PROGR 3"
+                                                        ]
+                         ] ;
+        obo:ARG_2000028  [ a                            vcard:Individual ;
+                           ucdrp:identifier             "odr-1" ;
+                           vivo:rank                    1 ;
+                           vcard:hasEmail               [ a            vcard:Work , vcard:Email ;
+                                                          vcard:email  "jrmerz@ucdavis.edu"
+                                                        ] ;
+                           vcard:hasName                [ a                 vcard:Name ;
+                                                          vcard:familyName  "Merz" ;
+                                                          vcard:givenName   "Justin"
+                                                        ] ;
+                           vcard:hasOrganizationalUnit  [ a            vcard:Organization ;
+                                                          vcard:title  "Library"
+                                                        ] ;
+                           vcard:hasTitle               [ a            vcard:Title ;
+                                                          vcard:title  "Research Engineer"
+                                                        ]
+                         ] .
+#+END_SRC
+
+
+** Updates
+
+These simple example need might include update queries?
+#+name: update_example
+#+BEGIN_SRC sparql
+<<prefixes>>
+#insert  {graph experts_pub: { experts:quinn experts:is experts:great. }} WHERE {}
+#delete { graph ?g {?s ?p ?o} } WHERE { graph ?g {?s ?p ?o}}
+#select ?g (count(*) as ?cnt) WHERE { graph ?g {?s ?p ?o.}} group by ?g
+#select ?o (count(*) as ?cnt) WHERE { graph ?g {?s a ?o. filter(isiri(?s))}} group by ?o
+
+#+END_SRC
+
+#+name: deep_select
+#+BEGIN_SRC sparql :noweb yes :format raw :wrap SRC ttl :var expert="person:b78c058911b45047c56f3b5148381715"
+<<prefixes>>
+
+ DELETE {
+  graph ?g {
+   ?expert ?prop ?val .
+   ?child ?child_p ?child_o .
+  }
+}
+WHERE {
+  graph ?g {
+  ?expert ?prop ?val ;
+          .
+  OPTIONAL {
+    ?expert (a|!a)+ ?child.
+    ?child ?child_p ?child_o.
+      FILTER NOT EXISTS {
+        ?parent (a|!a)+ ?child.
+        filter(isiri(?parent) && ?parent != ?expert)
+      }
+    filter(isblank(?child))
+    }
+  }
+}
+#+END_SRC
+
+** Publication / Authorship Queries
+
+This query will select a publication, and all the authorships that are related
+to that publication.
+
+#+name: pub_auth
+#+BEGIN_SRC sparql :format raw :noweb yes :wrap SRC ttl :var uri="work:3266506" limit="100"
+<<prefixes>>
+describe ?s where {
+select ?s where {
+{
+  SELECT ?s WHERE {
+    ?s ?p ?o
+    filter(isiri(?s))
+    filter(regex(str(?s),concat("^",str(?uri),"#?")))
+  }
+} UNION {
+  select ?s WHERE {
+    ?s a vivo:Authorship;
+      vivo:relates ?uri;
+  .
+  }
+} } order by ?s limit ?limit }
+#+END_SRC
+
+#+call: pub_auth(uri="work:3266506" limit="0") :format raw :wrap SRC ttl
+
+#+RESULTS:
+#+BEGIN_SRC ttl
+@prefix experts_oap: <http://experts.ucdavis.edu/oap/> .
+@prefix work:  <http://experts.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix bind:  <http://experts.ucdavis.edu/schema/bind/> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix experts_iam: <http://experts.ucdavis.edu/iam/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+
+<http://experts.ucdavis.edu/authorship/3266506>
+        a              ucdrp:authorship , vivo:Authorship ;
+        vivo:favorite  "false" ;
+        vivo:relates   work:3266506 , person:8aacf919206c6655bc3edbdf25ec7c08 .
+
+<http://experts.ucdavis.edu/authorship/3266506-2>
+        a             ucdrp:authorship , vivo:Authorship ;
+        vivo:rank     2 ;
+        vivo:relates  <http://experts.ucdavis.edu/authorship/3266506-2#vcard> , work:3266506 .
+
+work:3266506  a                     bibo:AcademicArticle , ucdrp:work ;
+        rdfs:label                  "Identification and evaluation of volatile organic compounds evolved during solarization with almond hull and shell amendments." ;
+        ucdrp:insertionDateTime     "2021-03-23T18:19:16.746+00:00"^^xsd:dateTime ;
+        ucdrp:lastModifiedDateTime  "2021-03-21T16:21:30.95-07:00"^^xsd:dateTime ;
+        bibo:abstract               "Biosolarization is a fumigation alternative that combines solarization with organic amendments to suppress pests and pathogens in agricultural soils. The generation of volatile biopesticides in the soil, stemming from biodegradation of carbon-rich amendments, contributes to pest inactivation. The purpose of this study was to (1) profile volatiles that may contribute to pest control under field conditions and (2) measure volatile compounds that may present nuisance or exposure risks for humans near biosolarized fields where larger-scale anaerobic degradation of residues occurs. Biosolarization was performed using prominent agricultural waste products, hulls and shells from several almond varieties as soil amendments. After 8 days of biosolarization, soil samples were analyzed using solid phase microextraction-gas chromatography coupled to mass spectrometry. Volatile fatty acids and ketones made up 85% of biosolarized soil headspace, but terpenes, alcohols, aldehydes, esters, and sulfides were detected as well. Different almond variety residues produced distinct volatile profiles, and nonpareil-amended soils had a much richer and more diverse profile, as well as a fivefold greater VOC abundance, than pollinator-amended soil. Identified volatiles with low US recommended exposure limits were quantified via internal and external standards, including acetic acid, 2-butanone, butanal, hexanal, and phenylethyl alcohol. Across biosolarization treatments, headspace concentrations of selected compounds did not exceed 1 mg/m<sup>3</sup>. This study demonstrates that almond processing residues recycled into the soil as biosolarization substrates produce a high diversity of bioactive degradation compounds on a field scale, with low potential of non-target risks to humans.<i>Implications</i>: This manuscript has implications for two policy goals in the state of California: to reduce landfill disposal of organic waste, and to reduce emissions from soil fumigants. Almond hulls and shells are an increasing source of organic waste, and novel recycling strategies must be developed. Here, recycling almond residues as soil amendments promoted the rapid formation of VOCs which may act as alternatives to chemical fumigants. Headspace concentrations of potentially deleterious VOCs produced from treated soil were low, on the order of parts per billion. These results will help achieve policy goals by expanding waste usage and fumigation alternatives." ;
+        bibo:doi                    "10.1080/10962247.2020.1846637" ;
+        bibo:issue                  "3" ;
+        bibo:journal                "Journal of the Air & Waste Management Association (1995)" ;
+        bibo:pageEnd                "412" ;
+        bibo:pageStart              "400" ;
+        bibo:status                 bibo:published ;
+        bibo:volume                 "71" ;
+        vivo:dateTimeValue          [ a                       vivo:DateTimeValue ;
+                                      vivo:dateTime           "2021-03-01T00:00:00"^^xsd:dateTime ;
+                                      vivo:dateTimePrecision  vivo:yearMonthPrecision
+                                    ] ;
+        vivo:hasPublicationVenue    <http://experts.ucdavis.edu/venue/issn:1096-2247> ;
+        vivo:hasSubjectArea         <http://experts.ucdavis.edu/concept/FoR/09> , <http://experts.ucdavis.edu/concept/free/93a30171e623ff1611c2207347f2dc6a> , <http://experts.ucdavis.edu/concept/FoR/05> ;
+        vivo:relatedBy              <http://experts.ucdavis.edu/authorship/3266506-2> , <http://experts.ucdavis.edu/authorship/3266506> , <http://experts.ucdavis.edu/authorship/3266506-1> , <http://experts.ucdavis.edu/authorship/3266506-4> , <http://experts.ucdavis.edu/authorship/3266506-3> .
+
+<http://experts.ucdavis.edu/authorship/3266506-3>
+        a             ucdrp:authorship , vivo:Authorship ;
+        vivo:rank     3 ;
+        vivo:relates  <http://experts.ucdavis.edu/authorship/3266506-3#vcard> , work:3266506 .
+
+<http://experts.ucdavis.edu/authorship/3266506-1>
+        a             ucdrp:authorship , vivo:Authorship ;
+        vivo:rank     1 ;
+        vivo:relates  <http://experts.ucdavis.edu/authorship/3266506-1#vcard> , work:3266506 .
+
+<http://experts.ucdavis.edu/authorship/3266506-4>
+        a             ucdrp:authorship , vivo:Authorship ;
+        vivo:rank     4 ;
+        vivo:relates  <http://experts.ucdavis.edu/authorship/3266506-4#vcard> , work:3266506 .
+#+END_SRC
+
+** Harvest Queries
+
+All of these items should be called, so that you can specify the appropriate
+harvest endpoint
+
+*** List categories
+
+This gives a list of all the categories in the setup
+
+#+name: harvest_cats
+#+BEGIN_SRC sparql :noweb yes
+<<prefixes>>
+select ?cat (count(*) as ?cnt) where { graph harvest_oap: {
+    ?s oap:category ?cat.
+    filter(isiri(?s))
+  }
+} group by ?cat order by ?cat
+#+END_SRC
+
+prescient#+call: harvest_cats() :url http://localhost:8081/harvest.LoBS/sparql
+
+#+RESULTS:
+| cat         | cnt |
+|-------------+-----|
+| publication |  30 |
+| user        |   1 |
+
+*** List 1st class objects
+
+#+name: harvest_objects
+#+BEGIN_SRC sparql :noweb yes :var _cat_="?_cat_" limit="5"
+<<prefixes>>
+select ?s ?cat where { graph harvest_oap: {
+    bind($_cat_ as ?cat)
+    ?s oap:category ?cat.
+    filter(isiri(?s))
+  }
+} order by ?cat ?s limit ?limit
+#+END_SRC
+
+#+call: harvest_objects(_cat_="'user'") :url http://localhost:8081/harvest.LoBS/sparql
+
+#+RESULTS:
+| s                                                | cat  |
+|--------------------------------------------------+------|
+| http://oapolicy.universityofcalifornia.edu/90492 | user |
+
+
+*** Describe a Publication
+
+#+name: harvest_pub
+#+BEGIN_SRC sparql :format raw :noweb yes :wrap SRC ttl :var uri="harvest_oap:3266506"
+<<prefixes>>
+describe ?s where { graph harvest_oap: {
+{
+    ?s ?p ?o.
+    filter(isiri(?s))
+    filter(regex(str(?s),concat("^",str(?uri),"#?")))
+  }
+} } order by ?s
+#+END_SRC
+
+#+call: harvest_pub(uri="harvest_oap:3266506") :url http://localhost:8081/harvest.LoBS/sparql :format raw :wrap SRC ttl
+
+
+#+name: harvest_pub_records
+#+BEGIN_SRC sparql :format raw :noweb yes :wrap SRC ttl :var uri="harvest_oap:none"
+<<prefixes>>
+describe ?record where { graph harvest_oap: {
+{
+    ?s oap:category "publication";
+       oap:records/oap:record ?record;
+    .
+    filter(?s=?uri)
+  }
+} } order by ?record
+
+#+END_SRC
+
+#+call: harvest_pub_records(uri="harvest_oap:3266506") :url http://localhost:8081/harvest.LoBS/sparql :format raw :wrap SRC ttl
+
+#+RESULTS:
+#+BEGIN_SRC ttl
+@prefix experts_oap: <http://experts.ucdavis.edu/oap/> .
+@prefix work:  <http://experts.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix bind:  <http://experts.ucdavis.edu/schema/bind/> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix experts_iam: <http://experts.ucdavis.edu/iam/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+
+harvest_oap:10501088  oap:citation-count
+                "1" ;
+        oap:format               "native" ;
+        oap:id-at-source         "WOS:000607440800001" ;
+        oap:native               [ oap:field  [ oap:display-name  "ISSN" ;
+                                                oap:links         [ oap:link  [ oap:href  "https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5/journals/1722858" ;
+                                                                                oap:type  "elements/journal"
+                                                                              ]
+                                                                  ] ;
+                                                oap:name          "issn" ;
+                                                oap:text          "1096-2247" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Authors" ;
+                                                oap:name          "authors" ;
+                                                oap:people        [ oap:person  ( [ oap:first-names           "Emily" ;
+                                                                                    oap:initials              "E" ;
+                                                                                    oap:last-name             "Shea" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Emily" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:first-names           "Jesus D" ;
+                                                                                    oap:initials              "JD" ;
+                                                                                    oap:last-name             "Fernandez-Bayo" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Jesus" "D" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:first-names           "Ana M" ;
+                                                                                    oap:initials              "AM" ;
+                                                                                    oap:last-name             "Pastrana" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Ana" "M" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:first-names           "Christopher W" ;
+                                                                                    oap:initials              "CW" ;
+                                                                                    oap:last-name             "Simmons" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Christopher" "W" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                )
+                                                                  ] ;
+                                                oap:type          "person-list"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "External identifiers" ;
+                                                oap:identifiers   [ oap:identifier  [ oap:field-value  "PR7VD" ;
+                                                                                      oap:scheme       "isidoc"
+                                                                                    ] ;
+                                                                    oap:identifier  [ oap:field-value  "33320806" ;
+                                                                                      oap:scheme       "pubmed"
+                                                                                    ]
+                                                                  ] ;
+                                                oap:name          "external-identifiers" ;
+                                                oap:type          "identifier-list"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Status" ;
+                                                oap:name          "publication-status" ;
+                                                oap:text          "Published" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Author URL" ;
+                                                oap:name          "author-url" ;
+                                                oap:text          "http://gateway.webofknowledge.com/gateway/Gateway.cgi?GWVersion=2&SrcApp=PARTNER_APP&SrcAuth=LinksAMR&KeyUT=WOS:000607440800001&DestLinkType=FullRecord&DestApp=ALL_WOS&UsrCustomerID=039f08444e522f04b0c74ec005e57dc4" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Journal" ;
+                                                oap:name          "journal" ;
+                                                oap:text          "JOURNAL OF THE AIR & WASTE MANAGEMENT ASSOCIATION" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Title" ;
+                                                oap:name          "title" ;
+                                                oap:text          "Identification and evaluation of volatile organic compounds evolved during solarization with almond hull and shell amendments" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "DOI" ;
+                                                oap:links         [ oap:link  [ oap:href  "http://www.altmetric.com/details.php?doi=10.1080/10962247.2020.1846637" ;
+                                                                                oap:type  "altmetric"
+                                                                              ] ;
+                                                                    oap:link  [ oap:href  "http://doi.org/10.1080/10962247.2020.1846637" ;
+                                                                                oap:type  "doi"
+                                                                              ]
+                                                                  ] ;
+                                                oap:name          "doi" ;
+                                                oap:text          "10.1080/10962247.2020.1846637" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:date          [ oap:day    "11" ;
+                                                                    oap:month  "1" ;
+                                                                    oap:year   "2021"
+                                                                  ] ;
+                                                oap:display-name  "Publication date" ;
+                                                oap:name          "publication-date" ;
+                                                oap:type          "date"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "eISSN" ;
+                                                oap:links         [ oap:link  [ oap:href  "https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5/journals/1722858" ;
+                                                                                oap:type  "elements/journal"
+                                                                              ]
+                                                                  ] ;
+                                                oap:name          "eissn" ;
+                                                oap:text          "2162-2906" ;
+                                                oap:type          "text"
+                                              ]
+                                 ] ;
+        oap:source-display-name  "Web of Science (Lite)" ;
+        oap:source-id            "11" ;
+        oap:source-name          "wos-lite" .
+
+harvest_oap:10501716  oap:format  "native" ;
+        oap:id-at-source         "33320806" ;
+        oap:native               [ oap:field  [ oap:display-name  "Pagination" ;
+                                                oap:name          "pagination" ;
+                                                oap:pagination    [ oap:begin-page  "400" ;
+                                                                    oap:end-page    "412"
+                                                                  ] ;
+                                                oap:type          "pagination"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Volume" ;
+                                                oap:name          "volume" ;
+                                                oap:text          "71" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Title" ;
+                                                oap:name          "title" ;
+                                                oap:text          "Identification and evaluation of volatile organic compounds evolved during solarization with almond hull and shell amendments." ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "DOI" ;
+                                                oap:links         [ oap:link  [ oap:href  "http://doi.org/10.1080/10962247.2020.1846637" ;
+                                                                                oap:type  "doi"
+                                                                              ] ;
+                                                                    oap:link  [ oap:href  "http://www.altmetric.com/details.php?doi=10.1080/10962247.2020.1846637" ;
+                                                                                oap:type  "altmetric"
+                                                                              ]
+                                                                  ] ;
+                                                oap:name          "doi" ;
+                                                oap:text          "10.1080/10962247.2020.1846637" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Issue" ;
+                                                oap:name          "issue" ;
+                                                oap:text          "3" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Country" ;
+                                                oap:name          "location" ;
+                                                oap:text          "United States" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Language" ;
+                                                oap:name          "language" ;
+                                                oap:text          "eng" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:date          [ oap:month  "3" ;
+                                                                    oap:year   "2021"
+                                                                  ] ;
+                                                oap:display-name  "Publication date" ;
+                                                oap:name          "publication-date" ;
+                                                oap:type          "date"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "eISSN" ;
+                                                oap:links         [ oap:link  [ oap:href  "https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5/journals/1722858" ;
+                                                                                oap:type  "elements/journal"
+                                                                              ]
+                                                                  ] ;
+                                                oap:name          "eissn" ;
+                                                oap:text          "2162-2906" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Status" ;
+                                                oap:name          "publication-status" ;
+                                                oap:text          "Published" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Abstract" ;
+                                                oap:name          "abstract" ;
+                                                oap:text          "Biosolarization is a fumigation alternative that combines solarization with organic amendments to suppress pests and pathogens in agricultural soils. The generation of volatile biopesticides in the soil, stemming from biodegradation of carbon-rich amendments, contributes to pest inactivation. The purpose of this study was to (1) profile volatiles that may contribute to pest control under field conditions and (2) measure volatile compounds that may present nuisance or exposure risks for humans near biosolarized fields where larger-scale anaerobic degradation of residues occurs. Biosolarization was performed using prominent agricultural waste products, hulls and shells from several almond varieties as soil amendments. After 8 days of biosolarization, soil samples were analyzed using solid phase microextraction-gas chromatography coupled to mass spectrometry. Volatile fatty acids and ketones made up 85% of biosolarized soil headspace, but terpenes, alcohols, aldehydes, esters, and sulfides were detected as well. Different almond variety residues produced distinct volatile profiles, and nonpareil-amended soils had a much richer and more diverse profile, as well as a fivefold greater VOC abundance, than pollinator-amended soil. Identified volatiles with low US recommended exposure limits were quantified via internal and external standards, including acetic acid, 2-butanone, butanal, hexanal, and phenylethyl alcohol. Across biosolarization treatments, headspace concentrations of selected compounds did not exceed 1 mg/m3. This study demonstrates that almond processing residues recycled into the soil as biosolarization substrates produce a high diversity of bioactive degradation compounds on a field scale, with low potential of non-target risks to humans.Implications: This manuscript has implications for two policy goals in the state of California: to reduce landfill disposal of organic waste, and to reduce emissions from soil fumigants. Almond hulls and shells are an increasing source of organic waste, and novel recycling strategies must be developed. Here, recycling almond residues as soil amendments promoted the rapid formation of VOCs which may act as alternatives to chemical fumigants. Headspace concentrations of potentially deleterious VOCs produced from treated soil were low, on the order of parts per billion. These results will help achieve policy goals by expanding waste usage and fumigation alternatives." ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Sub types" ;
+                                                oap:items         [ oap:item  "Journal Article" ] ;
+                                                oap:name          "types" ;
+                                                oap:type          "list"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Journal" ;
+                                                oap:name          "journal" ;
+                                                oap:text          "J Air Waste Manag Assoc" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Authors" ;
+                                                oap:name          "authors" ;
+                                                oap:people        [ oap:person  ( [ oap:addresses             [ oap:address  [ oap:grid              harvest_oap:grid.27860.3b ;
+                                                                                                                               oap:iso-country-code  "US" ;
+                                                                                                                               oap:line              [ oap:field-value  "Food Science & Technology, UC Davis, Davis, CA, USA." ;
+                                                                                                                                                       oap:type         "full"
+                                                                                                                                                     ]
+                                                                                                                             ]
+                                                                                                              ] ;
+                                                                                    oap:first-names           "Emily" ;
+                                                                                    oap:initials              "E" ;
+                                                                                    oap:last-name             "Shea" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Emily" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:addresses             [ oap:address  [ oap:grid              harvest_oap:grid.27860.3b ;
+                                                                                                                               oap:iso-country-code  "US" ;
+                                                                                                                               oap:line              [ oap:field-value  "Biological & Agricultural Engineering, UC Davis, Davis, CA, USA." ;
+                                                                                                                                                       oap:type         "full"
+                                                                                                                                                     ]
+                                                                                                                             ]
+                                                                                                              ] ;
+                                                                                    oap:first-names           "Jesus D" ;
+                                                                                    oap:initials              "JD" ;
+                                                                                    oap:last-name             "Fernandez-Bayo" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Jesus" "D" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:addresses             [ oap:address  [ oap:grid              harvest_oap:grid.27860.3b ;
+                                                                                                                               oap:iso-country-code  "US" ;
+                                                                                                                               oap:line              [ oap:field-value  "Plant Pathology, UC Davis, Davis, CA, USA." ;
+                                                                                                                                                       oap:type         "full"
+                                                                                                                                                     ]
+                                                                                                                             ]
+                                                                                                              ] ;
+                                                                                    oap:first-names           "Ana M" ;
+                                                                                    oap:initials              "AM" ;
+                                                                                    oap:last-name             "Pastrana" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Ana" "M" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:addresses             [ oap:address  [ oap:grid              harvest_oap:grid.27860.3b ;
+                                                                                                                               oap:iso-country-code  "US" ;
+                                                                                                                               oap:line              [ oap:field-value  "Food Science & Technology, UC Davis, Davis, CA, USA." ;
+                                                                                                                                                       oap:type         "full"
+                                                                                                                                                     ]
+                                                                                                                             ]
+                                                                                                              ] ;
+                                                                                    oap:first-names           "Christopher W" ;
+                                                                                    oap:initials              "CW" ;
+                                                                                    oap:last-name             "Simmons" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Christopher" "W" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                )
+                                                                  ] ;
+                                                oap:type          "person-list"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Author URL" ;
+                                                oap:name          "author-url" ;
+                                                oap:text          "https://www.ncbi.nlm.nih.gov/pubmed/33320806" ;
+                                                oap:type          "text"
+                                              ]
+                                 ] ;
+        oap:source-display-name  "PubMed" ;
+        oap:source-id            "2" ;
+        oap:source-name          "pubmed" .
+
+harvest_oap:10501934  oap:citation-count
+                "0" ;
+        oap:format               "native" ;
+        oap:id-at-source         "MED:33320806" ;
+        oap:native               [ oap:field  [ oap:date          [ oap:day    "15" ;
+                                                                    oap:month  "12" ;
+                                                                    oap:year   "2020"
+                                                                  ] ;
+                                                oap:display-name  "Record created at source" ;
+                                                oap:name          "record-created-at-source-date" ;
+                                                oap:type          "date"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Journal" ;
+                                                oap:name          "journal" ;
+                                                oap:text          "Journal of the Air & Waste Management Association (1995)" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Authors" ;
+                                                oap:name          "authors" ;
+                                                oap:people        [ oap:person  ( [ oap:first-names           "Emily" ;
+                                                                                    oap:initials              "E" ;
+                                                                                    oap:last-name             "Shea" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Emily" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:first-names           "Jesus D" ;
+                                                                                    oap:initials              "JD" ;
+                                                                                    oap:last-name             "Fernandez-Bayo" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Jesus" "D" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:first-names           "Ana M" ;
+                                                                                    oap:initials              "AM" ;
+                                                                                    oap:last-name             "Pastrana" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Ana" "M" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:first-names           "Christopher W" ;
+                                                                                    oap:initials              "CW" ;
+                                                                                    oap:last-name             "Simmons" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Christopher" "W" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                )
+                                                                  ] ;
+                                                oap:type          "person-list"
+                                              ] ;
+                                   oap:field  [ oap:addresses     [ oap:address  [ oap:grid              harvest_oap:grid.27860.3b ;
+                                                                                   oap:iso-country-code  "US" ;
+                                                                                   oap:line              [ oap:field-value  "Food Science & Technology, UC Davis, Davis, CA, USA." ;
+                                                                                                           oap:type         "full"
+                                                                                                         ]
+                                                                                 ]
+                                                                  ] ;
+                                                oap:display-name  "Addresses" ;
+                                                oap:name          "addresses" ;
+                                                oap:type          "address-list"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Issue" ;
+                                                oap:name          "issue" ;
+                                                oap:text          "3" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "ISSN" ;
+                                                oap:links         [ oap:link  [ oap:href  "https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5/journals/1722858" ;
+                                                                                oap:type  "elements/journal"
+                                                                              ]
+                                                                  ] ;
+                                                oap:name          "issn" ;
+                                                oap:text          "1096-2247" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Sub types" ;
+                                                oap:items         [ oap:item  "Journal Article" ] ;
+                                                oap:name          "types" ;
+                                                oap:type          "list"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Pagination" ;
+                                                oap:name          "pagination" ;
+                                                oap:pagination    [ oap:begin-page  "400" ;
+                                                                    oap:end-page    "412"
+                                                                  ] ;
+                                                oap:type          "pagination"
+                                              ] ;
+                                   oap:field  [ oap:boolean       "false" ;
+                                                oap:display-name  "Open access" ;
+                                                oap:name          "is-open-access" ;
+                                                oap:type          "boolean"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Status" ;
+                                                oap:name          "publication-status" ;
+                                                oap:text          "Published" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Title" ;
+                                                oap:name          "title" ;
+                                                oap:text          "Identification and evaluation of volatile organic compounds evolved during solarization with almond hull and shell amendments." ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Language" ;
+                                                oap:name          "language" ;
+                                                oap:text          "eng" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Volume" ;
+                                                oap:name          "volume" ;
+                                                oap:text          "71" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "DOI" ;
+                                                oap:links         [ oap:link  [ oap:href  "http://www.altmetric.com/details.php?doi=10.1080/10962247.2020.1846637" ;
+                                                                                oap:type  "altmetric"
+                                                                              ] ;
+                                                                    oap:link  [ oap:href  "http://doi.org/10.1080/10962247.2020.1846637" ;
+                                                                                oap:type  "doi"
+                                                                              ]
+                                                                  ] ;
+                                                oap:name          "doi" ;
+                                                oap:text          "10.1080/10962247.2020.1846637" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Abstract" ;
+                                                oap:name          "abstract" ;
+                                                oap:text          "Biosolarization is a fumigation alternative that combines solarization with organic amendments to suppress pests and pathogens in agricultural soils. The generation of volatile biopesticides in the soil, stemming from biodegradation of carbon-rich amendments, contributes to pest inactivation. The purpose of this study was to (1) profile volatiles that may contribute to pest control under field conditions and (2) measure volatile compounds that may present nuisance or exposure risks for humans near biosolarized fields where larger-scale anaerobic degradation of residues occurs. Biosolarization was performed using prominent agricultural waste products, hulls and shells from several almond varieties as soil amendments. After 8 days of biosolarization, soil samples were analyzed using solid phase microextraction-gas chromatography coupled to mass spectrometry. Volatile fatty acids and ketones made up 85% of biosolarized soil headspace, but terpenes, alcohols, aldehydes, esters, and sulfides were detected as well. Different almond variety residues produced distinct volatile profiles, and nonpareil-amended soils had a much richer and more diverse profile, as well as a fivefold greater VOC abundance, than pollinator-amended soil. Identified volatiles with low US recommended exposure limits were quantified via internal and external standards, including acetic acid, 2-butanone, butanal, hexanal, and phenylethyl alcohol. Across biosolarization treatments, headspace concentrations of selected compounds did not exceed 1 mg/m<sup>3</sup>. This study demonstrates that almond processing residues recycled into the soil as biosolarization substrates produce a high diversity of bioactive degradation compounds on a field scale, with low potential of non-target risks to humans.<i>Implications</i>: This manuscript has implications for two policy goals in the state of California: to reduce landfill disposal of organic waste, and to reduce emissions from soil fumigants. Almond hulls and shells are an increasing source of organic waste, and novel recycling strategies must be developed. Here, recycling almond residues as soil amendments promoted the rapid formation of VOCs which may act as alternatives to chemical fumigants. Headspace concentrations of potentially deleterious VOCs produced from treated soil were low, on the order of parts per billion. These results will help achieve policy goals by expanding waste usage and fumigation alternatives." ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Medium" ;
+                                                oap:name          "medium" ;
+                                                oap:text          "Print-Electronic" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:date          [ oap:month  "3" ;
+                                                                    oap:year   "2021"
+                                                                  ] ;
+                                                oap:display-name  "Publication date" ;
+                                                oap:name          "publication-date" ;
+                                                oap:type          "date"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "eISSN" ;
+                                                oap:links         [ oap:link  [ oap:href  "https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5/journals/1722858" ;
+                                                                                oap:type  "elements/journal"
+                                                                              ]
+                                                                  ] ;
+                                                oap:name          "eissn" ;
+                                                oap:text          "2162-2906" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "External identifiers" ;
+                                                oap:identifiers   [ oap:identifier  [ oap:field-value  "33320806" ;
+                                                                                      oap:scheme       "pubmed"
+                                                                                    ]
+                                                                  ] ;
+                                                oap:name          "external-identifiers" ;
+                                                oap:type          "identifier-list"
+                                              ]
+                                 ] ;
+        oap:source-display-name  "Europe PubMed Central" ;
+        oap:source-id            "18" ;
+        oap:source-name          "epmc" .
+
+harvest_oap:10501712  oap:format  "native" ;
+        oap:id-at-source         "pub.1133540238" ;
+        oap:native               [ oap:field  [ oap:display-name  "ISSN" ;
+                                                oap:links         [ oap:link  [ oap:href  "https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5/journals/1722858" ;
+                                                                                oap:type  "elements/journal"
+                                                                              ]
+                                                                  ] ;
+                                                oap:name          "issn" ;
+                                                oap:text          "1096-2247" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Authors" ;
+                                                oap:name          "authors" ;
+                                                oap:people        [ oap:person  ( [ oap:addresses             [ oap:address  [ oap:grid              harvest_oap:grid.27860.3b ;
+                                                                                                                               oap:iso-country-code  "US" ;
+                                                                                                                               oap:line              [ oap:field-value  "United States" ;
+                                                                                                                                                       oap:type         "country"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "Davis" ;
+                                                                                                                                                       oap:type         "city"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "California" ;
+                                                                                                                                                       oap:type         "state"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "University of California, Davis" ;
+                                                                                                                                                       oap:type         "organisation"
+                                                                                                                                                     ]
+                                                                                                                             ]
+                                                                                                              ] ;
+                                                                                    oap:first-names           "Emily" ;
+                                                                                    oap:identifiers           [ oap:identifier  [ oap:field-value  "ur.010457067653.30" ;
+                                                                                                                                  oap:scheme       "dimensions-researcher-id"
+                                                                                                                                ]
+                                                                                                              ] ;
+                                                                                    oap:initials              "E" ;
+                                                                                    oap:last-name             "Shea" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Emily" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:addresses             [ oap:address  [ oap:grid              harvest_oap:grid.27860.3b ;
+                                                                                                                               oap:iso-country-code  "US" ;
+                                                                                                                               oap:line              [ oap:field-value  "University of California, Davis" ;
+                                                                                                                                                       oap:type         "organisation"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "Davis" ;
+                                                                                                                                                       oap:type         "city"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "California" ;
+                                                                                                                                                       oap:type         "state"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "United States" ;
+                                                                                                                                                       oap:type         "country"
+                                                                                                                                                     ]
+                                                                                                                             ]
+                                                                                                              ] ;
+                                                                                    oap:first-names           "Jesus D" ;
+                                                                                    oap:identifiers           [ oap:identifier  [ oap:field-value  "ur.01200243654.74" ;
+                                                                                                                                  oap:scheme       "dimensions-researcher-id"
+                                                                                                                                ]
+                                                                                                              ] ;
+                                                                                    oap:initials              "JD" ;
+                                                                                    oap:last-name             "Fernandez-Bayo" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Jesus" "D" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:addresses             [ oap:address  [ oap:grid              harvest_oap:grid.27860.3b ;
+                                                                                                                               oap:iso-country-code  "US" ;
+                                                                                                                               oap:line              [ oap:field-value  "University of California, Davis" ;
+                                                                                                                                                       oap:type         "organisation"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "Davis" ;
+                                                                                                                                                       oap:type         "city"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "California" ;
+                                                                                                                                                       oap:type         "state"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "United States" ;
+                                                                                                                                                       oap:type         "country"
+                                                                                                                                                     ]
+                                                                                                                             ]
+                                                                                                              ] ;
+                                                                                    oap:first-names           "Ana M" ;
+                                                                                    oap:identifiers           [ oap:identifier  [ oap:field-value  "ur.010142216013.35" ;
+                                                                                                                                  oap:scheme       "dimensions-researcher-id"
+                                                                                                                                ]
+                                                                                                              ] ;
+                                                                                    oap:initials              "AM" ;
+                                                                                    oap:last-name             "Pastrana" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Ana" "M" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:addresses             [ oap:address  [ oap:grid              harvest_oap:grid.27860.3b ;
+                                                                                                                               oap:iso-country-code  "US" ;
+                                                                                                                               oap:line              [ oap:field-value  "California" ;
+                                                                                                                                                       oap:type         "state"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "United States" ;
+                                                                                                                                                       oap:type         "country"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "University of California, Davis" ;
+                                                                                                                                                       oap:type         "organisation"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "Davis" ;
+                                                                                                                                                       oap:type         "city"
+                                                                                                                                                     ]
+                                                                                                                             ]
+                                                                                                              ] ;
+                                                                                    oap:first-names           "Christopher W" ;
+                                                                                    oap:identifiers           [ oap:identifier  [ oap:field-value  "ur.01052702522.24" ;
+                                                                                                                                  oap:scheme       "dimensions-researcher-id"
+                                                                                                                                ]
+                                                                                                              ] ;
+                                                                                    oap:initials              "CW" ;
+                                                                                    oap:last-name             "Simmons" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Christopher" "W" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                )
+                                                                  ] ;
+                                                oap:type          "person-list"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "DOI" ;
+                                                oap:links         [ oap:link  [ oap:href  "http://doi.org/10.1080/10962247.2020.1846637" ;
+                                                                                oap:type  "doi"
+                                                                              ] ;
+                                                                    oap:link  [ oap:href  "http://www.altmetric.com/details.php?doi=10.1080/10962247.2020.1846637" ;
+                                                                                oap:type  "altmetric"
+                                                                              ]
+                                                                  ] ;
+                                                oap:name          "doi" ;
+                                                oap:text          "10.1080/10962247.2020.1846637" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:date          [ oap:day    "17" ;
+                                                                    oap:month  "12" ;
+                                                                    oap:year   "2020"
+                                                                  ] ;
+                                                oap:display-name  "Record created at source" ;
+                                                oap:name          "record-created-at-source-date" ;
+                                                oap:type          "date"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "External identifiers" ;
+                                                oap:identifiers   [ oap:identifier  [ oap:field-value  "33320806" ;
+                                                                                      oap:scheme       "pubmed"
+                                                                                    ]
+                                                                  ] ;
+                                                oap:name          "external-identifiers" ;
+                                                oap:type          "identifier-list"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Pagination" ;
+                                                oap:name          "pagination" ;
+                                                oap:pagination    [ oap:begin-page  "1" ;
+                                                                    oap:end-page    "13"
+                                                                  ] ;
+                                                oap:type          "pagination"
+                                              ] ;
+                                   oap:field  [ oap:date          [ oap:day    "13" ;
+                                                                    oap:month  "1" ;
+                                                                    oap:year   "2021"
+                                                                  ] ;
+                                                oap:display-name  "Publication date" ;
+                                                oap:name          "publication-date" ;
+                                                oap:type          "date"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Title" ;
+                                                oap:name          "title" ;
+                                                oap:text          "Identification and evaluation of volatile organic compounds evolved during solarization with almond hull and shell amendments" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Altmetric attention score" ;
+                                                oap:integer       "1" ;
+                                                oap:name          "altmetric-attention-score" ;
+                                                oap:type          "integer"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Volume" ;
+                                                oap:name          "volume" ;
+                                                oap:text          "71" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Issue" ;
+                                                oap:name          "issue" ;
+                                                oap:text          "3" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Journal" ;
+                                                oap:name          "journal" ;
+                                                oap:text          "Journal of the Air & Waste Management Association" ;
+                                                oap:type          "text"
+                                              ]
+                                 ] ;
+        oap:source-display-name  "Dimensions" ;
+        oap:source-id            "10" ;
+        oap:source-name          "dimensions" .
+
+harvest_oap:10931798  oap:citation-count
+                "0" ;
+        oap:format               "native" ;
+        oap:id-at-source         "2-s2.0-85099440322" ;
+        oap:native               [ oap:field  [ oap:display-name  "Abstract" ;
+                                                oap:name          "abstract" ;
+                                                oap:text          "© 2021 A & WMA. Biosolarization is a fumigation alternative that combines solarization with organic amendments to suppress pests and pathogens in agricultural soils. The generation of volatile biopesticides in the soil, stemming from biodegradation of carbon-rich amendments, contributes to pest inactivation. The purpose of this study was to (1) profile volatiles that may contribute to pest control under field conditions and (2) measure volatile compounds that may present nuisance or exposure risks for humans near biosolarized fields where larger-scale anaerobic degradation of residues occurs. Biosolarization was performed using prominent agricultural waste products, hulls and shells from several almond varieties as soil amendments. After 8 days of biosolarization, soil samples were analyzed using solid phase microextraction-gas chromatography coupled to mass spectrometry. Volatile fatty acids and ketones made up 85% of biosolarized soil headspace, but terpenes, alcohols, aldehydes, esters, and sulfides were detected as well. Different almond variety residues produced distinct volatile profiles, and nonpareil-amended soils had a much richer and more diverse profile, as well as a fivefold greater VOC abundance, than pollinator-amended soil. Identified volatiles with low US recommended exposure limits were quantified via internal and external standards, including acetic acid, 2-butanone, butanal, hexanal, and phenylethyl alcohol. Across biosolarization treatments, headspace concentrations of selected compounds did not exceed 1 mg/m3. This study demonstrates that almond processing residues recycled into the soil as biosolarization substrates produce a high diversity of bioactive degradation compounds on a field scale, with low potential of non-target risks to humans. Implications: This manuscript has implications for two policy goals in the state of California: to reduce landfill disposal of organic waste, and to reduce emissions from soil fumigants. Almond hulls and shells are an increasing source of organic waste, and novel recycling strategies must be developed. Here, recycling almond residues as soil amendments promoted the rapid formation of VOCs which may act as alternatives to chemical fumigants. Headspace concentrations of potentially deleterious VOCs produced from treated soil were low, on the order of parts per billion. These results will help achieve policy goals by expanding waste usage and fumigation alternatives." ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "DOI" ;
+                                                oap:links         [ oap:link  [ oap:href  "http://doi.org/10.1080/10962247.2020.1846637" ;
+                                                                                oap:type  "doi"
+                                                                              ] ;
+                                                                    oap:link  [ oap:href  "http://www.altmetric.com/details.php?doi=10.1080/10962247.2020.1846637" ;
+                                                                                oap:type  "altmetric"
+                                                                              ]
+                                                                  ] ;
+                                                oap:name          "doi" ;
+                                                oap:text          "10.1080/10962247.2020.1846637" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Issue" ;
+                                                oap:name          "issue" ;
+                                                oap:text          "3" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "External identifiers" ;
+                                                oap:identifiers   [ oap:identifier  [ oap:field-value  "33320806" ;
+                                                                                      oap:scheme       "pubmed"
+                                                                                    ]
+                                                                  ] ;
+                                                oap:name          "external-identifiers" ;
+                                                oap:type          "identifier-list"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Authors" ;
+                                                oap:name          "authors" ;
+                                                oap:people        [ oap:person  ( [ oap:addresses             [ oap:address  [ oap:grid              harvest_oap:grid.27860.3b ;
+                                                                                                                               oap:iso-country-code  "US" ;
+                                                                                                                               oap:line              [ oap:field-value  "Davis" ;
+                                                                                                                                                       oap:type         "city"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "United States" ;
+                                                                                                                                                       oap:type         "country"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "University of California, Davis" ;
+                                                                                                                                                       oap:type         "organisation"
+                                                                                                                                                     ]
+                                                                                                                             ]
+                                                                                                              ] ;
+                                                                                    oap:first-names           "E" ;
+                                                                                    oap:identifiers           [ oap:identifier  [ oap:field-value  "57211201704" ;
+                                                                                                                                  oap:scheme       "scopus-author-id"
+                                                                                                                                ]
+                                                                                                              ] ;
+                                                                                    oap:initials              "E" ;
+                                                                                    oap:last-name             "Shea" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "E" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:addresses             [ oap:address  [ oap:grid              harvest_oap:grid.27860.3b ;
+                                                                                                                               oap:iso-country-code  "US" ;
+                                                                                                                               oap:line              [ oap:field-value  "Davis" ;
+                                                                                                                                                       oap:type         "city"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "United States" ;
+                                                                                                                                                       oap:type         "country"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "University of California, Davis" ;
+                                                                                                                                                       oap:type         "organisation"
+                                                                                                                                                     ]
+                                                                                                                             ]
+                                                                                                              ] ;
+                                                                                    oap:first-names           "JD" ;
+                                                                                    oap:identifiers           [ oap:identifier  [ oap:field-value  "16202681000" ;
+                                                                                                                                  oap:scheme       "scopus-author-id"
+                                                                                                                                ]
+                                                                                                              ] ;
+                                                                                    oap:initials              "JD" ;
+                                                                                    oap:last-name             "Fernandez-Bayo" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "J" "D" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:addresses             [ oap:address  [ oap:grid              harvest_oap:grid.27860.3b ;
+                                                                                                                               oap:iso-country-code  "US" ;
+                                                                                                                               oap:line              [ oap:field-value  "United States" ;
+                                                                                                                                                       oap:type         "country"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "Davis" ;
+                                                                                                                                                       oap:type         "city"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "University of California, Davis" ;
+                                                                                                                                                       oap:type         "organisation"
+                                                                                                                                                     ]
+                                                                                                                             ]
+                                                                                                              ] ;
+                                                                                    oap:first-names           "AM" ;
+                                                                                    oap:identifiers           [ oap:identifier  [ oap:field-value  "55955264900" ;
+                                                                                                                                  oap:scheme       "scopus-author-id"
+                                                                                                                                ]
+                                                                                                              ] ;
+                                                                                    oap:initials              "AM" ;
+                                                                                    oap:last-name             "Pastrana" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "A" "M" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:addresses             [ oap:address  [ oap:grid              harvest_oap:grid.27860.3b ;
+                                                                                                                               oap:iso-country-code  "US" ;
+                                                                                                                               oap:line              [ oap:field-value  "Davis" ;
+                                                                                                                                                       oap:type         "city"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "University of California, Davis" ;
+                                                                                                                                                       oap:type         "organisation"
+                                                                                                                                                     ] ;
+                                                                                                                               oap:line              [ oap:field-value  "United States" ;
+                                                                                                                                                       oap:type         "country"
+                                                                                                                                                     ]
+                                                                                                                             ]
+                                                                                                              ] ;
+                                                                                    oap:first-names           "CW" ;
+                                                                                    oap:identifiers           [ oap:identifier  [ oap:field-value  "16032595600" ;
+                                                                                                                                  oap:scheme       "scopus-author-id"
+                                                                                                                                ]
+                                                                                                              ] ;
+                                                                                    oap:initials              "CW" ;
+                                                                                    oap:last-name             "Simmons" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "C" "W" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                )
+                                                                  ] ;
+                                                oap:type          "person-list"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Pagination" ;
+                                                oap:name          "pagination" ;
+                                                oap:pagination    [ oap:begin-page  "400" ;
+                                                                    oap:end-page    "412"
+                                                                  ] ;
+                                                oap:type          "pagination"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Title" ;
+                                                oap:name          "title" ;
+                                                oap:text          "Identification and evaluation of volatile organic compounds evolved during solarization with almond hull and shell amendments" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Journal" ;
+                                                oap:name          "journal" ;
+                                                oap:text          "Journal of the Air and Waste Management Association" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Status" ;
+                                                oap:name          "publication-status" ;
+                                                oap:text          "Published" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "ISSN" ;
+                                                oap:links         [ oap:link  [ oap:href  "https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5/journals/1722858" ;
+                                                                                oap:type  "elements/journal"
+                                                                              ]
+                                                                  ] ;
+                                                oap:name          "issn" ;
+                                                oap:text          "1096-2247" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "eISSN" ;
+                                                oap:links         [ oap:link  [ oap:href  "https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5/journals/1722858" ;
+                                                                                oap:type  "elements/journal"
+                                                                              ]
+                                                                  ] ;
+                                                oap:name          "eissn" ;
+                                                oap:text          "2162-2906" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:date          [ oap:day    "1" ;
+                                                                    oap:month  "1" ;
+                                                                    oap:year   "2021"
+                                                                  ] ;
+                                                oap:display-name  "Publication date" ;
+                                                oap:name          "publication-date" ;
+                                                oap:type          "date"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Volume" ;
+                                                oap:name          "volume" ;
+                                                oap:text          "71" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Sub types" ;
+                                                oap:items         [ oap:item  "Journal Article" ] ;
+                                                oap:name          "types" ;
+                                                oap:type          "list"
+                                              ]
+                                 ] ;
+        oap:source-display-name  "Scopus" ;
+        oap:source-id            "7" ;
+        oap:source-name          "scopus" .
+
+harvest_oap:10508705  oap:format  "native" ;
+        oap:id-at-source         "10.1080/10962247.2020.1846637" ;
+        oap:native               [ oap:field  [ oap:display-name  "Status" ;
+                                                oap:name          "publication-status" ;
+                                                oap:text          "Published" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Title" ;
+                                                oap:name          "title" ;
+                                                oap:text          "Identification and evaluation of volatile organic compounds evolved during solarization with almond hull and shell amendments" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Volume" ;
+                                                oap:name          "volume" ;
+                                                oap:text          "71" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "eISSN" ;
+                                                oap:links         [ oap:link  [ oap:href  "https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5/journals/1722858" ;
+                                                                                oap:type  "elements/journal"
+                                                                              ]
+                                                                  ] ;
+                                                oap:name          "eissn" ;
+                                                oap:text          "2162-2906" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Publisher" ;
+                                                oap:name          "publisher" ;
+                                                oap:text          "Informa UK Limited" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:date          [ oap:day    "13" ;
+                                                                    oap:month  "1" ;
+                                                                    oap:year   "2021"
+                                                                  ] ;
+                                                oap:display-name  "Online publication date" ;
+                                                oap:name          "online-publication-date" ;
+                                                oap:type          "date"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Issue" ;
+                                                oap:name          "issue" ;
+                                                oap:text          "3" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Pagination" ;
+                                                oap:name          "pagination" ;
+                                                oap:pagination    [ oap:begin-page  "400" ;
+                                                                    oap:end-page    "412"
+                                                                  ] ;
+                                                oap:type          "pagination"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Authors" ;
+                                                oap:name          "authors" ;
+                                                oap:people        [ oap:person  ( [ oap:first-names           "Emily" ;
+                                                                                    oap:initials              "E" ;
+                                                                                    oap:last-name             "Shea" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Emily" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:first-names           "Jesus D" ;
+                                                                                    oap:initials              "JD" ;
+                                                                                    oap:last-name             "Fernandez-Bayo" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Jesus" "D" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:first-names           "Ana M" ;
+                                                                                    oap:initials              "AM" ;
+                                                                                    oap:last-name             "Pastrana" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Ana" "M" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                  [ oap:first-names           "Christopher W" ;
+                                                                                    oap:initials              "CW" ;
+                                                                                    oap:last-name             "Simmons" ;
+                                                                                    oap:separate-first-names  [ oap:first-name  ( "Christopher" "W" )
+                                                                                                              ]
+                                                                                  ]
+                                                                                )
+                                                                  ] ;
+                                                oap:type          "person-list"
+                                              ] ;
+                                   oap:field  [ oap:date          [ oap:day    "15" ;
+                                                                    oap:month  "12" ;
+                                                                    oap:year   "2020"
+                                                                  ] ;
+                                                oap:display-name  "Record created at source" ;
+                                                oap:name          "record-created-at-source-date" ;
+                                                oap:type          "date"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "ISSN" ;
+                                                oap:links         [ oap:link  [ oap:href  "https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v5.5/journals/1722858" ;
+                                                                                oap:type  "elements/journal"
+                                                                              ]
+                                                                  ] ;
+                                                oap:name          "issn" ;
+                                                oap:text          "1096-2247" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Language" ;
+                                                oap:name          "language" ;
+                                                oap:text          "en" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "Journal" ;
+                                                oap:name          "journal" ;
+                                                oap:text          "Journal of the Air & Waste Management Association" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:display-name  "DOI" ;
+                                                oap:links         [ oap:link  [ oap:href  "http://doi.org/10.1080/10962247.2020.1846637" ;
+                                                                                oap:type  "doi"
+                                                                              ] ;
+                                                                    oap:link  [ oap:href  "http://www.altmetric.com/details.php?doi=10.1080/10962247.2020.1846637" ;
+                                                                                oap:type  "altmetric"
+                                                                              ]
+                                                                  ] ;
+                                                oap:name          "doi" ;
+                                                oap:text          "10.1080/10962247.2020.1846637" ;
+                                                oap:type          "text"
+                                              ] ;
+                                   oap:field  [ oap:date          [ oap:day    "4" ;
+                                                                    oap:month  "3" ;
+                                                                    oap:year   "2021"
+                                                                  ] ;
+                                                oap:display-name  "Publication date" ;
+                                                oap:name          "publication-date" ;
+                                                oap:type          "date"
+                                              ]
+                                 ] ;
+        oap:source-display-name  "Crossref" ;
+        oap:source-id            "13" ;
+        oap:source-name          "crossref" .
+#+END_SRC
+
+* Colpolon
+
+This file is meant to be something of a literate programming environment for a
+standard set of sparql queries.  Eventually, this will be moved to the ~aeq~
+prioject for a single point of entry for queries to the system.  This should be
+an interactive file, that you can use to test queries, and then untangle this
+file, once you are ready to save these particular queries.
+
+This [[https://www.gnu.org/software/emacs/refcards/pdf/orgcard.pdf][Shortcut]] list is helpful to remember things like how to show the composed
+query.  This standard org-mode page on the [[https://orgmode.org/manual/Environment-of-a-Code-Block.html][Environment of a
+Code Block]] is also handy.
+
+This uses [[https://github.com/ljos/sparql-mode][sparql-mode]] which is actually pretty nice for queries.  For updates,
+I'm starting to look into the [[https://github.com/federicotdn/verb/blob/master/README.md][verb]] package, which might be the best for org-mode
+interaction.

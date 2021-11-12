@@ -1,13 +1,6 @@
 # Now create our version
 FROM openjdk:11-jdk
 
-# VIVO Havester Section
-COPY --from=ucdlib/vivo_harvester:dev /usr/local/vivo /usr/local/vivo/
-COPY --from=ucdlib/vivo_harvester:dev /usr/local/bin/docker-vivo-harvester-entrypoint.sh /usr/local/bin/
-
-COPY config/*.properties /etc/vivo/harvester/
-COPY config/scripts /etc/vivo/harvester/scripts/
-
 # Get JENA binaries
 COPY --from=stain/jena:3.14.0 /jena /jena/
 ENV PATH=$PATH:/jena/bin
@@ -24,8 +17,8 @@ RUN cd && npm install xml2json
 env PATH $PATH:/root/node_modules/.bin
 
 # Add our elements
-COPY elements /elements/
-RUN make --directory=/elements prefix=/usr/local install && rm -rf /elements
+COPY cdl-elements /cdl-elements/
+RUN make --directory=/cdl-elements prefix=/usr/local install && rm -rf /cdl-elements
 
 # Add our aeq tool
 COPY aeq /aeq/
@@ -33,7 +26,6 @@ RUN make --directory=/aeq prefix=/usr/local install && rm -rf /aeq
 
 # Add IAM query, cdl query and harvest
 COPY ucdid /usr/local/bin
-COPY cdl /usr/local/bin
 COPY harvest /usr/local/bin
 COPY lib /usr/local/lib/harvest
 

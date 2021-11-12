@@ -1,0 +1,39 @@
+* Test
+
+This is an example test method
+
+#+CALL: prefixes.org:lob-ingest()
+
+#+name: query
+#+BEGIN_SRC sparql :no-tangle
+select ?pub a ?type
+WHERE {
+ "this" $'is' `whack`
+}
+#+END_SRC
+
+#+BEGIN_SRC sparql :noweb yes :no-tangle
+<<prefixes>>
+<<query>>
+#+END_SRC
+
+#+name: ttl
+#+BEGIN_SRC ttl :noweb yes :tangle test.ttl
+<<prefixes>>
+q:pub
+    a aeq:bind ;
+    rdfs:label "Experts Publication URL" ;
+    aeq:bindto "?pub" ;
+    aeq:bind_type xsd:uri ;
+
+q:test
+    rdf:type  aeq:construct_query, aeq:query;
+    rdfs:label "Publication Type", "Example" ;
+    aeq:optional_bind q:pub ;
+    aeq:optional_bind q:type ;
+    aeq:query """
+<<query>>
+""" ;
+    .
+
+#+END_SRC

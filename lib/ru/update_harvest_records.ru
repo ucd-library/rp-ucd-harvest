@@ -1,12 +1,10 @@
 PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
-PREFIX oapx: <http://experts.ucdavis.edu/oap/vocab#>
 PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX vivo: <http://vivoweb.org/ontology/core#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX list: <http://jena.apache.org/ARQ/list#>
 PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX experts_oap: <http://experts.ucdavis.edu/oap/>
 PREFIX person: <http://experts.ucdavis.edu/person/>
 PREFIX work: <http://experts.ucdavis.edu/work/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
@@ -59,8 +57,8 @@ WHERE {
         {
           SELECT ?work (MIN(?record) AS ?exemplarRecord) WHERE {
             VALUES (?sourceNameA ?minPriority) {
-              ("verified-manual" 1) ("epmc" 2) ("pubmed" 3)  ("scopus" 4)("wos" 5) ("wos-lite" 6)
-              ("crossref" 7)  ("dimensions" 8) ("arxiv" 9)("orcid" 10) ("dblp" 11)  ("cinii-english" 12)
+              ("verified-manual" 1) ("epmc" 8) ("pubmed" 3)  ("scopus" 4)("wos" 5) ("wos-lite" 6)
+              ("crossref" 7)  ("dimensions" 2) ("arxiv" 9)("orcid" 10) ("dblp" 11)  ("cinii-english" 12)
               ("repec" 13)  ("figshare" 14)  ("cinii-japanese" 15) ("manual" 16)  ("dspace" 17) }
             ?work oap:category "publication" ;
             oap:records/oap:record ?record .
@@ -70,8 +68,8 @@ WHERE {
               ?work (MIN(?priority) AS ?minPriority)
               WHERE {
                 VALUES (?sourceNameIQ ?priority) {
-                  ("verified-manual" 1) ("epmc" 2) ("pubmed" 3)  ("scopus" 4)("wos" 5) ("wos-lite" 6)
-                  ("crossref" 7)  ("dimensions" 8) ("arxiv" 9)("orcid" 10) ("dblp" 11)  ("cinii-english" 12)
+                  ("verified-manual" 1) ("epmc" 8) ("pubmed" 3)  ("scopus" 4)("wos" 5) ("wos-lite" 6)
+                  ("crossref" 7)  ("dimensions" 2) ("arxiv" 9)("orcid" 10) ("dblp" 11)  ("cinii-english" 12)
                   ("repec" 13)  ("figshare" 14)  ("cinii-japanese" 15) ("manual" 16)  ("dspace" 17) }
                 ?work oap:category "publication" ;
                 oap:records/oap:record/oap:source-name ?sourceNameIQ
