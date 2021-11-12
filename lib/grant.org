@@ -8,8 +8,6 @@
 #+RESULTS:
 : 2
 
-: 2
-
 
 #+name: describe_person_grants
 #+BEGIN_SRC sparql :notangle  :noweb yes :var limit="5" :format raw :wrap SRC ttl :var personx="person:no-person" :var person="person:f9ef1e530c617cd598171497b4a49e82"
@@ -28,7 +26,166 @@
   }
 #+END_SRC
 
-#+call: describe_person_authorship(person="person:f9ef1e530c617cd598171497b4a49e82")
+#+call: describe_person_grants(person="person:f9ef1e530c617cd598171497b4a49e82")
+
+** Full Experts Grant Import
+:PROPERTIES:
+:header-args:sparql: :url http://localhost:8081/harvest.4RtO/sparql
+:END:
+
+#+name: construct_expert_grants
+#+BEGIN_SRC sparql :notangle  :noweb yes :var limit="1" :format raw :wrap SRC ttl
+    <<prefixes>>
+    CONSTRUCT {
+      ?grant rdfs:label ?title;
+             a ?grant_type;
+             vivo:sponsorAwardId ?sponsorAwardId;
+             vivo:totalAwardAmount ?totalAwardAmount;
+             vivo:grandDirectCost ?grantDirectCosts;
+             vivo:grandIndirectCost ?grantIndirectCosts;
+             ucdrp:caoCode ?caoCode;
+             vivo:assignedBy ?funding_org;
+             vivo:relates ?expert_role, ?role;
+                          .
+
+      ?expert_role obo:RO_000052 ?expert;
+                       .
+
+      ?role a ?role_type;
+            vivo:relatedBy ?grant;
+            ucdrp:role_person_name ?role_person_name;
+            obo:R0_000052 ?admin_department;
+            .
+
+      ?duration a ?duration_type;
+                vivo:start ?start;
+                vivo:end ?end;
+                .
+
+      ?start a ?start_type;
+             vivo:dateTime           ?start_dateTime;
+             vivo:dateTimePrecision  ?start_dateTimePrecision.
+
+      ?end a ?end_type;
+           vivo:dateTime           ?end_dateTime;
+           vivo:dateTimePrecision  ?end_dateTimePrecision.
+
+      ?funding_org rdfs:label ?funder_label;
+                   a ?funder_type;
+                   vivo:assigns ?grant;
+                   .
+        }
+    WHERE {
+      graph private: {
+        ?grant a ?grant_type;
+               rdfs:label ?title;
+               vivo:relates ?role;
+               vivo:sponsorAwardId ?sponsorAwardId;
+               .
+
+        ?role a ?role_type;
+              vivo:relatedBy ?grant;
+              .
+        OPTIONAL {
+          ?role ucdrp:role_person_name ?role_person_name;
+          .
+          }
+        OPTIONAL {
+          ?role obo:R0_000052 ?admin_department;
+                .
+        }
+
+        OPTIONAL {
+          ?grant vivo:totalAwardAmount ?totalAwardAmount .
+        }
+        OPTIONAL {
+          ?grant vivo:grandDirectCost ?grantDirectCosts .
+        }
+        OPTIONAL {
+          ?grant vivo:grandIndirectCost ?grantIndirectCosts .
+        }
+        OPTIONAL {
+          ?grant ucdrp:caoCode ?caoCode .
+        }
+
+        OPTIONAL {
+          ?grant vivo:assignedBy ?funding_org.
+          ?funding_org rdfs:label ?funder_label;
+  #                     vivo:assigns ?grant;
+                       a ?funder_type;
+                       .
+        }
+        OPTIONAL {
+          ?grant vivo:dateTimeInterval ?duration;
+                 .
+          OPTIONAL {
+            ?duration vivo:start ?start.
+            ?start a  ?start_type;
+                   vivo:dateTime           ?start_dateTime;
+                   vivo:dateTimePrecision  ?start_dateTimePrecision.
+          }
+          OPTIONAL {
+            ?duration vivo:end ?end.
+            ?end a  ?end_type;
+                 vivo:dateTime ?end_dateTime;
+                 vivo:dateTimePrecision  ?end_dateTimePrecision;
+                 .
+          }
+        }
+      }
+      { SELECT *
+        WHERE {
+          graph private: {
+            ?grant a vivo:Grant;
+                   vivo:relates ?expert_role;
+                   .
+
+            ?expert_role obo:RO_000052 ?expert_id.
+          }
+
+          {
+            select ?expert_id WHERE {
+              graph experts: {
+                ?expert_id a ucdrp:person ;
+                .
+              }
+            } limit ?limit}
+        }
+      }
+    }
+#+END_SRC
+
+#+RESULTS: construct_expert_grants
+#+begin_SRC ttl
+@prefix private: <http://experts.ucdavis.edu/private/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix FoR:   <http://experts.ucdavis.edu/concept/FoR/> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix free:  <http://experts.ucdavis.edu/concept/free> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+@prefix work:  <http://experts.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix afn:   <http://jena.apache.org/ARQ/function#> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+#+end_SRC
+
+
 
 ** Harvest Style Grants
 :PROPERTIES:

@@ -66,7 +66,7 @@ The private database mostly has the grants information currently.
 *** New users
 
   # Get users from other setup
-  src=http://gold.experts.library.ucdavis.edu:3005/experts/query
+  src=http://blue.experts.library.ucdavis.edu:3005/experts/query
   q='PREFIX : <http://experts.ucdavis.edu/schema#> select ?userId WHERE { [] a :person; :casId ?userId} order by ?userId'
 
   users=$(http --print=b --follow ${src} query=="$q" Accept:text/csv | tail -n+2 | tr -s '\n\r' ' ')

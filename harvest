@@ -416,12 +416,12 @@ function user () {
     err 1 "harvest run, must specify a --search parameter.  See ucdid for details."
   fi
 
-  if [[ -n ${CMD[init]} || -z ${G[db]} ]]; then
+  if [[ -n ${CMD[init]} || -z ${G[harvest_db]} ]]; then
     G[harvest_db]=$(db new);
   fi
 	local ep=${G[fuseki_host]}/${G[harvest_db]}
 
-  if ${CMD[fetch]} ; then
+   if ${CMD[fetch]} ; then
     # Now fetch all the data w/ CDL
     local cache=${G[harvest_base]}/${G[harvest_db]}
 	  #log -v -v "cache: $cache"
