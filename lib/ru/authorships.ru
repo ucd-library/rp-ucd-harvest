@@ -27,7 +27,6 @@ INSERT {
     ?authorship a vivo:Authorship,ucdrp:authorship ;
     vivo:rank ?authorRank ;
     vivo:relates ?experts_work_id ;
-    vivo:favorite ?favorite;
     vivo:relates ?authorship_vcard;
     .
 
@@ -65,11 +64,51 @@ WHERE { GRAPH harvest_oap: {
 	}
 }};
 
-# Next look at *every* native record for links to OAPOLICY records.  We use the rank here as well.
+# Next Add-in record links for our best record, using ranks
 INSERT {
   GRAPH experts: {
     ?authorship a vivo:Authorship,ucdrp:authorship ;
     vivo:rank ?authorRank ;
+    vivo:relates ?experts_work_id ;
+    vivo:relates ?personURI ;
+    vivo:favorite ?favorite;
+    .
+
+		?personURI vivo:relatedBy ?authorship.
+    ?experts_work_id vivo:relatedBy ?authorship;
+  }
+}
+WHERE { GRAPH harvest_oap: {
+  ?work oap:best_native_record ?native;
+        oap:experts_work_id ?experts_work_id;
+        oap:work_number ?pub_id;
+        .
+
+  ?native oap:field [ oap:name "authors" ; oap:people/oap:person [ list:index(?pos ?elem) ] ] .
+  BIND(?pos+1 AS ?authorRank)
+	BIND(uri(concat(replace(str(?experts_work_id),str(work:),str(authorship:)),"-",str(?authorRank))) as ?authorship)
+  ?elem oap:links/oap:link ?userLink.
+  bind(replace(str(?userLink),str(harvest_oap:),'') as ?user_id)
+  [] oap:type "publication-user-authorship";
+     oap:is-visible "true";
+     oap:related [ oap:category "publication";
+                   oap:id ?pub_id;
+                 ];
+  oap:related [ oap:category "user";
+                oap:id ?user_id;
+              ];
+  oap:is-favourite ?favorite;
+  .
+  ?userLink  oap:username ?username .
+  BIND(URI(CONCAT(STR("http://experts.ucdavis.edu/person/"),md5(STRBEFORE(?username,"@")))) AS ?personURI)
+}};
+
+
+# Next look at *every* native record for links to OAPOLICY records.  We can't use rank
+# since the ranks aren't always the same.
+INSERT {
+  GRAPH experts: {
+    ?authorship a vivo:Authorship,ucdrp:authorship ;
     vivo:relates ?experts_work_id ;
     vivo:relates ?personURI ;
     .
@@ -82,10 +121,7 @@ WHERE { GRAPH harvest_oap: {
         oap:experts_work_id ?experts_work_id;
         oap:work_number ?pub_id;
         .
-
   ?native oap:field [ oap:name "authors" ; oap:people/oap:person [ list:index(?pos ?elem) ] ] .
-  BIND(?pos+1 AS ?authorRank)
-	BIND(uri(concat(replace(str(?experts_work_id),str(work:),str(authorship:)),"-",str(?authorRank))) as ?authorship)
 
   ?elem oap:links/oap:link ?userLink.
   bind(replace(str(?userLink),str(harvest_oap:),'') as ?user_id)
@@ -102,10 +138,22 @@ WHERE { GRAPH harvest_oap: {
   .
   ?userLink  oap:username ?username .
   BIND(URI(CONCAT(STR("http://experts.ucdavis.edu/person/"),md5(STRBEFORE(?username,"@")))) AS ?personURI)
+
+  BIND(uri(concat(replace(str(?experts_work_id),str(work:),str(authorship:)),'-',md5(STRBEFORE(?username,"@")))) as ?authorship)
+
+  filter NOT EXISTS {
+    GRAPH experts: {
+      [] a vivo:Authorship;
+         vivo:relates ?personURI;
+         vivo:relates ?experts_work_id;
+         .
+    }
+  }
+
 }};
 
 # Additionally, we need to add relationships that are not added by CDL elements.
-# For these, we don't know exaclty what author is being assigned to this relationship,
+# For these, we don't know exactly what author is being assigned to this relationship,
 #
 INSERT {
   GRAPH experts: {
@@ -124,8 +172,6 @@ WHERE { GRAPH harvest_oap: {
         oap:work_number ?pub_id;
         .
 
-	BIND(uri(concat(replace(str(?experts_work_id),str(work:),str(authorship:)))) as ?authorship)
-
   [] oap:type "publication-user-authorship";
      oap:is-visible "true";
      oap:related [ oap:category "publication";
@@ -136,7 +182,19 @@ WHERE { GRAPH harvest_oap: {
               ];
   oap:is-favourite ?favorite;
   .
+
   bind(uri(concat(str(harvest_oap:),?user_id)) as ?userLink)
   ?userLink  oap:username ?username .
   BIND(URI(CONCAT(STR("http://experts.ucdavis.edu/person/"),md5(STRBEFORE(?username,"@")))) AS ?personURI)
+
+  BIND(uri(concat(replace(str(?experts_work_id),str(work:),str(authorship:)),'-',md5(STRBEFORE(?username,"@")))) as ?authorship)
+
+  filter NOT EXISTS {
+    GRAPH experts: {
+      [] a vivo:Authorship;
+           vivo:relates ?personURI;
+           vivo:relates ?experts_work_id;
+           .
+    }
+  }
 }};
