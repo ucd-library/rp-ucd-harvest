@@ -1,12 +1,79 @@
 * Grants
-:PROPERTIES:
-:header-args:sparql: :url http://localhost:8081/experts/sparql
-:END:
 
 #+call: prefixes.org:lob-ingest()
 
 #+RESULTS:
 : 2
+
+
+** In private DB
+:PROPERTIES:
+:header-args:sparql: :url http://localhost:8081/private/sparql
+:END:
+
+#+name: decribe_grants_via_cas
+#+BEGIN_SRC sparql :notangle  :noweb yes :var limit="5" :format raw :wrap SRC ttl :var cas_id="quinn"
+    <<prefixes>>
+  describe ?grant_part
+  WHERE {
+    bind(?cas_id as ?cas_name)
+    bind(uri(concat(str(person:),md5(?cas_name))) as ?researcher)
+    ?grant a vivo:Grant;
+           vivo:relates ?grant_role;
+           .
+    ?researcher obo:RO_000053 ?grant_role.
+
+    ?grant_part a ?type.
+
+    bind(concat('^',str(?grant),'(#.*)?') as ?grant_part_re)
+    filter(?grant_part,?grant_part_re)
+  } limit 500
+#+END_SRC
+
+#+name: decribe_grants_via_cas
+#+BEGIN_SRC sparql :notangle  :noweb yes :var limit="5" :var cas_id="quinn" :var since_date="2010-01-01"
+       <<prefixes>>
+  select ?grant ?cas_name ?type_abbrev ?title ?sponsor_name ?sponsor_id ?grant_amount ?start_date ?end_date ?role_label
+  WHERE {
+    bind('?cas_id' as ?cas_name)
+    bind('?since_date' as ?since)
+    bind(uri(concat(str(person:),md5(?cas_name))) as ?researcher)
+
+    ?grant_role obo:RO_000052 ?researcher;
+                a/ucdrp:abbrev ?role_label;
+                .
+
+    ?grant a vivo:Grant;
+           rdfs:label ?title;
+           vivo:relates ?grant_role;
+           vivo:sponsorAwardId ?sponsor_id;
+           ucdrp:grantType/ucdrp:abbrev ?type_abbrev;
+           vivo:totalAwardAmount ?grant_amount;
+           vivo:assignedBy/rdfs:label ?sponsor_name;
+           vivo:dateTimeInterval [
+                                    vivo:start [vivo:dateTime ?start_date ] ;
+                                    vivo:end [vivo:dateTime ?end_date ]
+                                 ];
+    .
+
+    filter(xsd:date(?since) < xsd:date(?start_date))
+
+  } limit ?limit
+fire
+
+#+RESULTS: decribe_grants_via_cas
+| grant                                   | cas_name | type_abbrev | title                                                                                              | sponsor_name                             |         sponsor_id | grant_amount | start_date |   end_date | role_label |
+|-----------------------------------------+----------+-------------+----------------------------------------------------------------------------------------------------+------------------------------------------+--------------------+--------------+------------+------------+------------|
+| http://experts.ucdavis.edu/grant/101639 | quinn    | C           | DEVELOPMENT OF A VICARIOUS CALIBRATION PROGRAM FOR THE NASA FACILITY E-MAS, MAS AND MASTER IMAGERS | NASA AMES RESEARCH CENTER                | NAS203144TO0308MDD |            0 | 2011-01-01 | 2011-12-31 | OTHR       |
+| http://experts.ucdavis.edu/grant/111109 | quinn    | C           | SIMETAW and Cal-SIMETAW Upgrade                                                                    | CALIFORNIA DEPARTMENT OF WATER RESOURCES |         4600010450 |       181353 | 2014-07-30 | 2017-07-29 | OTHR       |
+| http://experts.ucdavis.edu/grant/108231 | quinn    | C           | DETECTION OF SUGAR CANE HARVEST BURNING USING SATELLITE IMAGING                                    | AIR RESOURCES BOARD                      |             12-409 |        58493 | 2013-04-01 | 2015-03-31 | PI         |
+| http://experts.ucdavis.edu/grant/111052 | quinn    | C           | DWR-EVAPOTRANSPIRATION APPLICATIONS AND MAPPING                                                    | CALIFORNIA DEPARTMENT OF WATER RESOURCES |         4600010650 |        75000 | 2014-07-14 | 2016-06-15 | PI         |
+
+
+** In Experts DB
+:PROPERTIES:
+:header-args:sparql: :url http://localhost:8081/experts/sparql
+:END:
 
 
 #+name: describe_person_grants
@@ -26,7 +93,68 @@
   }
 #+END_SRC
 
+#+RESULTS: describe_person_grants
+#+begin_SRC ttl
+@prefix private: <http://experts.ucdavis.edu/private/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix FoR:   <http://experts.ucdavis.edu/concept/FoR/> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix free:  <http://experts.ucdavis.edu/concept/free> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+@prefix work:  <http://experts.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix afn:   <http://jena.apache.org/ARQ/function#> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+#+end_SRC
+
 #+call: describe_person_grants(person="person:f9ef1e530c617cd598171497b4a49e82")
+
+#+RESULTS:
+#+begin_SRC ttl
+@prefix private: <http://experts.ucdavis.edu/private/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix FoR:   <http://experts.ucdavis.edu/concept/FoR/> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix free:  <http://experts.ucdavis.edu/concept/free> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+@prefix work:  <http://experts.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix afn:   <http://jena.apache.org/ARQ/function#> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+#+end_SRC
+
 
 ** Full Experts Grant Import
 :PROPERTIES:
