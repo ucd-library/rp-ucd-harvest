@@ -12,7 +12,7 @@ harvest - overall harvest command
 harvest [-b|--base=<base>]
   <command> [<args>]
 
-  where <command> is one of db,load,update,query,login,run,export,config.
+  where <command> is one of db,load,update,query,login,run,config.
 
 
 =head1 GLOBAL OPTIONS
@@ -131,9 +131,6 @@ function main.cmd () {
 				$cmd "$@"
 				;;
 			user ) # Import a set of people
-        $cmd "$@";
-        ;;
-			export ) # Export Experts database.
         $cmd "$@";
         ;;
       config ) # informational requests
@@ -456,73 +453,6 @@ function user () {
 	fi;
   logit[duration]=$(($SECONDS-$begin))
   log_assoc -v logit
-
-}
-
-: <<='cut'
-=pod
-
-=head2 COMMAND
-
-harvest I<global_options> B<export> I<options>
-
-Exports the experts database on a per graph basis.  This allows the data to be
-shared with another implementation, or saved as an archive.
-
-=over 4
-
-=item B<--directory=export_directory>
-
-If specified, then save to this directory. Otherwise uses
-${HARVEST_BASE:-/var/lib/harvest}/export as the location.
-
-=back
-
-=cut
-
-function export () {
-  local opts;
-  if ! opts=$(${G[util_getopt]} -o d: --long directory -n 'harvest export' -- "$@"); then
-    echo "Bad Command Options." >&2 ; exit 1 ; fi
-
-  eval set -- "$opts"
-
-  declare -A CMD=(
-    [directory]=''
-    );
-
-  declare -A logit=(
-    [cmd]="export"
-  );
-
-  while true; do
-	  case $1 in
-	    -d | --directory) CMD[directory]=$2;  shift 2;;
-	    -- ) shift; break;;
-	    *) shift; break;
-    esac
-  done
-
-	if [[ -z ${CMD[directoy]} ]]; then
-		 CMD[directory]=${G[harvest_base]}/export;
-		 [[ -d ${CMD[directory]} ]] || mkdir ${CMD[directory]};
-	fi
-
-	local graphdirs=(
-		experts.ucdavis.edu
-		experts.ucdavis.edu%2Ffis
-	)
-
-	local get=http://fuseki:3030/experts/get
-
-	for dir in ${graphdirs[@]}; do
-		local d=${CMD[directory]}/$dir;
-		[[ -d $d ]] || mkdir $d;
-		local g=$(printf 'http://%b/' ${dir//%/\\x})
-    logit[export]="curl \"${get}?graph=$g\" | gzip > $d/graph.ttl"
-    log_assoc -v logit
-    curl -s "${get}?graph=$g" | gzip > $d/graph.ttl.gz
-	done
 
 }
 
