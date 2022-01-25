@@ -24,10 +24,10 @@ INSERT {
     }
 	GRAPH experts: {
     ?person_id a ucdrp:person, foaf:Person;
-       rdfs:label ?name ;
-       vivo:overview ?overview;
-       obo:ARG_2000028 ?vcard;
-       ucdrp:oapolicyId ?oapolicy_id;
+                 rdfs:label ?name;
+                 obo:ARG_2000028 ?vcard;
+                 ucdrp:oapolicyId ?oapolicy_id;
+                 ?field_predicate ?field_value;
        .
 
   ?person_id ucdrp:identifier ?identifier_oapolicy_id.
@@ -130,12 +130,15 @@ WHERE { GRAPH harvest_oap: {
       bind(?pos as ?web_rank)
       bind(uri(concat(str(ucdrp:),"URLType_",?web_type_text)) as ?web_type)
     }
-
-    OPTIONAL {
-      ?native oap:field [ oap:name "overview";
-                          oap:text/oap:field-value ?overview;
-                        ].
+    values (?field_name ?field_predicate ) {
+        ("overview" vivo:overview)
+        ("research-interests" ucdrp:researchInterests)
+        ("teaching-summary" ucdrp:teachingSummary)
       }
+    ?native oap:field [ oap:name ?field_name;
+                        oap:text [ oap:field-value ?field_value;
+                                   oap:privacy "public"; ]
+                      ].
   }
   bind(uri(concat(str(?vcard),"-email-",md5(?email))) as ?vcard_email)
   bind(uri(concat(str(?vcard),"-web-",str(?pos))) as ?vcard_web)
