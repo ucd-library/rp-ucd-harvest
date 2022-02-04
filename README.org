@@ -43,7 +43,7 @@ The private database mostly has the grants information currently.
 |---------------------------------+---------|
 | http://experts.ucdavis.edu/     |       6 |
 | http://experts.ucdavis.edu/fis/ | 1315810 |
-[[id:ac79e4e9-21ba-415d-865b-e9a4a3990c10][Traffic Server]]
+
 
 ** Manual Updates to the rc database
 
@@ -60,7 +60,6 @@ The private database mostly has the grants information currently.
   docker-compose exec fuseki fuseki-import-graphs \
   --clone="https://quinn:${GITLAB_PUSH_TOKEN}@${experts_git} \
   --single-branch --branch=experts-rc" --graph=experts.ucdavis.edu
- users
 
   # Get users from other setup
   src=http://blue.experts.library.ucdavis.edu:3005/experts/query
@@ -86,7 +85,7 @@ The private database mostly has the grants information currently.
 
 
   #+begin_src sparql :url http://localhost:8081/experts/sparql
-    select c?type (count(*) as ?cnt) WHERE { ?s a ?type} group by ?type order by ?type
+    select ?type (count(*) as ?cnt) WHERE { ?s a ?type} group by ?type order by ?type
   #+end_src
 
   #+RESULTS:

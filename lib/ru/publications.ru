@@ -52,6 +52,7 @@ WHERE { GRAPH harvest_oap: {
     ("chapter" bibo:Chapter)
     ("conference" vivo:ConferencePaper)
     ("journal-article" bibo:AcademicArticle)
+    ("preprint" ucdrp:PrePrint)
   }
 
   ?work

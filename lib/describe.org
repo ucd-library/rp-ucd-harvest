@@ -30,7 +30,7 @@ matching in our calls, *should* emulate what our ttl files show as well.
 describe ?s where {
  ?s ?p ?o.
  filter(isiri(?s))
- filter(regex(str(?s),concat("^",str(?uri),"#?")))
+ filter(regex(str(?s),concat("^",str(?uri),"(#|$)")))
 }
 #+END_SRC
 
@@ -40,9 +40,106 @@ describe ?s where {
 <<describe_hash_query_only>>
 #+END_SRC
 
+#+RESULTS: describe_hash
+#+begin_SRC ttl
+@prefix private: <http://experts.ucdavis.edu/private/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix FoR:   <http://experts.ucdavis.edu/concept/FoR/> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix free:  <http://experts.ucdavis.edu/concept/free> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+@prefix work:  <http://experts.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix afn:   <http://jena.apache.org/ARQ/function#> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+
+<http://experts.ucdavis.edu/work/3266506#date>
+        a                       vivo:DateTimeValue ;
+        vivo:dateTime           "2021-01-13T00:00:00"^^xsd:dateTime ;
+        vivo:dateTimePrecision  vivo:yearMonthDayPrecision .
+
+work:3266506  a                     bibo:AcademicArticle , ucdrp:work ;
+        rdfs:label                  "Identification and evaluation of volatile organic compounds evolved during solarization with almond hull and shell amendments" ;
+        ucdrp:best_source           "dimensions" ;
+        ucdrp:insertionDateTime     "2022-01-30T02:49:02.371+00:00"^^xsd:dateTime ;
+        ucdrp:lastModifiedDateTime  "2022-01-09T16:26:00.26-08:00"^^xsd:dateTime ;
+        ucdrp:pagination_source     "epmc" ;
+        ucdrp:priority              2 ;
+        bibo:doi                    "10.1080/10962247.2020.1846637" ;
+        bibo:issue                  "3" ;
+        bibo:journal                "Journal of the Air & Waste Management Association" ;
+        bibo:pageEnd                "412" ;
+        bibo:pageStart              "400" ;
+        bibo:status                 bibo:published ;
+        bibo:volume                 "71" ;
+        vivo:dateTimeValue          <http://experts.ucdavis.edu/work/3266506#date> ;
+        vivo:hasPublicationVenue    <http://experts.ucdavis.edu/venue/issn:1096-2247> ;
+        vivo:hasSubjectArea         <http://experts.ucdavis.edu/concept/free/f1901967f9e50416835d57dec3994724> , FoR:09 , <http://experts.ucdavis.edu/concept/free/6e0f1dd7caf63a58e14d7842d55c60e5> , <http://experts.ucdavis.edu/concept/free/93a30171e623ff1611c2207347f2dc6a> , <http://experts.ucdavis.edu/concept/free/e4b9dca2448724ca25e388a0317a09c8> , FoR:05 , <http://experts.ucdavis.edu/concept/free/7d0d35c8905bd56f4c57ef2c017fe41e> , <http://experts.ucdavis.edu/concept/free/b22ae022cc5c0574905902d812d11ae9> , <http://experts.ucdavis.edu/concept/free/7f4e2480164840822b2ee2bbffe8eaff> ;
+        vivo:relatedBy              authorship:3266506-2 , authorship:3266506-8aacf919206c6655bc3edbdf25ec7c08 , authorship:3266506-1 , authorship:3266506-4 , authorship:3266506-3 .
+#+end_SRC
+
 Now, we can use this function to describe any particular subject in the database.
 
 #+call: describe_hash(uri="authorship:3266506-3")
+
+#+RESULTS:
+#+begin_SRC ttl
+@prefix private: <http://experts.ucdavis.edu/private/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix FoR:   <http://experts.ucdavis.edu/concept/FoR/> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix free:  <http://experts.ucdavis.edu/concept/free> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+@prefix work:  <http://experts.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix afn:   <http://jena.apache.org/ARQ/function#> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+
+authorship:3266506-3  a  ucdrp:authorship , vivo:Authorship ;
+        vivo:rank     3 ;
+        vivo:relates  <http://experts.ucdavis.edu/authorship/3266506-3#vcard> , work:3266506 .
+
+<http://experts.ucdavis.edu/authorship/3266506-3#vcard-name>
+        a                 vcard:Name ;
+        vcard:familyName  "Pastrana" ;
+        vcard:givenName   "Ana M" .
+
+<http://experts.ucdavis.edu/authorship/3266506-3#vcard>
+        a              vcard:Individual ;
+        vcard:hasName  <http://experts.ucdavis.edu/authorship/3266506-3#vcard-name> .
+#+end_SRC
 
 *** Describe of Type
 

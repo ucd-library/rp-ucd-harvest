@@ -1,4 +1,4 @@
-PREFIX aeq: <http://experts.ucdavis.edu/queries/schema#>
+ PREFIX aeq: <http://experts.ucdavis.edu/queries/schema#>
 PREFIX authorship: <http://experts.ucdavis.edu/authorship/>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
 PREFIX experts: <http://experts.ucdavis.edu/>
