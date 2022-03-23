@@ -22,13 +22,29 @@
 
    This can be done on a monthly basis.
 
+*** Cloud storage
+
+       #+begin_src bash
+gsutil cat gs://aggie-experts-sandbox/private/grants.json.gz | zcat |\
+dc exec -T fuseki curl --data-binary @- -X POST  http://fuseki:3030/private/data -H "Content-Type: application/ld+json"
+   #+end_src
+
+
+*** Cloud located snapshots
+
+    These can be used for the experts data and/or for the private data.
+
+   #+begin_src bash
+gsutil cat gs://ucd-research-profiles/datasets/dev/private.trig.gz | zcat |\
+dc exec -T fuseki curl --data-binary @- -X POST  http://fuseki:3030/private/data -H "Content-Type: text/trig"
+   #+end_src
+
+
+   Old Style
    #+begin_src bash
      experts_git=gitlab.dams.library.ucdavis.edu/experts/experts-data.git
      docker-compose exec fuseki fuseki-import-graphs \
      --clone="https://quinn:${GITLAB_PUSH_TOKEN}@${experts_git} --single-branch --branch=main"
-
-
-
 #+end_src
 
 #+RESULTS:
@@ -128,9 +144,12 @@ The private database mostly has the grants information currently.
     simplified to a more simple setup.
 
     #+begin_src bash
-      d=~/experts-data/experts/experts.ucdavis.edu
-      dc exec fuseki curl http://fuseki:3030/experts/get?graph=http://experts.ucdavis.edu/ | gzip > $d/graph.ttl.gz
+      dc exec fuseki curl http://fuseki:3030/experts/get | gzip > experts.trig.gz
+      # or
+      dc exec fuseki curl -H "Accept:application/ld+jsonld" http://fuseki:3030/experts/get | gzip > experts.json.gz
     #+end_src
+
+    #+RESULTS:
 
 *** Mulitple Users
 

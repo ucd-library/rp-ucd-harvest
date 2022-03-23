@@ -37,6 +37,7 @@ insert  { graph experts: {
          vivo:assignedBy ?funding_org;
          vivo:relates ?role,?expert_id;
          vivo:dateTimeInterval ?duration;
+         ucdrp:subAwardOf ?super_award;
          .
 
   ?expert_id vivo:relatedBy ?grant.
@@ -65,10 +66,41 @@ insert  { graph experts: {
                a ?funder_type;
                vivo:assigns ?grant;
                .
+
+  ?super_award vivo:assignedBy ?super_funding_org.
+  ?super_funding_org rdfs:label ?super_funder_label;
+               a ?super_funder_type;
+               vivo:assigns ?grant;
+               .
+
+
 } }
 WHERE {
   values ?role_type_ok { vivo:AdminRole vivo:LeaderRole vivo:ResearcherRole
     vivo:CoPrincipalInvestigatorRole vivo:PrincipalInvestigatorRole }
+
+    { SELECT ?grant ?expert_role ?expert_id
+    WHERE {
+      graph ?private {
+        ?grant a vivo:Grant;
+               vivo:relates ?expert_role;
+               .
+
+        ?expert_role obo:RO_000052 ?expert_id.
+      }
+
+      {
+        select ?expert_id WHERE {
+          graph harvest_oap: {
+            ?user oap:experts_person_id ?expert_id ;
+            .
+          }
+        } }
+      filter(private:=?private)
+    }
+  }
+
+
   graph private: {
     ?grant a ?grant_type;
            rdfs:label ?title;
@@ -114,6 +146,17 @@ WHERE {
                    a ?funder_type;
                    .
     }
+
+    OPTIONAL {
+      ?grant ucdrp:subAwardOf ?super_award;
+             .
+      ?super_award vivo:assignedBy ?super_funding_org.
+
+      ?super_funding_org rdfs:label ?super_funder_label;
+                         a ?super_funder_type;
+                         .
+    }
+
     OPTIONAL {
       ?grant vivo:dateTimeInterval ?duration;
              .
@@ -132,26 +175,6 @@ WHERE {
              vivo:dateTimePrecision  ?end_dateTimePrecision;
              .
       }
-    }
-  }
-  { SELECT ?grant ?expert_role ?expert_id
-    WHERE {
-      graph ?private {
-        ?grant a vivo:Grant;
-               vivo:relates ?expert_role;
-               .
-
-        ?expert_role obo:RO_000052 ?expert_id.
-      }
-
-      {
-        select ?expert_id WHERE {
-          graph harvest_oap: {
-            ?user oap:experts_person_id ?expert_id ;
-            .
-          }
-        } }
-      filter(private:=?private)
     }
   }
 }
