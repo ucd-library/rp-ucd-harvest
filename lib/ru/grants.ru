@@ -72,8 +72,6 @@ insert  { graph experts: {
                a ?super_funder_type;
                vivo:assigns ?grant;
                .
-
-
 } }
 WHERE {
   values ?role_type_ok { vivo:AdminRole vivo:LeaderRole vivo:ResearcherRole
@@ -124,6 +122,9 @@ WHERE {
 
     OPTIONAL {
       ?grant vivo:sponsorAwardId ?sponsorAwardId.
+    }
+    OPTIONAL {
+      ?grant vivo:totalAwardAmount ?totalAwardAmount.
     }
     OPTIONAL {
       ?grant vivo:grandDirectCost ?grantDirectCosts .
