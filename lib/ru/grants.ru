@@ -105,7 +105,6 @@ WHERE {
     ?grant a ?grant_type;
            rdfs:label ?title;
            vivo:relates ?role;
-           vivo:sponsorAwardId ?sponsorAwardId;
            .
 
     ?role a ?role_type_ok;
@@ -124,7 +123,7 @@ WHERE {
     OPTIONAL { ?role a ?role_type.}
 
     OPTIONAL {
-      ?grant vivo:totalAwardAmount ?totalAwardAmount .
+      ?grant vivo:sponsorAwardId ?sponsorAwardId.
     }
     OPTIONAL {
       ?grant vivo:grandDirectCost ?grantDirectCosts .
