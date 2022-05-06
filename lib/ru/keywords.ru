@@ -1,37 +1,56 @@
-PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
-PREFIX cite: <http://citationstyles.org/schema/>
-PREFIX bibo: <http://purl.org/ontology/bibo/>
-PREFIX vivo: <http://vivoweb.org/ontology/core#>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX list: <http://jena.apache.org/ARQ/list#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR/>
+PREFIX free: <http://experts.ucdavis.edu/concept/free/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
-PREFIX obo: <http://purl.obolibrary.org/obo/>
-PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
-PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
+PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX experts: <http://experts.ucdavis.edu/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-INSERT {
-  GRAPH experts: {
-    ?experts_work_id vivo:hasfreetextKeyword ?keyword
-  }
-}
+# Add in the ConceptScheme all the time
+INSERT { GRAPH experts: {
+  free: a skos:ConceptScheme;
+      dcterms:title "Free Text Terms"@en;
+      dcterms:creator "UC Davis Library" ;
+      dcterms:type "wordlist" ;
+      dcterms:language "en" ;
+      skos:prefLabel "Free Text Terms";
+    .
+}} WHERE{};
+
+INSERT { GRAPH experts: {
+  ?keyword a skos:Concept, ucdrp:concept ;
+    skos:prefLabel ?term;
+    rdfs:label ?term;
+    ucdrp:scheme "freetext";
+    skos:inScheme free: ;
+#	  ucdrp:lastModifiedDateTime ?lastModifiedDateTime ;
+#	  ucdrp:insertionDateTime ?insertionDateTime;
+    .
+
+  ?experts_work_id vivo:hasSubjectArea ?keyword.
+  ?keyword vivo:subjectAreaOf ?experts_work_id.
+
+}}
 WHERE {
   GRAPH harvest_oap: {
     ?work oap:best_native_record ?native;
-               oap:experts_work_id ?experts_work_id;
-    .
+          oap:experts_work_id ?experts_work_id;
+          .
     {
       {
-        ?native oap:field  [ oap:display-name  "Keywords" ; oap:keywords/oap:keyword ?keyword ]
-        FILTER(!ISBLANK(?keyword))
+        ?native oap:field  [ oap:display-name  "Keywords" ; oap:keywords/oap:keyword ?term ]
+        FILTER(!ISBLANK(?term))
       }
-        UNION
+      UNION
       {
-        ?native oap:field  [ oap:display-name  "Keywords" ; oap:keywords/oap:keyword/oap:field-value ?keyword ]
+        ?native oap:field  [ oap:display-name  "Keywords" ; oap:keywords/oap:keyword/oap:field-value ?term ]
       }
     }
-        }
+    bind(IRI(concat(str(free:),md5(lcase(?term)))) as ?keyword)
+  }
 }

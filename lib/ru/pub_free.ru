@@ -28,9 +28,13 @@ INSERT { GRAPH experts: {
     rdfs:label ?term;
     oap:scheme ?scheme;
     skos:inScheme free: ;
-	  ucdrp:lastModifiedDateTime ?lastModifiedDateTime ;
-	  ucdrp:insertionDateTime ?insertionDateTime;
-  .
+#	  ucdrp:lastModifiedDateTime ?lastModifiedDateTime ;
+#	  ucdrp:insertionDateTime ?insertionDateTime;
+    .
+
+  ?experts_work_id vivo:hasSubjectArea ?keyword.
+  ?keyword vivo:subjectAreaOf ?experts_work_id.
+
 }}
 WHERE { GRAPH harvest_oap: {
   ?work oap:experts_work_id ?experts_work_id ;
@@ -38,21 +42,6 @@ WHERE { GRAPH harvest_oap: {
 		oap:last-modified-when ?lastModifiedWhen .
 	BIND(xsd:dateTime(?lastModifiedWhen) AS ?lastModifiedDateTime)
 	BIND(NOW() as ?insertionDateTime)
-	bind(IRI(concat(str(free:),md5(?term))) as ?keyword)
-	filter(?scheme != "for")
-}};
-
-
-# Now connect the terms to the works
-
-INSERT { GRAPH experts: {
-  ?experts_work_id vivo:hasSubjectArea ?keyword.
-  ?keyword vivo:subjectAreaOf ?experts_work_id.
-}}
-WHERE { GRAPH harvest_oap: {
-  ?work oap:experts_work_id ?experts_work_id;
-              oap:all-labels/oap:keywords/oap:keyword [ oap:field-value ?term ; oap:scheme ?scheme ] ;
-  .
-  filter(?scheme != "for")
-  bind(IRI(concat(str(free:),md5(?term))) as ?keyword)
+	bind(IRI(concat(str(free:),md5(lcase(?term)))) as ?keyword)
+#	filter(?scheme != "for")
 }};
