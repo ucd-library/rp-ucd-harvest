@@ -18,7 +18,6 @@ PREFIX FoR: <http://experts.ucdavis.edu/concept/FoR/>
 PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
 
 INSERT {
-  # Remember we have concepts
   GRAPH harvest_oap: {
     ?user oap:user_supplied_concepts ?user_supplied_concepts;
     }
@@ -75,6 +74,8 @@ INSERT {
 }
 WHERE { GRAPH harvest_oap: {
   ?user oap:category "user";
+        oap:is-public "true";
+        oap:is-login-allowed "true";
         oap:experts_person_id ?person_id;
         oap:last-name ?ln;
         oap:first-name ?fn;

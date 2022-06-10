@@ -40,15 +40,6 @@ dc exec -T fuseki curl --data-binary @- -X POST  http://fuseki:3030/private/data
    #+end_src
 
 
-   Old Style
-   #+begin_src bash
-     experts_git=gitlab.dams.library.ucdavis.edu/experts/experts-data.git
-     docker-compose exec fuseki fuseki-import-graphs \
-     --clone="https://quinn:${GITLAB_PUSH_TOKEN}@${experts_git} --single-branch --branch=main"
-#+end_src
-
-#+RESULTS:
-
 The private database mostly has the grants information currently.
 #+begin_src sparql :url http://localhost:8081/private/sparql
   select ?g (count(*) as ?cnt) WHERE { graph ?g {?s ?p ?o. }} group by ?g
@@ -69,13 +60,6 @@ The private database mostly has the grants information currently.
   update .env for testing
   dc up -d
   #+end_src
-
-
-  # Just fetch the experts graph.
-  experts_git=gitlab.dams.library.ucdavis.edu/experts/experts-data.git
-  docker-compose exec fuseki fuseki-import-graphs \
-  --clone="https://quinn:${GITLAB_PUSH_TOKEN}@${experts_git} \
-  --single-branch --branch=experts-rc" --graph=experts.ucdavis.edu
 
   # Get users from other setup
   src=http://blue.experts.library.ucdavis.edu:3005/experts/query
@@ -146,7 +130,7 @@ The private database mostly has the grants information currently.
     #+begin_src bash
       dc exec fuseki curl http://fuseki:3030/experts/get | gzip > experts.trig.gz
       # or
-      dc exec fuseki curl -H "Accept:application/ld+jsonld" http://fuseki:3030/experts/get | gzip > experts.json.gz
+      dc exec fuseki curl -H "Accept:application/ld+json" http://fuseki:3030/experts/get | gzip > experts.json.gz
     #+end_src
 
     #+RESULTS:
