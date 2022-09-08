@@ -1,0 +1,113 @@
+* Authorships
+:PROPERTIES:
+:header-args:sparql: :url http://localhost:8081/experts/sparql
+:END:
+
+
+#+call: prefixes.org:lob-ingest()
+
+#+RESULTS:
+
+: 2
+
+
+
+#+name: select_work
+#+BEGIN_SRC sparql  :noweb yes :var limit="5"
+<<prefixes>>
+#+END_SRC
+
+
+#+name: describe_work
+#+BEGIN_SRC sparql :notangle  :noweb yes :var limit="5" :format raw :wrap SRC ttl :var work="work:2364120"
+  <<prefixes>>
+  describe ?part ?related ?vcard_part WHERE {
+    ?part a ?type ;
+    .
+    ?work vivo:relatedBy ?related;
+          .
+    #?related vivo:relates ?vcard;
+
+  #          ?vcard_part a ?vcard_type;
+  #                     .
+        #  ?related a vivo:Authorship;
+        #           vivo:relates/rdf:type ucdrp:person;
+        ###  .
+
+    #        filter(regex(str(?part),concat("^",str(?related))) || regex(str(?part),concat("^",str(?work))))
+
+  #          filter(regex(str(?vcard_part),concat("^",str(?related))))
+            filter(regex(str(?part),concat("^",str(?work))))
+        } limit 10
+#+END_SRC
+
+#+RESULTS: describe_work
+#+begin_SRC ttl
+@prefix private: <http://experts.ucdavis.edu/private/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix FoR:   <http://experts.ucdavis.edu/concept/FoR/> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ucdrp: <http://experts.ucdavis.edu/schema#> .
+@prefix purl:  <http://purl.org/ontology/bibo/> .
+@prefix aeq:   <http://experts.ucdavis.edu/queries/schema#> .
+@prefix iam:   <http://iam.ucdavis.edu/schema#> .
+@prefix authorship: <http://experts.ucdavis.edu/authorship/> .
+@prefix vivo:  <http://vivoweb.org/ontology/core#> .
+@prefix free:  <http://experts.ucdavis.edu/concept/free> .
+@prefix harvest_iam: <http://iam.ucdavis.edu/> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix oap:   <http://oapolicy.universityofcalifornia.edu/vocab#> .
+@prefix work:  <http://experts.ucdavis.edu/work/> .
+@prefix query: <http://experts.ucdavis.edu/schema/queries/> .
+@prefix afn:   <http://jena.apache.org/ARQ/function#> .
+@prefix harvest_oap: <http://oapolicy.universityofcalifornia.edu/> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix q:     <http://experts.ucdavis.edu/queries/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix person: <http://experts.ucdavis.edu/person/> .
+@prefix bibo:  <http://purl.org/ontology/bibo/> .
+@prefix experts: <http://experts.ucdavis.edu/> .
+@prefix obo:   <http://purl.obolibrary.org/obo/> .
+
+authorship:2364120-5  a  ucdrp:authorship , vivo:Authorship ;
+        vivo:favorite  "false" ;
+        vivo:rank      5 ;
+        vivo:relates   person:5291e4d36b94d14caae13c84f7bc5662 , <http://experts.ucdavis.edu/authorship/2364120-5#vcard> , work:2364120 .
+
+authorship:2364120-3  a  ucdrp:authorship , vivo:Authorship ;
+        vivo:favorite  "false" ;
+        vivo:rank      3 ;
+        vivo:relates   person:f9ef1e530c617cd598171497b4a49e82 , <http://experts.ucdavis.edu/authorship/2364120-3#vcard> , work:2364120 .
+
+authorship:2364120-1  a  ucdrp:authorship , vivo:Authorship ;
+        vivo:favorite  "false" ;
+        vivo:rank      1 ;
+        vivo:relates   <http://experts.ucdavis.edu/authorship/2364120-1#vcard> , work:2364120 , person:b78c058911b45047c56f3b5148381715 .
+
+authorship:2364120-4  a  ucdrp:authorship , vivo:Authorship ;
+        vivo:rank     4 ;
+        vivo:relates  <http://experts.ucdavis.edu/authorship/2364120-4#vcard> , work:2364120 .
+
+work:2364120  a                     bibo:AcademicArticle , ucdrp:work ;
+        rdfs:label                  "Hybrid Poplar based Biorefinery Siting Web Application (HP-BiSWA): An online decision support application for siting hybrid poplar based biorefineries" ;
+        ucdrp:best_source           "dimensions" ;
+        ucdrp:insertionDateTime     "2022-01-29T22:45:37.295+00:00"^^xsd:dateTime , "2022-01-30T01:43:19.226+00:00"^^xsd:dateTime , "2022-01-29T22:41:30.193+00:00"^^xsd:dateTime ;
+        ucdrp:lastModifiedDateTime  "2022-01-18T01:46:10.087-08:00"^^xsd:dateTime ;
+        ucdrp:pagination_source     "epmc" ;
+        ucdrp:priority              2 ;
+        bibo:doi                    "10.1016/j.compag.2018.09.042" ;
+        bibo:journal                "Computers and Electronics in Agriculture" ;
+        bibo:pageEnd                "83" ;
+        bibo:pageStart              "76" ;
+        bibo:status                 bibo:published , bibo:accepted ;
+        bibo:volume                 "155" ;
+        vivo:dateTimeValue          <http://experts.ucdavis.edu/work/2364120#date> ;
+        vivo:hasPublicationVenue    <http://experts.ucdavis.edu/venue/issn:0168-1699> ;
+        vivo:hasSubjectArea         FoR:08 , <http://experts.ucdavis.edu/concept/free/96dcf204338f6b37f6b17972f92b9482> , FoR:09 , FoR:07 , FoR:070101 ;
+        vivo:relatedBy              authorship:2364120-3 , authorship:2364120-4 , authorship:2364120-1 , authorship:2364120-5 , authorship:2364120-2 .
+
+authorship:2364120-2  a  ucdrp:authorship , vivo:Authorship ;
+        vivo:rank     2 ;
+        vivo:relates  <http://experts.ucdavis.edu/authorship/2364120-2#vcard> , work:2364120 .
+#+end_SRC
