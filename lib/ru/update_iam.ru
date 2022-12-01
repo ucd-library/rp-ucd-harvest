@@ -36,7 +36,7 @@ INSERT {
   ?user a ?emp_type, ucdrp:person;
           rdfs:label ?label;
           ucdrp:casId ?kerb;
-          ucdrp:indentifier ?user_id;
+          ucdrp:identifier ?user_id;
           obo:ARG_2000028 _:vcard;
   .
   _:vcard a vcard:Individual;
@@ -58,7 +58,8 @@ INSERT {
    .
 } } WHERE {
   select ?user ?label ?kerb ?vid ?title ?email ?dept ?fname ?lname ?order ?emp_type
-  where { graph harvest_iam: {
+  where {
+    graph harvest_iam: {
     ?s iam:email ?email;
        iam:userID ?kerb;
        iam:dLastName ?iam_lname;

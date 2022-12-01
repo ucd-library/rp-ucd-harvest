@@ -430,9 +430,6 @@ function user () {
     ucdid fetch --format=ttl --search="${CMD[search]}" profiles > $profiles_ttl
     load --graph=http://iam.ucdavis.edu/ $profiles_ttl
 
-  # Now run an update to convert IAM to vivo users
-  update iam_experts
-
   # Now get all the casIDs, This doesn't use experts, but the harvestdb
   ids="$(aeq --endpoint="$ep"/sparql query --format=json <<<"select ?id where { {graph harvest_iam: {?u iam:userID ?id; filter(NOT EXISTS {?u iam:directory ?d }) } } UNION { graph harvest_iam: {[] iam:userID ?id; iam:directory/iam:displayName/iam:nameWwwFlag 'Y'. }}} order by ?id" | jq -r .results.bindings[].id.value | tr [:space:] ' ')"
 
@@ -442,6 +439,7 @@ function user () {
 
   # Then, run the update scripts for new data
   update update_harvest_records
+  update iam_experts
   update experts
   update journal publications authorships
   update pub_FoR pub_free keywords expert_concepts;

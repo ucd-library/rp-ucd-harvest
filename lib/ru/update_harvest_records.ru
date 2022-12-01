@@ -1,22 +1,23 @@
-PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
-PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX bibo: <http://purl.org/ontology/bibo/>
-PREFIX vivo: <http://vivoweb.org/ontology/core#>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX list: <http://jena.apache.org/ARQ/list#>
+PREFIX cite: <http://citationstyles.org/schema/>
 PREFIX experts: <http://experts.ucdavis.edu/>
-PREFIX person: <http://experts.ucdavis.edu/person/>
-PREFIX work: <http://experts.ucdavis.edu/work/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
+PREFIX list: <http://jena.apache.org/ARQ/list#>
+PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX person: <http://experts.ucdavis.edu/person/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
-PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX vivo: <http://vivoweb.org/ontology/core#>
+PREFIX work: <http://experts.ucdavis.edu/work/>
 
 # Update the users with their opaque person_ids
-
+# But only if they are addable into the system.
+#
 INSERT {
 	GRAPH harvest_oap: {
 		?user oap:experts_person_id ?person_id;
@@ -25,6 +26,8 @@ INSERT {
 } WHERE {
 	GRAPH harvest_oap: {
 		?user oap:category "user";
+        oap:is-public "true";
+        oap:is-login-allowed "true";
 				oap:username ?username;
 		.
 		bind(md5(replace(?username,"@ucdavis.edu","")) as ?user_id)

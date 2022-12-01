@@ -8,7 +8,9 @@ PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX person: <http://experts.ucdavis.edu/person/>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX harvest_iam: <http://iam.ucdavis.edu/>
+PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
 PREFIX iam: <http://iam.ucdavis.edu/schema#>
+PREFIX oap: <http://oapolicy.universityofcalifornia.edu/vocab#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ucdrp: <http://experts.ucdavis.edu/schema#>
@@ -45,7 +47,7 @@ INSERT {
                 vcard:pronoun ?pronoun;
                 .
 
-} } WHERE {
+  } } WHERE {
   graph harvest_iam: {
     ?s iam:email ?email;
        iam:userID ?kerb;
@@ -53,6 +55,8 @@ INSERT {
        iam:dFirstName ?iam_fname;
        iam:isFaculty ?faculty;
        .
+    bind(concat(?kerb,"@ucdavis.edu") as ?username)
+
     OPTIONAL {
         ?s iam:dMiddleName ?iam_mname .
     }
@@ -83,6 +87,23 @@ INSERT {
 
     bind(uri(concat(str(?user),"#vcard-name")) as ?vcard_name)
   }
+    # Needs to be harvestable as well
+    FILTER NOT EXISTS {
+      graph harvest_oap: {
+        [] oap:category "user";
+           oap:is-public "false";
+           oap:username ?username;
+           .
+      }
+    }
+    FILTER NOT EXISTS {
+      graph harvest_oap: {
+        [] oap:category "user";
+           oap:is-login-allowed "false";
+           oap:username ?username;
+           .
+      }
+    }
 };
 
 # Now add their roles seperately.  Currently ODR implies the same name for all listings
@@ -164,16 +185,35 @@ INSERT {
     bind(uri(concat(str(person:),?user_id)) as ?user)
     bind(uri(concat(str(?user),"#vcard-name")) as ?vcard_name)
     bind(uri(concat(str(?user),"#vcard-",?vid)) as ?vcard)
-
     bind(if(bound(?title),uri(concat(str(?vcard),"-title")),?undefined_var) as ?vcard_title)
-
-
     bind(if(bound(?title_email),?title_email,if(bound(?use_default_email),?default_email,?undefined_var)) as ?email)
     bind(if(bound(?email),uri(concat(str(?vcard),"-email")),?undefined_var) as ?vcard_email)
-
     bind(if(bound(?website),uri(concat(str(?vcard),"-url")),?undefined_var) as ?vcard_url)
     bind(if(bound(?dept),uri(concat(str(?vcard),"-unit")),?undefined_var) as ?vcard_unit)
-
-
-  }}
+  }
+    # No privacy code
+    FILTER NOT EXISTS {
+      graph harvest_iam: {
+        ?s iam:privacyCode [];
+           .
+         }
+    }
+    # Needs to be harvestable as well
+    FILTER NOT EXISTS {
+      graph harvest_oap: {
+        [] oap:category "user";
+           oap:is-public "false";
+           oap:username ?username;
+           .
+      }
+    }
+    FILTER NOT EXISTS {
+      graph harvest_oap: {
+        [] oap:category "user";
+           oap:is-login-allowed "false";
+           oap:username ?username;
+           .
+      }
+    }
+  }
 }
