@@ -10,25 +10,27 @@
 (org-babel-lob-ingest file);
 #+END_SRC
 
+#+RESULTS: lob-ingest-file
+: 0
+
 
 Prefixes are in their own file.  You can add them to [[https://orgmode.org/manual/Library-of-Babel.html][Library of Babel]] with:
 
 #+CALL: prefixes.org:lob-ingest()
 
-#+RESULTS:
-: 2
 
 ** Describe
 
 #+CALL: lob-ingest-file(file="prefixes.org")
 
 #+RESULTS:
-: 2
+: 0
 
 #+CALL: describe.org:lob-ingest()
 
 #+RESULTS:
 : 7
+
 
 #+call: describe_hash(uri="authorship:3266506-3")
 
