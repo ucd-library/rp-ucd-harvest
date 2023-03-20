@@ -1,5 +1,5 @@
 PREFIX bibo: <http://purl.org/ontology/bibo/>
-PREFIX cite: <http://citationstyles.org/schema/>
+PREFIX cite: <http://citationstyles.org/v1.0/schema#>
 PREFIX experts: <http://experts.ucdavis.edu/>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX harvest_oap: <http://oapolicy.universityofcalifornia.edu/>
@@ -19,8 +19,7 @@ PREFIX work: <http://experts.ucdavis.edu/work/>
 PREFIX authorship: <http://experts.ucdavis.edu/authorship/>
 
 
-# Leave in previous insertionTimes, since it's a good indication we didn't clean
-# our db.
+  # Remove insertionDate for now
 #DELETE {
 #  GRAPH experts: {
 #    ?experts_work_id ucdrp:insertionDateTime ?t.
@@ -39,21 +38,46 @@ INSERT {
   GRAPH experts: {
     ?experts_work_id a ?bibo_type, ucdrp:work ;
     rdfs:label ?title ;
+    cite:title ?title ;
+    cite:type ?cite_type;
+    cite:genre ?cite_genre;
+    cite:status ?status;
     bibo:status ?vivoStatus;
     ucdrp:best_source ?source;
 		ucdrp:lastModifiedDateTime ?lastModifiedDateTime ;
-		ucdrp:insertionDateTime ?insertionDateTime;
+#		ucdrp:insertionDateTime ?insertionDateTime;
     .
   }
 }
 WHERE { GRAPH harvest_oap: {
-  VALUES(?oap_type ?bibo_type){
-    ("book" bibo:Book)
-    ("chapter" bibo:Chapter)
-    ("conference" vivo:ConferencePaper)
-    ("journal-article" bibo:AcademicArticle)
-    ("preprint" ucdrp:PrePrint)
+  VALUES(?oap_type ?bibo_type ?cite_type){
+    ("book" bibo:Book "book" "")
+    ("chapter" bibo:Chapter "chapter" "")
+    ("conference" vivo:ConferencePaper "paper-conference" "")
+    ("dataset" ucdrp:work "dataset" "")
+    ("internet-publication" ucdrp:work "webpage" "")
+    ("journal-article" bibo:AcademicArticle "article-journal" "")
+    ("media" ucdrp:work "article" "media")
+    ("other" ucdrp:work "article" "other")
+    ("poster" ucdrp:work "speech" "poster")
+    ("preprint" ucdrp:PrePrint "article" "preprint" )
+    ("presentation" ucdrp:work "speech" "presentation")
+    ("report" ucdrp:work "report" "")
+    ("scholarly-edition" ucdrp:work "manuscript" "scholarly-edition")
+    ("software" ucdrp:work "software")
+    ("thesis-dissertation" ucdrp:work "thesis" "disseration")
   }
+
+    VALUES(?oap_type ?cite_genre){
+    ("media" "media")
+    ("other" "other")
+    ("poster" "poster")
+    ("preprint" "preprint" )
+    ("presentation" "presentation")
+    ("scholarly-edition" "scholarly-edition")
+    ("thesis-dissertation" "disseration")
+  }
+
 
   ?work
          oap:best_record/oap:source-name ?source;
@@ -63,7 +87,7 @@ WHERE { GRAPH harvest_oap: {
          oap:work_number ?pub_id;
 			   oap:last-modified-when ?lastModifiedWhen .
   BIND(xsd:dateTime(?lastModifiedWhen) AS ?lastModifiedDateTime)
-  BIND(NOW() as ?insertionDateTime)
+#  BIND(NOW() as ?insertionDateTime)
 
   ?native oap:field [ oap:name "title" ; oap:text ?title ] .
 
@@ -78,7 +102,7 @@ WHERE { GRAPH harvest_oap: {
 
 }};
 
-# Now insert optional bibo entries
+# Now insert optional bibo/cite entries
 INSERT {
   GRAPH experts: {
     ?experts_work_id ?bibo_predicate ?field_text.
@@ -90,22 +114,77 @@ WHERE {
                oap:experts_work_id ?experts_work_id;
     .
 
-    VALUES(?field_name ?bibo_predicate) {
-      ("abstract" bibo:abstract)
-      ("author-url" bibo:uri)
+    VALUES(?field_name ?predicate) {
+#      ("abstract" bibo:abstract)
+#      ("author-url" bibo:uri)
       ("doi" bibo:doi)
-      ("isbn-10" bibo:isbn10)
-      ("isbn-13" bibo:isbn13)
-      ("issue" bibo:issue)
-      ("journal" bibo:journal)
-      ("number" bibo:number)
-      ("publish-url" bibo:uri)
-      ("public-url" bibo:uri)
-      ("c-eschol-id" bibo:identifier)
-      ("volume" bibo:volume)
-      }
-
-      ?native oap:field [ oap:name ?field_name ; oap:text ?field_text ].
+#      ("isbn-10" bibo:isbn10)
+#      ("isbn-13" bibo:isbn13)
+#      ("issue" bibo:issue)
+#      ("journal" bibo:journal)
+#      ("number" bibo:number)
+#      ("publish-url" bibo:uri)
+#      ("public-url" bibo:uri)
+#      ("c-eschol-id" bibo:identifier)
+#      ("volume" bibo:volume)
+      ("abstract" cite:abstract)
+      ("acceptance-date" cite:issued)
+      #("addresses" cite:)
+      #("altmetric-attention-score" cite:)
+      #("associated-identifiers" cite:)
+      #("author-url" cite:)
+      #("authors" cite:)
+      #("c-eschol-id" cite:)
+      #("c-uci-id" cite:)
+      #("c-ucsf-id" cite:)
+      #("collections" cite:)
+      #("confidential" cite:)
+      ("doi" cite:DOI)
+      ("edition" cite:edition)
+      #("editors" cite:)
+      ("eissn" cite:eissn)
+      #("embargo-release-date" cite:)
+      ("external-identifiers" cite:)
+      #("field-citation-ratio" cite:)
+      #("filed-date" cite:)
+      #("finish-date" cite:)
+      ("is-open-access" ucdrp:is-open-access)
+      ("isbn-10" cite:ISBN)
+      ("isbn-13" cite:ISBN)
+      ("issn" cite:ISSN)
+      ("issue" cite:issue)
+      ("journal" cite:container-title)
+      ("keywords" cite:keyword)
+      ("language" cite:language)
+      #("location" cite:)
+      ("medium" cite:medium)
+      ("name-of-conference" cite:container-title)
+      ("notes" cite:note)
+      ("number" cite:collection-number)
+      ("oa-location-url" cite:url)
+      ("online-publication-date" cite:avaliable-date)
+      ("pagination" cite:pagination)
+      ("parent-title" cite:container-title)
+      #("pii" cite:)
+      ("place-of-publication" cite:publisher-place)
+      ("public-url" cite:url)
+      ("publication-date" cite:issued)
+      ("publication-status" cite:status)
+      ("publisher" cite:publisher)
+      ("publisher-licence" cite:license)
+      #("publisher-url" cite:)
+      #("record-created-at-source-date" cite:)
+      #("record-made-public-at-source-date" cite:)
+      #("relative-citation-ratio" cite:)
+      #("repository-status" cite:)
+      ("series" cite:collection-number)
+      #("start-date" cite:)
+      ("thesis-type" cite:genre) # Hopefully cite:type set correctly
+      ("title" cite:title)
+      #("types" cite:genre) Handled elsewhere
+      ("volume" cite:volume)
+    }
+    ?native oap:field [ oap:name ?field_name ; oap:text ?field_text ].
   }};
 
 # Insert any pagenumber
@@ -146,44 +225,53 @@ WHERE {
 };
 
 
-# Insert the Work Date in VIVO format.
+# Insert the Work Date in VIVO format and in cite:format
 INSERT {
   GRAPH experts: {
-    ?experts_work_id vivo:dateTimeValue ?work_date.
+    ?experts_work_id vivo:dateTimeValue ?work_date;
+                     ?date_pred ?work_date;
+                     .
 
     ?work_date a vivo:DateTimeValue ;
+      cite:date ?cite_date;
       vivo:dateTime ?workDateTime ;
       vivo:dateTimePrecision ?dateTimePrecision  .
   }
 }
 WHERE {
   GRAPH harvest_oap: {
-    ?work oap:best_native_record ?native;
-               oap:experts_work_id ?experts_work_id;
+
+    values(?date_name ?date_pred) {
+      ("publication-date" cite:issued)
+      ("online-publication-date" cite:available-date)
+    }
+
+    [] oap:best_native_record/oap:field [ oap:name ?date_name ;
+                                          oap:date ?workDate ];
+          oap:experts_work_id ?experts_work_id;
     .
 
-    {
-    ?native oap:field [ oap:name "publication-date" ; oap:date ?workDate ].
-    }
-    UNION
-    {
-      ?native oap:field [ oap:name "online-publication-date" ; oap:date ?workDate ].
-    }
+
     ?workDate oap:year ?workDateYear
-    BIND(vivo:yearPrecision AS ?yearPrecision)
+    BIND(vivo:yearPrecision AS ?delta_y)
+    BIND(?workDateYear as ?cite_y)
     OPTIONAL {
       ?workDate oap:month ?workDateMonthRaw
       BIND(IF(xsd:integer(?workDateMonthRaw) < 10, CONCAT("0", ?workDateMonthRaw), ?workDateMonthRaw) AS ?workDateMonth)
-      BIND(vivo:yearMonthPrecision AS ?yearMonthPrecision)
+      BIND(concat(?workDateYear,"-",?workDateMonth) as ?cite_ym)
+      BIND(vivo:yearMonthPrecision AS ?delta_ym)
       OPTIONAL {
         ?workDate oap:day ?workDateDayRaw
         BIND(IF(xsd:integer(?workDateDayRaw) < 10, CONCAT("0", ?workDateDayRaw), ?workDateDayRaw) AS ?workDateDay)
-        BIND(vivo:yearMonthDayPrecision AS ?yearMonthDayPrecision)
+        BIND(concat(?workDateYear,"-",?workDateMonth,"-",?workDateDay) as ?cite_ymd)
+        BIND(vivo:yearMonthDayPrecision AS ?delta_ymd)
       }
     }
-    bind(uri(concat(str(?experts_work_id),"#date")) as ?work_date)
       BIND(xsd:dateTime(CONCAT(?workDateYear, "-", COALESCE(?workDateMonth, "01"), "-", COALESCE(?workDateDay, "01"), "T00:00:00")) AS ?workDateTime)
-      BIND(COALESCE(?yearMonthDayPrecision, ?yearMonthPrecision, ?yearPrecision) AS ?dateTimePrecision)
+    BIND(COALESCE(?delta_ymd,?delta_ym,?delta_y) AS ?dateTimePrecision)
+    BIND(COALESCE(?cite_ymd, ?cite_ym, ?cite_y) AS ?cite_date)
+    bind(uri(concat(str(?experts_work_id),'#',?cite_date)) as ?work_date)
+
 }};
 
 

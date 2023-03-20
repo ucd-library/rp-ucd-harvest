@@ -138,8 +138,8 @@ function main.init() {
   "bouOrgOId":{
     "@type":"@id"
   },
-  "iam":"'${G[base]}'schema#",
-  "harvest_iam":"'${G[base]}'"}
+  "ucdrp":"http://experts.ucdavis.edu/schema#",
+  "iam":"'${G[base]}'"}
 }'
 
     # system variables (UCDID_FOO_BAR) over config file
